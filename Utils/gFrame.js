@@ -132,6 +132,23 @@ Audio.prototype.playFromStart=function(){
     this.play();
 };
 
+_$.lazyAudio=function(src){
+    return {
+        _audio:null,
+        play:function(){
+            if (!this._audio) this._audio=new Audio(src);
+            return this._audio.play();
+        },
+        pause:function(){
+            if (this._audio) this._audio.pause();
+        },
+        playFromStart:function(){
+            if (!this._audio) this._audio=new Audio(src);
+            this._audio.playFromStart();
+        }
+    };
+};
+
 /**************** Add to _$ namespace *******************/
 
 _$.requestAnimationFrame=requestAnimationFrame || webkitRequestAnimationFrame ||

@@ -33,6 +33,17 @@
         <div class="levelSelectionBg"></div>
     </div>
     <div id="GamePlay" class="GameLayer" race="Terran">
+        <button id="PauseButton" type="button">Pause</button>
+        <div id="GameHUD"></div>
+        <div id="PauseMenu" aria-hidden="true">
+            <div class="pauseMenuPanel">
+                <div class="pauseMenuTitle">Paused</div>
+                <button id="PauseResume" type="button">Resume</button>
+                <button id="PauseRestart" type="button">Restart</button>
+                <button id="PauseToggleMetrics" type="button">Toggle FPS/Input</button>
+                <button id="PauseToggleHaptics" type="button">Toggle Haptics</button>
+            </div>
+        </div>
         <canvas id="backCanvas"></canvas>
         <canvas id="middleCanvas"></canvas>
         <canvas id="frontCanvas"></canvas>
@@ -72,6 +83,7 @@
                         <div class="processBar">
                             <div class="processedBar"></div>
                         </div>
+                        <div class="queue"></div>
                     </div>
                 </div>
             </div>

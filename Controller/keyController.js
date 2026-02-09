@@ -8,7 +8,7 @@ var keyController={
             //Will not switch page by Ctrl+N,cannot debug
             //event.preventDefault();
             //Sometimes need to disable shortcut key
-            if (keyController.disable && event.keyCode!=13) return;
+            if (keyController.disable && event.keyCode!=13 && event.keyCode!=27) return;
             switch (event.keyCode){
                 //Press SHIFT down
                 case 16:
@@ -68,6 +68,10 @@ var keyController={
                 //Press ENTER
                 case 13:
                     Cheat.handler();
+                    break;
+                //Press ESC
+                case 27:
+                    if (window.Game && Game.togglePause) Game.togglePause();
                     break;
             }
         };

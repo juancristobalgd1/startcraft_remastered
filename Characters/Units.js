@@ -12,9 +12,9 @@ var Unit=Gobj.extends({
         this.routingTimer=0;
         //Each unit instance has its own sound
         this.sound={
-            selected:new Audio('bgm/'+this.name+'.selected.wav'),
-            moving:new Audio('bgm/'+this.name+'.moving.wav'),
-            death:new Audio('bgm/'+this.name+'.death.wav')
+            selected:_$.lazyAudio('bgm/'+this.name+'.selected.wav'),
+            moving:_$.lazyAudio('bgm/'+this.name+'.moving.wav'),
+            death:_$.lazyAudio('bgm/'+this.name+'.death.wav')
         };
         //Finish below after fully constructed, postpone
         var myself=this;
@@ -103,6 +103,7 @@ var Unit=Gobj.extends({
                 //Only play animation, will not move
                 myself.animeFrame();
             },100);
+            delete this._routingTarget;
         },
         stand:function(){
             this.dock();
@@ -191,12 +192,18 @@ var Unit=Gobj.extends({
         },
         moveTo:function(clickX,clickY,range,callback){
             if (!range) range=Unit.moveRange;//Smallest limit by default
+            if (this._routingTarget && this.routingTimer &&
+                Math.abs(this._routingTarget.x - clickX) < 2 && Math.abs(this._routingTarget.y - clickY) < 2 &&
+                Math.abs(this._routingTarget.range - range) < 1) {
+                return;
+            }
             //If already routing
             if (this.routingTimer) {
                 clearInterval(this.routingTimer);//then break routing
             }
             //Start new routing
             var myself=this;
+            this._routingTarget={x:clickX,y:clickY,range:range};
             var routingFrame=function(){
                 if (myself.navigateTo(clickX,clickY,range)){
                     //Run callback when reach target
@@ -206,7 +213,8 @@ var Unit=Gobj.extends({
             };
             //Add one missing frame, fix twice callback issue
             if (routingFrame()) callback=null;
-            this.routingTimer=setInterval(routingFrame,100);
+            var interval=(this.insideScreen && this.insideScreen()) ? 100 : 200;
+            this.routingTimer=setInterval(routingFrame,interval);
             //Start moving
             this.run();
         },
@@ -235,7 +243,8 @@ var Unit=Gobj.extends({
             };
             //Add one missing frame, fix twice callback issue
             if (routingFrame()) callback=null;
-            this.routingTimer=setInterval(routingFrame,100);
+            var interval=(this.insideScreen && this.insideScreen()) ? 100 : 200;
+            this.routingTimer=setInterval(routingFrame,interval);
             //Start moving
             this.run();
         },

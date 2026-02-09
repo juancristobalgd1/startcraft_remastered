@@ -15,6 +15,24 @@ var Game = {
     _timer: -1,
     _frameInterval: 100,
     _clock: 0,
+    isPaused: false,
+    hapticsEnabled: false,
+    ui: {
+        lastResource: { mine: null, gas: null, curMan: null, totalMan: null, manColor: null, supplyBlocked: null, supplyWarnAt: 0 },
+        lastSelected: { life: null, shield: null, magic: null, kill: null, lifeColor: null },
+        lastProcessing: { name: null, percent: null, visible: null, queueText: null },
+        lastMetrics: { fps: null, inputMs: null, visible: false }
+    },
+    metrics: {
+        enabled: false,
+        _lastFrameAt: 0,
+        _fps: 0,
+        _lastInputAt: 0
+    },
+    perf: {
+        cullMargin: 60,
+        aiNearMargin: 180
+    },
     selectedUnit: {},
     allSelected: [],
     _oldAllSelected: [],
@@ -53,87 +71,145 @@ var Game = {
         $('div.GameLayer').hide();
         $('#' + layerName).show(); //show('slow')
     },
+    togglePause: function () {
+        if (Game.isPaused) Game.resume();
+        else Game.pause();
+    },
+    pause: function () {
+        Game.isPaused = true;
+        keyController.disable = true;
+        var menu = document.getElementById('PauseMenu');
+        if (menu) {
+            menu.style.display = 'block';
+            menu.setAttribute('aria-hidden', 'false');
+        }
+        var btn = document.getElementById('PauseButton');
+        if (btn) btn.textContent = 'Resume';
+    },
+    resume: function () {
+        Game.isPaused = false;
+        keyController.disable = false;
+        var menu = document.getElementById('PauseMenu');
+        if (menu) {
+            menu.style.display = 'none';
+            menu.setAttribute('aria-hidden', 'true');
+        }
+        var btn = document.getElementById('PauseButton');
+        if (btn) btn.textContent = 'Pause';
+    },
+    restartLevel: function () {
+        Game.resume();
+        Game.stopAnimation();
+        var all = Unit.allUnits.concat(Building.allBuildings);
+        all.forEach(function (chara) {
+            if (!chara) return;
+            if (chara.routingTimer) clearInterval(chara.routingTimer);
+            if (chara.attackTimer) clearInterval(chara.attackTimer);
+            if (chara._timer) {
+                clearInterval(chara._timer);
+                clearTimeout(chara._timer);
+            }
+            if (chara.stop) chara.stop();
+            chara.status = 'dead';
+        });
+        Unit.allUnits.length = 0;
+        Unit.ourFlyingUnits.length = 0;
+        Unit.ourGroundUnits.length = 0;
+        Unit.enemyFlyingUnits.length = 0;
+        Unit.enemyGroundUnits.length = 0;
+        Building.allBuildings.length = 0;
+        Building.ourBuildings.length = 0;
+        Building.enemyBuildings.length = 0;
+        Burst.allEffects.length = 0;
+        Game.unselectAll();
+        Game.changeSelectedTo({});
+        Game._clock = 0;
+        Resource.init();
+        Levels[Game.level - 1].load();
+        setTimeout(function () {
+            Game.resizeWindow();
+            mouseController.toControlAll();
+            Game.animation();
+        }, 0);
+    },
+    _isVisible: function (chara, margin) {
+        if (!chara || chara.status === 'dead') return false;
+        if (margin == null) margin = 0;
+        var left = GameMap.offsetX - margin;
+        var top = GameMap.offsetY - margin;
+        var right = GameMap.offsetX + Game.HBOUND + margin;
+        var bottom = GameMap.offsetY + Game.VBOUND + margin;
+        return (chara.x + chara.width) > left && chara.x < right && (chara.y + chara.height) > top && chara.y < bottom;
+    },
+    _anyVisibleBullet: function (bulletOrArray) {
+        if (!bulletOrArray) return false;
+        if (bulletOrArray instanceof Array) {
+            for (var i = 0; i < bulletOrArray.length; i++) {
+                var b = bulletOrArray[i];
+                if (b && b.status !== 'dead' && Game._isVisible(b, Game.perf.cullMargin)) return true;
+            }
+            return false;
+        }
+        return bulletOrArray.status !== 'dead' && Game._isVisible(bulletOrArray, Game.perf.cullMargin);
+    },
+    _shouldRunAI: function (chara, inView) {
+        if (!chara || !chara.AI) return false;
+        if (chara.selected) return true;
+        var interval = 1;
+        if (!inView) {
+            var cx = GameMap.offsetX + (Game.HBOUND * 0.5);
+            var cy = GameMap.offsetY + (Game.VBOUND * 0.5);
+            var dx = Math.abs(chara.posX() - cx);
+            var dy = Math.abs(chara.posY() - cy);
+            interval = (dx > Game.HBOUND * 1.5 || dy > Game.VBOUND * 1.5) ? 10 : 4;
+        }
+        if (!chara._lastAIClock) chara._lastAIClock = 0;
+        if ((Game._clock - chara._lastAIClock) >= interval) {
+            chara._lastAIClock = Game._clock;
+            return true;
+        }
+        return false;
+    },
     init: function () {
         $('div.GameLayer').on("selectstart", (event) => {
             event.preventDefault();
         });
         window.onresize = Game.resizeWindow;
         Game.layerSwitchTo("GameLoading");
-        sourceLoader.load("img", "img/Charas/Mutalisk.png", "Mutalisk");
-        sourceLoader.load("img", "img/Charas/Devourer.png", "Devourer");
-        sourceLoader.load("img", "img/Charas/Guardian.png", "Guardian");
-        sourceLoader.load("img", "img/Charas/Overlord.png", "Overlord");
-        sourceLoader.load("img", "img/Charas/Drone.png", "Drone");
-        sourceLoader.load("img", "img/Charas/Zergling.png", "Zergling");
-        sourceLoader.load("img", "img/Charas/Hydralisk.png", "Hydralisk");
-        sourceLoader.load("img", "img/Charas/Scourge.png", "Scourge");
-        sourceLoader.load("img", "img/Charas/Lurker.png", "Lurker");
-        sourceLoader.load("img", "img/Charas/Ultralisk.png", "Ultralisk");
-        sourceLoader.load("img", "img/Charas/Broodling.png", "Broodling");
-        sourceLoader.load("img", "img/Charas/InfestedTerran.png", "InfestedTerran");
-        sourceLoader.load("img", "img/Charas/Queen.png", "Queen");
-        sourceLoader.load("img", "img/Charas/Defiler.png", "Defiler");
-        sourceLoader.load("img", "img/Charas/Larva.png", "Larva");
-        sourceLoader.load("img", "img/Charas/BattleCruiser.png", "BattleCruiser");
-        sourceLoader.load("img", "img/Charas/Wraith.png", "Wraith");
-        sourceLoader.load("img", "img/Charas/SCV.png", "SCV");
-        sourceLoader.load("img", "img/Charas/Civilian.png", "Civilian");
-        sourceLoader.load("img", "img/Charas/Marine.png", "Marine");
-        sourceLoader.load("img", "img/Charas/Firebat.png", "Firebat");
-        sourceLoader.load("img", "img/Charas/Ghost.png", "Ghost");
-        sourceLoader.load("img", "img/Charas/Vulture.png", "Vulture");
-        sourceLoader.load("img", "img/Charas/Tank.png", "Tank");
-        sourceLoader.load("img", "img/Charas/Goliath.png", "Goliath");
-        sourceLoader.load("img", "img/Charas/Medic.png", "Medic");
-        sourceLoader.load("img", "img/Charas/Dropship.png", "Dropship");
-        sourceLoader.load("img", "img/Charas/Vessel.png", "Vessel");
-        sourceLoader.load("img", "img/Charas/Valkyrie.png", "Valkyrie");
-        sourceLoader.load("img", "img/Charas/Probe.png", "Probe");
-        sourceLoader.load("img", "img/Charas/Zealot.png", "Zealot");
-        sourceLoader.load("img", "img/Charas/Dragoon.png", "Dragoon");
-        sourceLoader.load("img", "img/Charas/Templar.png", "Templar");
-        sourceLoader.load("img", "img/Charas/DarkTemplar.png", "DarkTemplar");
-        sourceLoader.load("img", "img/Charas/Reaver.png", "Reaver");
-        sourceLoader.load("img", "img/Charas/Archon.png", "Archon");
-        sourceLoader.load("img", "img/Charas/DarkArchon.png", "DarkArchon");
-        sourceLoader.load("img", "img/Charas/Shuttle.png", "Shuttle");
-        sourceLoader.load("img", "img/Charas/Observer.png", "Observer");
-        sourceLoader.load("img", "img/Charas/Arbiter.png", "Arbiter");
-        sourceLoader.load("img", "img/Charas/Scout.png", "Scout");
-        sourceLoader.load("img", "img/Charas/Carrier.png", "Carrier");
-        sourceLoader.load("img", "img/Charas/Corsair.png", "Corsair");
-        sourceLoader.load("img", "img/Charas/Ragnasaur.png", "Ragnasaur");
-        sourceLoader.load("img", "img/Charas/Rhynsdon.png", "Rhynsdon");
-        sourceLoader.load("img", "img/Charas/Ursadon.png", "Ursadon");
-        sourceLoader.load("img", "img/Charas/Bengalaas.png", "Bengalaas");
-        sourceLoader.load("img", "img/Charas/Scantid.png", "Scantid");
-        sourceLoader.load("img", "img/Charas/Kakaru.png", "Kakaru");
-        sourceLoader.load("img", "img/Charas/HeroCruiser.png", "HeroCruiser");
-        sourceLoader.load("img", "img/Charas/Sarah.png", "Sarah");
-        sourceLoader.load("img", "img/Charas/Kerrigan.png", "Kerrigan");
-        sourceLoader.load("img", "img/Charas/ZergBuilding.png", "ZergBuilding");
-        sourceLoader.load("img", "img/Charas/TerranBuilding.png", "TerranBuilding");
-        sourceLoader.load("img", "img/Charas/ProtossBuilding.png", "ProtossBuilding");
-        sourceLoader.load("img", "img/Maps/(2)Switchback.jpg", "Map_Switchback");
-        sourceLoader.load("img", "img/Maps/(2)Volcanis.jpg", "Map_Volcanis");
-        sourceLoader.load("img", "img/Maps/(3)Trench wars.jpg", "Map_TrenchWars");
-        sourceLoader.load("img", "img/Maps/(4)Blood Bath.jpg", "Map_BloodBath");
-        sourceLoader.load("img", "img/Maps/(4)Orbital Relay.jpg", "Map_OrbitalRelay");
-        sourceLoader.load("img", "img/Maps/(6)Thin Ice.jpg", "Map_ThinIce");
-        sourceLoader.load("img", "img/Maps/(8)BigGameHunters.jpg", "Map_BigGameHunters");
-        sourceLoader.load("img", "img/Maps/(8)TheHunters.jpg", "Map_TheHunters");
-        sourceLoader.load("img", "img/Maps/(8)Turbo.jpg", "Map_Turbo");
-        sourceLoader.load("img", "img/Maps/Map_Grass.jpg", "Map_Grass");
-        sourceLoader.load("img", "img/Charas/Mud.png", "Mud");
-        sourceLoader.load("img", "img/Charas/Burst.png", "Burst");
-        sourceLoader.load("img", "img/Charas/BuildingBurst.png", "BuildingBurst");
-        sourceLoader.load("img", "img/Charas/Portrait.png", "Portrait");
-        sourceLoader.load("img", "img/Charas/Magic.png", "Magic");
-        sourceLoader.load("img", "img/Menu/ControlPanel.png", "ControlPanel");
-        sourceLoader.load("img", "img/Bg/GameStart.jpg", "GameStart");
-        sourceLoader.load("img", "img/Bg/GamePlay.jpg", "GamePlay");
-        sourceLoader.load("img", "img/Bg/GameWin.jpg", "GameWin");
-        sourceLoader.load("img", "img/Bg/GameLose.jpg", "GameLose");
+        Game._loadAsset = function (type, src, id) {
+            if (sourceLoader.sources[id]) return;
+            sourceLoader.load(type, src, id);
+        };
+        Game._assetSrc = {
+            Map_Switchback: "img/Maps/(2)Switchback.jpg",
+            Map_Volcanis: "img/Maps/(2)Volcanis.jpg",
+            Map_TrenchWars: "img/Maps/(3)Trench wars.jpg",
+            Map_BloodBath: "img/Maps/(4)Blood Bath.jpg",
+            Map_OrbitalRelay: "img/Maps/(4)Orbital Relay.jpg",
+            Map_ThinIce: "img/Maps/(6)Thin Ice.jpg",
+            Map_BigGameHunters: "img/Maps/(8)BigGameHunters.jpg",
+            Map_TheHunters: "img/Maps/(8)TheHunters.jpg",
+            Map_Turbo: "img/Maps/(8)Turbo.jpg",
+            Map_Grass: "img/Maps/Map_Grass.jpg"
+        };
+        Game.ensureAsset = function (id) {
+            if (!id || sourceLoader.sources[id]) return true;
+            var src = Game._assetSrc[id];
+            if (!src && id.indexOf('Map_') === 0) return false;
+            if (!src) src = "img/Charas/" + id + ".png";
+            Game._loadAsset("img", src, id);
+            return false;
+        };
+
+        [
+            ["img", "img/Bg/GameStart.jpg", "GameStart"],
+            ["img", "img/Bg/GamePlay.jpg", "GamePlay"],
+            ["img", "img/Bg/GameWin.jpg", "GameWin"],
+            ["img", "img/Bg/GameLose.jpg", "GameLose"],
+            ["img", "img/Menu/ControlPanel.png", "ControlPanel"]
+        ].forEach(function (asset) {
+            Game._loadAsset(asset[0], asset[1], asset[2]);
+        });
 
         sourceLoader.allOnLoad(() => {
             $('#GameStart').prepend(sourceLoader.sources['GameStart']);
@@ -144,6 +220,36 @@ var Game = {
             for (let N = 1; N <= 9; N++) {
                 $('div.panel_Control').append("<button num='" + N + "'></button>");
             }
+            var pauseBtn = document.getElementById('PauseButton');
+            if (pauseBtn) pauseBtn.onclick = function (event) {
+                event.preventDefault();
+                Game.togglePause();
+            };
+            var resumeBtn = document.getElementById('PauseResume');
+            if (resumeBtn) resumeBtn.onclick = function (event) {
+                event.preventDefault();
+                Game.resume();
+            };
+            var restartBtn = document.getElementById('PauseRestart');
+            if (restartBtn) restartBtn.onclick = function (event) {
+                event.preventDefault();
+                Game.restartLevel();
+            };
+            var toggleMetricsBtn = document.getElementById('PauseToggleMetrics');
+            if (toggleMetricsBtn) toggleMetricsBtn.onclick = function (event) {
+                event.preventDefault();
+                Game.metrics.enabled = !Game.metrics.enabled;
+                if (!Game.metrics.enabled) {
+                    var hud = document.getElementById('GameHUD');
+                    if (hud) hud.style.display = 'none';
+                    Game.ui.lastMetrics.visible = false;
+                }
+            };
+            var toggleHapticsBtn = document.getElementById('PauseToggleHaptics');
+            if (toggleHapticsBtn) toggleHapticsBtn.onclick = function (event) {
+                event.preventDefault();
+                Game.hapticsEnabled = !Game.hapticsEnabled;
+            };
             Game.start();
         });
     },
@@ -171,15 +277,73 @@ var Game = {
         }
     },
     play: function () {
-        Resource.init();
-        Levels[Game.level - 1].load();
-        setTimeout(function () {
-            Game.layerSwitchTo("GamePlay");
-            Game.resizeWindow();
-            mouseController.toControlAll();
-            keyController.start();
-            Game.animation();
-        }, 0);
+        Game.resume();
+        Game.layerSwitchTo("GameLoading");
+        Game.loadGameplayAssets(function () {
+            Resource.init();
+            Levels[Game.level - 1].load();
+            setTimeout(function () {
+                Game.preloadCurrentLevelAssets(function () {
+                    Game.layerSwitchTo("GamePlay");
+                    Game.resizeWindow();
+                    mouseController.toControlAll();
+                    keyController.start();
+                    Game.animation();
+                });
+            }, 0);
+        });
+    },
+    loadGameplayAssets: function (callback) {
+        if (Game._gameplayAssetsLoaded) {
+            callback();
+            return;
+        }
+        [
+            ["img", "img/Charas/ZergBuilding.png", "ZergBuilding"],
+            ["img", "img/Charas/TerranBuilding.png", "TerranBuilding"],
+            ["img", "img/Charas/ProtossBuilding.png", "ProtossBuilding"],
+            ["img", Game._assetSrc.Map_Switchback, "Map_Switchback"],
+            ["img", Game._assetSrc.Map_Volcanis, "Map_Volcanis"],
+            ["img", Game._assetSrc.Map_TrenchWars, "Map_TrenchWars"],
+            ["img", Game._assetSrc.Map_BloodBath, "Map_BloodBath"],
+            ["img", Game._assetSrc.Map_OrbitalRelay, "Map_OrbitalRelay"],
+            ["img", Game._assetSrc.Map_ThinIce, "Map_ThinIce"],
+            ["img", Game._assetSrc.Map_BigGameHunters, "Map_BigGameHunters"],
+            ["img", Game._assetSrc.Map_TheHunters, "Map_TheHunters"],
+            ["img", Game._assetSrc.Map_Turbo, "Map_Turbo"],
+            ["img", Game._assetSrc.Map_Grass, "Map_Grass"],
+            ["img", "img/Charas/Mud.png", "Mud"],
+            ["img", "img/Charas/Burst.png", "Burst"],
+            ["img", "img/Charas/BuildingBurst.png", "BuildingBurst"],
+            ["img", "img/Charas/Portrait.png", "Portrait"],
+            ["img", "img/Charas/Magic.png", "Magic"]
+        ].forEach(function (asset) {
+            Game._loadAsset(asset[0], asset[1], asset[2]);
+        });
+
+        sourceLoader.allOnLoad(function () {
+            Game._gameplayAssetsLoaded = true;
+            callback();
+        });
+    },
+    preloadCurrentLevelAssets: function (callback) {
+        var idMap = {};
+        var add = function (id) {
+            if (!id) return;
+            idMap[id] = true;
+        };
+        add('Map_' + GameMap.currentMap);
+        Unit.allUnits.forEach(function (u) {
+            add(u.source ? u.source : u.name);
+        });
+        Building.allBuildings.forEach(function (b) {
+            if (b.source) add(b.source);
+            else add(b.attack ? b.inherited.inherited.name : b.inherited.name);
+        });
+        Object.keys(idMap).forEach(function (id) {
+            Game.ensureAsset(id);
+        });
+        sourceLoader.allOnLoad(callback);
     },
     addSelectedIntoTeam: function (teamNum) {
         //Build a new team
@@ -444,14 +608,26 @@ var Game = {
         }
         //Draw unit or building
         var imgSrc;
+        var assetId;
         if (chara instanceof Building) {
-            if (chara.source) imgSrc = sourceLoader.sources[chara.source];
+            if (chara.source) {
+                assetId = chara.source;
+                imgSrc = sourceLoader.sources[assetId];
+            }
             else {
-                imgSrc = sourceLoader.sources[chara.attack ? chara.inherited.inherited.name : chara.inherited.name];
+                assetId = chara.attack ? chara.inherited.inherited.name : chara.inherited.name;
+                imgSrc = sourceLoader.sources[assetId];
             }
         }
         //Unit, not building
-        else imgSrc = sourceLoader.sources[chara.source ? chara.source : chara.name];
+        else {
+            assetId = chara.source ? chara.source : chara.name;
+            imgSrc = sourceLoader.sources[assetId];
+        }
+        if (!imgSrc) {
+            Game.ensureAsset(assetId);
+            return;
+        }
         //Convert position
         var charaX = (chara.x - GameMap.offsetX) >> 0;
         var charaY = (chara.y - GameMap.offsetY) >> 0;
@@ -547,6 +723,11 @@ var Game = {
         cxt.shadowOffsetY = (chara.isFlying) ? 20 : 8;
         cxt.shadowColor = "rgba(0,0,0,0.4)";
         var imgSrc = sourceLoader.sources[chara.name];
+        if (!imgSrc) {
+            Game.ensureAsset(chara.name);
+            cxt.restore();
+            return;
+        }
         //Convert position
         var charaX = (chara.x - GameMap.offsetX) >> 0;
         var charaY = (chara.y - GameMap.offsetY) >> 0;
@@ -583,6 +764,10 @@ var Game = {
         if (!chara.insideScreen()) return;
         //Draw unit
         var imgSrc = sourceLoader.sources[chara.name];
+        if (!imgSrc) {
+            Game.ensureAsset(chara.name);
+            return;
+        }
         var _left = chara.imgPos[chara.status].left;
         var _top = chara.imgPos[chara.status].top;
         //Convert position
@@ -622,46 +807,142 @@ var Game = {
         if (Game.selectedUnit instanceof Gobj && Game.selectedUnit.status != "dead") {
             //Update selected unit life,shield and magic
             var lifeRatio = Game.selectedUnit.life / Game.selectedUnit.get('HP');
-            $('div.infoLeft span._Health')[0].style.color = ((lifeRatio > 0.7) ? "green" : (lifeRatio > 0.3) ? "yellow" : "red");
-            $('div.infoLeft span.life')[0].innerHTML = Game.selectedUnit.life >> 0;
+            var lifeColor = ((lifeRatio > 0.7) ? "green" : (lifeRatio > 0.3) ? "yellow" : "red");
+            if (Game.ui.lastSelected.lifeColor !== lifeColor) {
+                $('div.infoLeft span._Health')[0].style.color = lifeColor;
+                Game.ui.lastSelected.lifeColor = lifeColor;
+            }
+            var life = Game.selectedUnit.life >> 0;
+            if (Game.ui.lastSelected.life !== life) {
+                $('div.infoLeft span.life')[0].innerHTML = life;
+                Game.ui.lastSelected.life = life;
+            }
             if (Game.selectedUnit.SP) {
-                $('div.infoLeft span.shield')[0].innerHTML = Game.selectedUnit.shield >> 0;
+                var shield = Game.selectedUnit.shield >> 0;
+                if (Game.ui.lastSelected.shield !== shield) {
+                    $('div.infoLeft span.shield')[0].innerHTML = shield;
+                    Game.ui.lastSelected.shield = shield;
+                }
             }
             if (Game.selectedUnit.MP) {
-                $('div.infoLeft span.magic')[0].innerHTML = Game.selectedUnit.magic >> 0;
+                var magic = Game.selectedUnit.magic >> 0;
+                if (Game.ui.lastSelected.magic !== magic) {
+                    $('div.infoLeft span.magic')[0].innerHTML = magic;
+                    Game.ui.lastSelected.magic = magic;
+                }
             }
             //Update selected unit kill
             if (Game.selectedUnit.kill != null) {
-                $('div.infoCenter p.kill span')[0].innerHTML = Game.selectedUnit.kill;
+                if (Game.ui.lastSelected.kill !== Game.selectedUnit.kill) {
+                    $('div.infoCenter p.kill span')[0].innerHTML = Game.selectedUnit.kill;
+                    Game.ui.lastSelected.kill = Game.selectedUnit.kill;
+                }
             }
         }
     },
     drawSourceBox: function () {
         //Update min, gas, curMan and totalMan
-        $('div.resource_Box span.mineNum')[0].innerHTML = Resource[0].mine;
-        $('div.resource_Box span.gasNum')[0].innerHTML = Resource[0].gas;
-        $('div.resource_Box span.manNum>span')[0].innerHTML = Resource[0].curMan;
-        $('div.resource_Box span.manNum>span')[1].innerHTML = Resource[0].totalMan;
-        //Check if man overflow
-        $('div.resource_Box span.manNum')[0].style.color = (Resource[0].curMan > Resource[0].totalMan) ? "red" : "#00ff00";
+        if (Game.ui.lastResource.mine !== Resource[0].mine) {
+            $('div.resource_Box span.mineNum')[0].innerHTML = Resource[0].mine;
+            Game.ui.lastResource.mine = Resource[0].mine;
+        }
+        if (Game.ui.lastResource.gas !== Resource[0].gas) {
+            $('div.resource_Box span.gasNum')[0].innerHTML = Resource[0].gas;
+            Game.ui.lastResource.gas = Resource[0].gas;
+        }
+        if (Game.ui.lastResource.curMan !== Resource[0].curMan) {
+            $('div.resource_Box span.manNum>span')[0].innerHTML = Resource[0].curMan;
+            Game.ui.lastResource.curMan = Resource[0].curMan;
+        }
+        if (Game.ui.lastResource.totalMan !== Resource[0].totalMan) {
+            $('div.resource_Box span.manNum>span')[1].innerHTML = Resource[0].totalMan;
+            Game.ui.lastResource.totalMan = Resource[0].totalMan;
+        }
+        var manColor = (Resource[0].curMan > Resource[0].totalMan) ? "red" : (Resource[0].curMan === Resource[0].totalMan) ? "yellow" : "#00ff00";
+        if (Game.ui.lastResource.manColor !== manColor) {
+            $('div.resource_Box span.manNum')[0].style.color = manColor;
+            Game.ui.lastResource.manColor = manColor;
+        }
+        var supplyBlocked = Resource[0].totalMan > 0 && Resource[0].curMan >= Resource[0].totalMan;
+        if (Game.ui.lastResource.supplyBlocked !== supplyBlocked) {
+            Game.ui.lastResource.supplyBlocked = supplyBlocked;
+            if (supplyBlocked) {
+                var now = (window.performance && performance.now) ? performance.now() : Date.now();
+                if (!Game.ui.lastResource.supplyWarnAt || (now - Game.ui.lastResource.supplyWarnAt) > 2500) {
+                    var msg = (Game.race.selected === 'Zerg') ? 'Supply blocked: create more Overlords'
+                        : (Game.race.selected === 'Protoss') ? 'Supply blocked: build more Pylons'
+                            : 'Supply blocked: build more Supply Depots';
+                    Game.ui.lastResource.supplyWarnAt = now;
+                    Game.showWarning(msg);
+                }
+            }
+        }
     },
     drawProcessingBox: function () {
         //Show processing box if it's processing
         var processing = Game.selectedUnit.processing;
         if (processing) {
-            $('div.upgrading div[name="icon"]')[0].className = processing.name;
             var percent = ((new Date().getTime() - processing.startTime) / (processing.time) + 0.5) >> 0;
             //var percent=((Game._clock-processing.startTime)*100/(processing.time)+0.5)>>0;
-            $('div.upgrading div[name="processing"] span')[0].innerHTML = percent;
-            $('div.upgrading div[name="processing"] div.processedBar')[0].style.width = percent + '%';
-            $('div.upgrading').attr('title', processing.name).show();
+            if (Game.ui.lastProcessing.name !== processing.name) {
+                $('div.upgrading div[name="icon"]')[0].className = processing.name;
+                $('div.upgrading').attr('title', processing.name);
+                Game.ui.lastProcessing.name = processing.name;
+            }
+            if (Game.ui.lastProcessing.percent !== percent) {
+                $('div.upgrading div[name="processing"] span')[0].innerHTML = percent;
+                $('div.upgrading div[name="processing"] div.processedBar')[0].style.width = percent + '%';
+                Game.ui.lastProcessing.percent = percent;
+            }
+            var queue = Game.selectedUnit.productionQueue;
+            var queueText = (queue && queue.length) ? ('Queue: ' + queue.slice(0, 4).map(function (j) { return j.name; }).join(', ')) : '';
+            if (Game.ui.lastProcessing.queueText !== queueText) {
+                $('div.upgrading div[name="processing"] div.queue')[0].textContent = queueText;
+                Game.ui.lastProcessing.queueText = queueText;
+            }
+            if (Game.ui.lastProcessing.visible !== true) {
+                $('div.upgrading').show();
+                Game.ui.lastProcessing.visible = true;
+            }
             /*$('div.upgrading div[name="icon"]')[0].setAttribute('title',processing.name);
             $('div.upgrading')[0].style.display='block';*/
         }
         else {
-            $('div.upgrading').removeAttr('title').hide();
+            if (Game.ui.lastProcessing.visible !== false) {
+                $('div.upgrading').removeAttr('title').hide();
+                Game.ui.lastProcessing.visible = false;
+            }
+            if (Game.ui.lastProcessing.queueText !== '') {
+                $('div.upgrading div[name="processing"] div.queue')[0].textContent = '';
+                Game.ui.lastProcessing.queueText = '';
+            }
             /*delete $('div.upgrading div[name="icon"]')[0].title;
             $('div.upgrading')[0].style.display='none';*/
+        }
+    },
+    drawMetrics: function () {
+        if (!Game.metrics.enabled) return;
+        var now = (window.performance && performance.now) ? performance.now() : Date.now();
+        if (Game.metrics._lastFrameAt) {
+            var dt = now - Game.metrics._lastFrameAt;
+            if (dt > 0) {
+                var fps = 1000 / dt;
+                Game.metrics._fps = Game.metrics._fps ? (Game.metrics._fps * 0.9 + fps * 0.1) : fps;
+            }
+        }
+        Game.metrics._lastFrameAt = now;
+        var hud = document.getElementById('GameHUD');
+        if (!hud) return;
+        if (!Game.ui.lastMetrics.visible) {
+            hud.style.display = 'block';
+            Game.ui.lastMetrics.visible = true;
+        }
+        var fpsText = (Game.metrics._fps || 0).toFixed(0);
+        var inputMs = Game.metrics._lastInputAt ? Math.max(0, ((now - Game.metrics._lastInputAt) >> 0)) : 0;
+        if (Game.ui.lastMetrics.fps !== fpsText || Game.ui.lastMetrics.inputMs !== inputMs) {
+            hud.textContent = 'FPS ' + fpsText + ' | Input ' + inputMs + 'ms';
+            Game.ui.lastMetrics.fps = fpsText;
+            Game.ui.lastMetrics.inputMs = inputMs;
         }
     },
     refreshMultiSelectBox: function () {
@@ -707,6 +988,9 @@ var Game = {
     },
     animation: function () {
         var loop = function () {
+            if (Game.isPaused) return;
+            var cullMargin = Game.perf.cullMargin;
+            var aiMargin = Game.perf.aiNearMargin;
             //Clear all canvas
             Game.cxt.clearRect(0, 0, Game.HBOUND, Game.VBOUND);
             Game.frontCxt.clearRect(0, 0, Game.HBOUND, Game.VBOUND);
@@ -733,14 +1017,10 @@ var Game = {
                     N--;//Next unit come to this position
                     continue;
                 }
-                //Draw
-                Game.draw(build);
-                //Attackable building has bullet
-                if (build.bullet) {
-                    Game.drawBullet(build.bullet);
-                }
-                //Add this makes attackable building intelligent for attack
-                if (build.AI) build.AI();
+                var inView = Game._isVisible(build, cullMargin);
+                if (inView) Game.draw(build);
+                if (build.bullet && (inView || Game._anyVisibleBullet(build.bullet))) Game.drawBullet(build.bullet);
+                if (build.AI && Game._shouldRunAI(build, Game._isVisible(build, aiMargin))) build.AI();
             }
             //Layer2: Show all existed units
             for (var N = 0; N < Unit.allUnits.length; N++) {
@@ -771,14 +1051,11 @@ var Game = {
                     N--;//Next unit come to this position
                     continue;
                 }
-                //Draw
-                Game.draw(chara);
-                //Attackable unit bullet or magic bullet
-                if (chara.bullet) Game.drawBullet(chara.bullet);
-                //Add this makes chara intelligent for attack
-                if (chara.attack) chara.AI();
-                //Judge reach destination
-                Referee.judgeReachDestination(chara);
+                var inView = Game._isVisible(chara, cullMargin);
+                if (inView) Game.draw(chara);
+                if (chara.bullet && (inView || Game._anyVisibleBullet(chara.bullet))) Game.drawBullet(chara.bullet);
+                if (chara.attack && chara.AI && Game._shouldRunAI(chara, Game._isVisible(chara, aiMargin))) chara.AI();
+                if (inView || (Game._clock % 5 === 0)) Referee.judgeReachDestination(chara);
             }
             //Layer3: Draw effects above units
             for (var N = 0; N < Burst.allEffects.length; N++) {
@@ -789,7 +1066,7 @@ var Game = {
                     N--;//Next unit come to this position
                     continue;
                 }
-                Game.drawEffect(effect);
+                if (Game._isVisible(effect, cullMargin)) Game.drawEffect(effect);
             }
             //Layer4: Draw drag rect
             if (mouseController.drag) {
@@ -803,6 +1080,7 @@ var Game = {
             Game.drawInfoBox();
             Game.drawSourceBox();
             Game.drawProcessingBox();
+            Game.drawMetrics();
             //Release selected unit when unit died or is invisible enemy
             if (Game.selectedUnit.status == "dead" || (Game.selectedUnit.isInvisible && Game.selectedUnit.isEnemy)) {
                 Game.selectedUnit.selected = false;

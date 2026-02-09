@@ -4,6 +4,43 @@ var Button={
     reset:function(){
         Game.changeSelectedTo(Game.selectedUnit);
     },
+    queueJob:function(owner,job){
+        if (!owner || !job) return false;
+        if (!owner.productionQueue) owner.productionQueue=[];
+        if (owner.processing) {
+            owner.productionQueue.push(job);
+            return true;
+        }
+        return Button._startJob(owner,job);
+    },
+    _startJob:function(owner,job){
+        if (!owner || !job) return false;
+        owner.processing={
+            name:job.name,
+            startTime:new Date().getTime(),
+            time:job.time
+        };
+        setTimeout(function(){
+            if (!owner || owner.status=='dead') {
+                if (owner) delete owner.processing;
+                return;
+            }
+            if (typeof(job.run)=='function') job.run();
+            delete owner.processing;
+            Button._startNext(owner);
+        },job.time*100);
+        return true;
+    },
+    _startNext:function(owner){
+        if (!owner) return;
+        if (owner.productionQueue && owner.productionQueue.length) {
+            var next=owner.productionQueue.shift();
+            Button._startJob(owner,next);
+        }
+        else {
+            delete owner.productionQueue;
+        }
+    },
     //Equip all buttons for unit
     equipButtonsFor:function(chara){
         //Clear all buttons
@@ -104,8 +141,6 @@ var Button={
             }//Cannot use for-in bind together
             upgrades.forEach(function(grade){
                 $('button.'+grade).on('click',function(){
-                    //Filter out when occupied
-                    if (Game.selectedUnit.processing) return;
                     //Payment
                     if (Resource.paypal(Resource.getCost(grade))){
                         if (Resource.getCost(grade) && Resource.getCost(grade).time){
@@ -113,19 +148,16 @@ var Button={
                             var duration=Resource.getCost(grade).time;
                             //Cheat: Operation cwal
                             if (Cheat.cwal) duration=0;
-                            setTimeout(function(){
-                                Upgrade[grade].effect();
-                                Referee.voice.upgrade[Game.race.selected].play();
-                                delete owner.processing;
-                                Button.reset();
-                                Game.showMessage('Upgrade complete');
-                            },duration*100);
-                            //Occupy flag
-                            owner.processing={
+                            Button.queueJob(owner,{
                                 name:grade,
-                                startTime:new Date().getTime(),//Game._clock,
-                                time:duration
-                            };
+                                time:duration,
+                                run:function(){
+                                    Upgrade[grade].effect();
+                                    Referee.voice.upgrade[Game.race.selected].play();
+                                    Button.reset();
+                                    Game.showMessage('Upgrade complete');
+                                }
+                            });
                         }
                         //Or will effect immediately
                         else Upgrade[grade].effect();
@@ -250,8 +282,6 @@ var Button={
                     //Unit type isn't in exceptions
                     if (exceptions.indexOf(unitType)==-1) {
                         $('button.'+unitType).on('click',function(){
-                            //Filter out when occupied
-                            if (Game.selectedUnit.processing) return;
                             //Payment
                             if (Resource.paypal(Resource.getCost(unitType))){
                                 if (Resource.getCost(unitType) && Resource.getCost(unitType).time){
@@ -259,19 +289,16 @@ var Button={
                                     var duration=Resource.getCost(unitType).time;
                                     //Cheat: Operation cwal
                                     if (Cheat.cwal) duration=0;
-                                    setTimeout(function(){
-                                        if (Race[unitType].prototype.isFlying)
-                                            new Race[unitType]({x:owner.x,y:owner.y});
-                                        else
-                                            new Race[unitType]({x:owner.x,y:owner.y+owner.height});
-                                        delete owner.processing;
-                                    },duration*100);
-                                    //Occupy flag
-                                    owner.processing={
+                                    Button.queueJob(owner,{
                                         name:unitType,
-                                        startTime:new Date().getTime(),//Game._clock,
-                                        time:duration
-                                    };
+                                        time:duration,
+                                        run:function(){
+                                            if (Race[unitType].prototype.isFlying)
+                                                new Race[unitType]({x:owner.x,y:owner.y});
+                                            else
+                                                new Race[unitType]({x:owner.x,y:owner.y+owner.height});
+                                        }
+                                    });
                                 }
                             }
                         });
@@ -324,8 +351,6 @@ var Button={
                 }
                 buildNames.forEach(function(buildName){
                     $('button.'+buildName).on('click',function(){
-                        //Filter out when occupied
-                        if (Game.selectedUnit.processing) return;
                         //Payment
                         if (Resource.paypal(Resource.getCost(buildName))){
                             if (Resource.getCost(buildName) && Resource.getCost(buildName).time){
@@ -333,17 +358,14 @@ var Button={
                                 var duration=Resource.getCost(buildName).time;
                                 //Cheat: Operation cwal
                                 if (Cheat.cwal) duration=0;
-                                setTimeout(function(){
-                                    var building=new Build[buildName]({x:owner.x,y:owner.y});
-                                    if (building instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
-                                    delete owner.processing;
-                                },duration*100);
-                                //Occupy flag
-                                owner.processing={
+                                Button.queueJob(owner,{
                                     name:buildName,
-                                    startTime:new Date().getTime(),//Game._clock,
-                                    time:duration
-                                };
+                                    time:duration,
+                                    run:function(){
+                                        var building=new Build[buildName]({x:owner.x,y:owner.y});
+                                        if (building instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
+                                    }
+                                });
                             }
                         }
                         Button.reset();

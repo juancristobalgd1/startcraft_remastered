@@ -114,8 +114,8 @@ Building.enemyBuildings=[];
 Building.ZergBuilding=Building.extends({
     constructorPlus:function(props){
         this.sound={
-            selected:new Audio('bgm/ZergBuilding.selected.wav'),
-            death:new Audio('bgm/ZergBuilding.death.wav')
+            selected:_$.lazyAudio('bgm/ZergBuilding.selected.wav'),
+            death:_$.lazyAudio('bgm/ZergBuilding.death.wav')
         };
         //Need draw mud for it
         GameMap.needRefresh="MAP";
@@ -135,8 +135,8 @@ Building.ZergBuilding=Building.extends({
 Building.TerranBuilding=Building.extends({
     constructorPlus:function(props){
         this.sound={
-            selected:new Audio('bgm/TerranBuilding.selected.wav'),
-            death:new Audio('bgm/TerranBuilding.death.wav')
+            selected:_$.lazyAudio('bgm/TerranBuilding.selected.wav'),
+            death:_$.lazyAudio('bgm/TerranBuilding.death.wav')
         };
     },
     prototypePlus: {
@@ -153,8 +153,8 @@ Building.TerranBuilding=Building.extends({
 Building.ProtossBuilding=Building.extends({
     constructorPlus:function(props){
         this.sound={
-            selected:new Audio('bgm/ProtossBuilding.selected.wav'),
-            death:new Audio('bgm/ProtossBuilding.death.wav')
+            selected:_$.lazyAudio('bgm/ProtossBuilding.selected.wav'),
+            death:_$.lazyAudio('bgm/ProtossBuilding.death.wav')
         };
     },
     prototypePlus: {
