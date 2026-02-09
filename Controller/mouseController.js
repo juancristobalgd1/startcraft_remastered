@@ -19,7 +19,7 @@ var mouseController = {
         //Selection mode
         if (Button.callback == null) {
             //Find selected one, convert position
-            var selectedOne = Game.getSelectedOne(clickX + Map.offsetX, clickY + Map.offsetY);
+            var selectedOne = Game.getSelectedOne(clickX + GameMap.offsetX, clickY + GameMap.offsetY);
             //Cannot select enemy invisible unit
             if (selectedOne.isInvisible && selectedOne.isEnemy) return;
             //Single select will unselect all units and only choose selected one
@@ -58,12 +58,12 @@ var mouseController = {
         //Intercept event inside infoBox
         if (clickY > Game.infoBox.y) return;
         //Show right click cursor
-        new Burst.RightClickCursor({ x: clickX + Map.offsetX, y: clickY + Map.offsetY });
+        new Burst.RightClickCursor({ x: clickX + GameMap.offsetX, y: clickY + GameMap.offsetY });
         //Find selected one or nothing
-        var selectedEnemy = Game.getSelectedOne(clickX + Map.offsetX, clickY + Map.offsetY, true);//isEnemy
+        var selectedEnemy = Game.getSelectedOne(clickX + GameMap.offsetX, clickY + GameMap.offsetY, true);//isEnemy
         //If no enemy found, check for Neutral units (Minerals)
         if (!selectedEnemy.id) {
-            selectedEnemy = Game.getSelectedOne(clickX + Map.offsetX, clickY + Map.offsetY, false, false, null, function (chara) {
+            selectedEnemy = Game.getSelectedOne(clickX + GameMap.offsetX, clickY + GameMap.offsetY, false, false, null, function (chara) {
                 return chara instanceof Neutral.Mineral;
             });
         }
@@ -111,14 +111,14 @@ var mouseController = {
                     if (chara.attack) chara.stopAttack();
                     //Lock destination by default
                     chara.targetLock = !unlock;
-                    chara.moveTo(clickX + Map.offsetX, clickY + Map.offsetY);
+                    chara.moveTo(clickX + GameMap.offsetX, clickY + GameMap.offsetY);
                     //Record destination
                     if (Button.callback == 'attack') {
-                        chara.destination = { x: clickX + Map.offsetX, y: clickY + Map.offsetY };
+                        chara.destination = { x: clickX + GameMap.offsetX, y: clickY + GameMap.offsetY };
                     }
                     if (Button.callback == 'patrol') {
                         //Patrol dead lock
-                        chara.destination = { x: clickX + Map.offsetX, y: clickY + Map.offsetY };
+                        chara.destination = { x: clickX + GameMap.offsetX, y: clickY + GameMap.offsetY };
                         chara.destination.next = { x: chara.posX(), y: chara.posY(), next: chara.destination };
                     }
                 }
@@ -196,10 +196,10 @@ var mouseController = {
             var clickX = event.clientX;
             var clickY = event.clientY;
             //Refresh
-            if (clickX < Map.triggerMargin) Map.needRefresh = "LEFT";
-            if (clickX > (Game.HBOUND - Map.triggerMargin)) Map.needRefresh = "RIGHT";
-            if (clickY < Map.triggerMargin) Map.needRefresh = "TOP";
-            if (clickY > (Game.VBOUND - Map.triggerMargin)) Map.needRefresh = "BOTTOM";
+            if (clickX < GameMap.triggerMargin) GameMap.needRefresh = "LEFT";
+            if (clickX > (Game.HBOUND - GameMap.triggerMargin)) GameMap.needRefresh = "RIGHT";
+            if (clickY < GameMap.triggerMargin) GameMap.needRefresh = "TOP";
+            if (clickY > (Game.VBOUND - GameMap.triggerMargin)) GameMap.needRefresh = "BOTTOM";
         };
         //Mouse click end
         $('#frontCanvas')[0].onmouseup = function (event) {
@@ -233,11 +233,11 @@ var mouseController = {
         });
         $('canvas[name="mini_map"]').on('click', function (event) {
             event.preventDefault();
-            Map.clickHandler(event);
+            GameMap.clickHandler(event);
         });
         $('canvas[name="mini_map"]').on('contextmenu', function (event) {
             event.preventDefault();
-            Map.dblClickHandler(event);
+            GameMap.dblClickHandler(event);
         });
     }
 };

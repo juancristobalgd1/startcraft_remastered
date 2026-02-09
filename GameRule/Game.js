@@ -200,7 +200,7 @@ var Game = {
                 //Sound effect
                 team[0].sound.selected.play();
                 //Relocate map center
-                Map.relocateAt(team[0].posX(), team[0].posY());
+                GameMap.relocateAt(team[0].posX(), team[0].posY());
             }
         }
     },
@@ -212,12 +212,12 @@ var Game = {
     multiSelectInRect: function () {
         Game.unselectAll();
         var startPoint = {
-            x: Map.offsetX + Math.min(mouseController.startPoint.x, mouseController.endPoint.x),
-            y: Map.offsetY + Math.min(mouseController.startPoint.y, mouseController.endPoint.y)
+            x: GameMap.offsetX + Math.min(mouseController.startPoint.x, mouseController.endPoint.x),
+            y: GameMap.offsetY + Math.min(mouseController.startPoint.y, mouseController.endPoint.y)
         };
         var endPoint = {
-            x: Map.offsetX + Math.max(mouseController.startPoint.x, mouseController.endPoint.x),
-            y: Map.offsetY + Math.max(mouseController.startPoint.y, mouseController.endPoint.y)
+            x: GameMap.offsetX + Math.max(mouseController.startPoint.x, mouseController.endPoint.x),
+            y: GameMap.offsetY + Math.max(mouseController.startPoint.y, mouseController.endPoint.y)
         };
         var inRectUnits = Unit.allOurUnits().filter((chara) => {
             return chara.insideRect({ start: (startPoint), end: (endPoint) })
@@ -453,8 +453,8 @@ var Game = {
         //Unit, not building
         else imgSrc = sourceLoader.sources[chara.source ? chara.source : chara.name];
         //Convert position
-        var charaX = (chara.x - Map.offsetX) >> 0;
-        var charaY = (chara.y - Map.offsetY) >> 0;
+        var charaX = (chara.x - GameMap.offsetX) >> 0;
+        var charaY = (chara.y - GameMap.offsetY) >> 0;
         //Same image in different directions
         if (chara.direction == undefined) {
             var _left = chara.imgPos[chara.status].left;
@@ -501,7 +501,7 @@ var Game = {
             cxt.strokeStyle = (chara.isEnemy) ? "red" : "green";//Distinguish enemy
             cxt.lineWidth = 2;//Cannot see 1px width circle clearly
             cxt.beginPath();
-            cxt.arc(chara.posX() - Map.offsetX, chara.posY() - Map.offsetY, chara.radius(), 0, 2 * Math.PI);
+            cxt.arc(chara.posX() - GameMap.offsetX, chara.posY() - GameMap.offsetY, chara.radius(), 0, 2 * Math.PI);
             cxt.stroke();
             //Draw HP bar and SP bar and magic bar
             cxt.globalAlpha = 1;
@@ -512,23 +512,23 @@ var Game = {
             if (chara.SP) {
                 //Draw HP and SP
                 cxt.fillStyle = "blue";
-                cxt.fillRect(chara.x - Map.offsetX, chara.y - Map.offsetY + offsetY, chara.width * chara.shield / chara.get('SP'), 5);
-                cxt.strokeRect(chara.x - Map.offsetX, chara.y - Map.offsetY + offsetY, chara.width, 5);
+                cxt.fillRect(chara.x - GameMap.offsetX, chara.y - GameMap.offsetY + offsetY, chara.width * chara.shield / chara.get('SP'), 5);
+                cxt.strokeRect(chara.x - GameMap.offsetX, chara.y - GameMap.offsetY + offsetY, chara.width, 5);
                 cxt.fillStyle = (lifeRatio > 0.7) ? "green" : (lifeRatio > 0.3) ? "yellow" : "red";//Distinguish life
-                cxt.fillRect(chara.x - Map.offsetX, chara.y - Map.offsetY + offsetY + 5, chara.width * lifeRatio, 5);
-                cxt.strokeRect(chara.x - Map.offsetX, chara.y - Map.offsetY + offsetY + 5, chara.width, 5);
+                cxt.fillRect(chara.x - GameMap.offsetX, chara.y - GameMap.offsetY + offsetY + 5, chara.width * lifeRatio, 5);
+                cxt.strokeRect(chara.x - GameMap.offsetX, chara.y - GameMap.offsetY + offsetY + 5, chara.width, 5);
             }
             else {
                 //Only draw HP
                 cxt.fillStyle = (lifeRatio > 0.7) ? "green" : (lifeRatio > 0.3) ? "yellow" : "red";//Distinguish life
-                cxt.fillRect(chara.x - Map.offsetX, chara.y - Map.offsetY + offsetY, chara.width * lifeRatio, 5);
-                cxt.strokeRect(chara.x - Map.offsetX, chara.y - Map.offsetY + offsetY, chara.width, 5);
+                cxt.fillRect(chara.x - GameMap.offsetX, chara.y - GameMap.offsetY + offsetY, chara.width * lifeRatio, 5);
+                cxt.strokeRect(chara.x - GameMap.offsetX, chara.y - GameMap.offsetY + offsetY, chara.width, 5);
             }
             if (chara.MP) {
                 //Draw MP
                 cxt.fillStyle = "darkviolet";
-                cxt.fillRect(chara.x - Map.offsetX, chara.y - Map.offsetY + offsetY + (chara.SP ? 10 : 5), chara.width * chara.magic / chara.get('MP'), 5);
-                cxt.strokeRect(chara.x - Map.offsetX, chara.y - Map.offsetY + offsetY + (chara.SP ? 10 : 5), chara.width, 5);
+                cxt.fillRect(chara.x - GameMap.offsetX, chara.y - GameMap.offsetY + offsetY + (chara.SP ? 10 : 5), chara.width * chara.magic / chara.get('MP'), 5);
+                cxt.strokeRect(chara.x - GameMap.offsetX, chara.y - GameMap.offsetY + offsetY + (chara.SP ? 10 : 5), chara.width, 5);
             }
         }
     },
@@ -548,8 +548,8 @@ var Game = {
         cxt.shadowColor = "rgba(0,0,0,0.4)";
         var imgSrc = sourceLoader.sources[chara.name];
         //Convert position
-        var charaX = (chara.x - Map.offsetX) >> 0;
-        var charaY = (chara.y - Map.offsetY) >> 0;
+        var charaX = (chara.x - GameMap.offsetX) >> 0;
+        var charaY = (chara.y - GameMap.offsetY) >> 0;
         var _left = chara.imgPos[chara.status].left;
         var _top = chara.imgPos[chara.status].top;
         //Will stretch effect if scale
@@ -586,8 +586,8 @@ var Game = {
         var _left = chara.imgPos[chara.status].left;
         var _top = chara.imgPos[chara.status].top;
         //Convert position
-        var centerX = (chara.posX() - Map.offsetX) >> 0;
-        var centerY = (chara.posY() - Map.offsetY) >> 0;
+        var centerX = (chara.posX() - GameMap.offsetX) >> 0;
+        var centerY = (chara.posY() - GameMap.offsetY) >> 0;
         //Rotate canvas
         Game.frontCxt.save();
         //Rotate to draw bullet
@@ -712,9 +712,9 @@ var Game = {
             Game.frontCxt.clearRect(0, 0, Game.HBOUND, Game.VBOUND);
             //Game.backCxt.clearRect(0,0,Game.HBOUND,Game.VBOUND);//Only clear when refresh map
             //Layer0: Refresh map if needed
-            if (Map.needRefresh) {
-                Map.refresh(Map.needRefresh);
-                Map.needRefresh = false;
+            if (GameMap.needRefresh) {
+                GameMap.refresh(GameMap.needRefresh);
+                GameMap.needRefresh = false;
             }
             //Layer1: Show all buildings
             for (var N = 0; N < Building.allBuildings.length; N++) {
@@ -891,16 +891,16 @@ var Game = {
         //Resize canvas
         $('#GamePlay>canvas')[0].width = Game.HBOUND;
         $('#GamePlay>canvas')[0].height = Game.VBOUND;
-        Map.fogCanvas.width = Game.HBOUND;
-        Map.fogCanvas.height = Game.VBOUND - Game.infoBox.height + 5;
+        GameMap.fogCanvas.width = Game.HBOUND;
+        GameMap.fogCanvas.height = Game.VBOUND - Game.infoBox.height + 5;
         //Resize panel_Info
         $('div.panel_Info')[0].style.width = ((Game.HBOUND - 295) + 'px');
         //Update map inside-stroke size
-        Map.insideStroke.width = (130 * Game.HBOUND / Map.getCurrentMap().width) >> 0;
-        Map.insideStroke.height = (130 * Game.VBOUND / Map.getCurrentMap().height) >> 0;
+        GameMap.insideStroke.width = (130 * Game.HBOUND / GameMap.getCurrentMap().width) >> 0;
+        GameMap.insideStroke.height = (130 * Game.VBOUND / GameMap.getCurrentMap().height) >> 0;
         //Redraw map
-        Map.draw();
+        GameMap.draw();
         //Need re-calculate fog immediately
-        Map.refreshFog();
+        GameMap.refreshFog();
     }
 };

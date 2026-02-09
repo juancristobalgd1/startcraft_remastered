@@ -2,9 +2,9 @@ var Levels = [
     {
         level: 1,
         load: function () {
-            Map.setCurrentMap('Switchback');
-            Map.offsetX = 50;
-            Map.offsetY = 50;
+            GameMap.setCurrentMap('Switchback');
+            GameMap.offsetX = 50;
+            GameMap.offsetY = 50;
             Game.race.choose('Terran');
             Resource[0].mine = 400;
             new Terran.BattleCruiser({ x: 100, y: 100 });
@@ -34,7 +34,7 @@ var Levels = [
         level: 2,
         load: function () {
             //Load map
-            Map.setCurrentMap('Volcanis');
+            GameMap.setCurrentMap('Volcanis');
             //Apply race style
             Game.race.choose('Zerg');
             //Load units
@@ -60,7 +60,7 @@ var Levels = [
         level: 3,
         load: function () {
             //Load map
-            Map.setCurrentMap('TrenchWars');
+            GameMap.setCurrentMap('TrenchWars');
             //Apply race style
             Game.race.choose('Zerg');
             //Load units
@@ -88,7 +88,7 @@ var Levels = [
         level: 4,
         load: function () {
             //Load map
-            Map.setCurrentMap('BloodBath');
+            GameMap.setCurrentMap('BloodBath');
             //Apply race style
             Game.race.choose('Zerg');
             //Apply cheat for testing
@@ -125,7 +125,7 @@ var Levels = [
         level: 5,
         load: function () {
             //Load map
-            Map.setCurrentMap('OrbitalRelay');
+            GameMap.setCurrentMap('OrbitalRelay');
             //Apply race style
             Game.race.choose('Terran');
             //Apply cheat for testing
@@ -160,7 +160,7 @@ var Levels = [
         level: 6,
         load: function () {
             //Load map
-            Map.setCurrentMap('ThinIce');
+            GameMap.setCurrentMap('ThinIce');
             //Apply race style
             Game.race.choose('Protoss');
             //Apply cheat for testing
@@ -200,7 +200,7 @@ var Levels = [
         level: 7,
         load: function () {
             //Load map
-            Map.setCurrentMap('BigGameHunters');
+            GameMap.setCurrentMap('BigGameHunters');
             //Apply race style
             Game.race.choose('Protoss');
             //Add buildings
@@ -272,9 +272,9 @@ var Levels = [
         label: 'Campaign',
         load: function () {
             //Load map
-            Map.setCurrentMap('TheHunters');
-            Map.offsetX = 0;
-            Map.offsetY = 3424;
+            GameMap.setCurrentMap('TheHunters');
+            GameMap.offsetX = 0;
+            GameMap.offsetY = 3424;
             //Apply race style
             Game.race.choose('Terran');
             //Apply cheat
@@ -436,10 +436,10 @@ var Levels = [
         label: 'ProtectAthena',
         load: function () {
             //Load map
-            Map.setCurrentMap('OrbitalRelay');
-            Map.offsetX = (1536 - Game.HBOUND / 2) >> 0;
-            Map.offsetY = (1536 - Game.VBOUND / 2) >> 0;
-            Map.fogFlag = false;
+            GameMap.setCurrentMap('OrbitalRelay');
+            GameMap.offsetX = (1536 - Game.HBOUND / 2) >> 0;
+            GameMap.offsetY = (1536 - Game.VBOUND / 2) >> 0;
+            GameMap.fogFlag = false;
             //Apply race style
             Game.race.choose('Protoss');
             //Add our buildings and units
@@ -486,7 +486,7 @@ var Levels = [
         label: 'HUNTERxHUNTER',
         load: function () {
             //Load map placeholder
-            Map.setCurrentMap('TheHunters');
+            GameMap.setCurrentMap('TheHunters');
             Game.race.choose('Zerg');
             //Placeholder units
             new Zerg.Drone({ x: 100, y: 100 });
@@ -500,7 +500,7 @@ var Levels = [
         label: 'TowerDefense',
         load: function () {
             //Load map placeholder
-            Map.setCurrentMap('BigGameHunters');
+            GameMap.setCurrentMap('BigGameHunters');
             Game.race.choose('Terran');
             //Placeholder setup
             new Building.TerranBuilding.CommandCenter({ x: 100, y: 100 });
@@ -515,7 +515,7 @@ var Levels = [
         load: function () {
             //Placeholder
             Game.showWarning('Replay System Not Implemented');
-            Map.setCurrentMap('TheHunters');
+            GameMap.setCurrentMap('TheHunters');
             Game.race.choose('Protoss');
             //Override win/lose
             Referee.winCondition = function () { return false; };

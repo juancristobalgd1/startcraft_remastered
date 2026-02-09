@@ -335,7 +335,7 @@ var Button={
                                 if (Cheat.cwal) duration=0;
                                 setTimeout(function(){
                                     var building=new Build[buildName]({x:owner.x,y:owner.y});
-                                    if (building instanceof Building.ZergBuilding) setTimeout(Map.drawMud,0);
+                                    if (building instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
                                     delete owner.processing;
                                 },duration*100);
                                 //Occupy flag
@@ -690,7 +690,7 @@ var Button={
                     var offset=$('#frontCanvas').offset();
                     var clickX=event.pageX-offset.left;
                     var clickY=event.pageY-offset.top;
-                    var location={x:clickX+Map.offsetX,y:clickY+Map.offsetY};
+                    var location={x:clickX+GameMap.offsetX,y:clickY+GameMap.offsetY};
                     //Show right click cursor
                     new Burst.RightClickCursor(location);
                     //Call back with location info

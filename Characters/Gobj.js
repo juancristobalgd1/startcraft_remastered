@@ -137,10 +137,10 @@ proto.distanceFrom = function (obj) {
 };
 
 proto.insideScreen = function () {
-    return (this.x + this.width) > Map.offsetX &&
-        this.x < Map.offsetX + Game.HBOUND &&
-        (this.y + this.height) > Map.offsetY &&
-        this.y < Map.offsetY + Game.VBOUND;
+    return (this.x + this.width) > GameMap.offsetX &&
+        this.x < GameMap.offsetX + Game.HBOUND &&
+        (this.y + this.height) > GameMap.offsetY &&
+        this.y < GameMap.offsetY + Game.VBOUND;
 };
 
 proto.isIdle = function () {

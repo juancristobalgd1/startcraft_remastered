@@ -255,11 +255,11 @@ var Referee={
     },
     monitorMiniMap: () => {
         if (Game._clock % 10 == 0) {
-            Map.refreshMiniMap();
+            GameMap.refreshMiniMap();
         }
     },
     coverFog: () => {
-        Map.drawFog();
+        GameMap.drawFog();
     },
     alterSelectionMode: function () {
         $.extend([], Game.allSelected).forEach((chara) => {

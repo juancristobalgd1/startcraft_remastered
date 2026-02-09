@@ -118,7 +118,7 @@ Building.ZergBuilding=Building.extends({
             death:new Audio('bgm/ZergBuilding.death.wav')
         };
         //Need draw mud for it
-        Map.needRefresh="MAP";
+        GameMap.needRefresh="MAP";
     },
     prototypePlus: {
         //Add basic unit info

@@ -31,7 +31,7 @@ var Cheat={
                 break;
             case "black sheep wall":
                 //Switch between show fog or not show
-                Map.fogFlag=!Map.fogFlag;
+                GameMap.fogFlag=!GameMap.fogFlag;
                 break;
             case "something for nothing":
                 //Upgrade all grades
@@ -77,11 +77,11 @@ var Cheat={
                 }
                 break;
             case "big daddy":
-                var daddy=new Hero.HeroCruiser({x:Map.offsetX+Game.HBOUND/2,y:Map.offsetY+Game.VBOUND/2});
+                var daddy=new Hero.HeroCruiser({x:GameMap.offsetX+Game.HBOUND/2,y:GameMap.offsetY+Game.VBOUND/2});
                 Game.changeSelectedTo(daddy);
                 break;
             case "big mommy":
-                var mommy=new Hero.Sarah({x:Map.offsetX+Game.HBOUND/2,y:Map.offsetY+Game.VBOUND/2});
+                var mommy=new Hero.Sarah({x:GameMap.offsetX+Game.HBOUND/2,y:GameMap.offsetY+Game.VBOUND/2});
                 Game.changeSelectedTo(mommy);
                 break;
             case "game over man":
@@ -103,7 +103,7 @@ var Cheat={
                 });
                 break;
             case "liuda is god":
-                Map.fogFlag=false;
+                GameMap.fogFlag=false;
                 Referee.winCondition=Referee.loseCondition=function(){
                     return false;
                 };

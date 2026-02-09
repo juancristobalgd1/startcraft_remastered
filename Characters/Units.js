@@ -52,8 +52,8 @@ var Unit=Gobj.extends({
             if (this.imgPos[this.status].left[0][this.action]==-1) this.action=0;
         },
         detectOutOfBound:function(){
-            var boundX=Map.getCurrentMap().width-this.width;
-            var boundY=Map.getCurrentMap().height-this.height;
+            var boundX=GameMap.getCurrentMap().width-this.width;
+            var boundY=GameMap.getCurrentMap().height-this.height;
             //Right Bound
             if (this.x>boundX) {
                 this.x=boundX;
