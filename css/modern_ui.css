@@ -1,0 +1,132 @@
+/* Modern UI Overrides - Phase 2: Sci-Fi Holographic */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Roboto:wght@400;700&display=swap');
+
+:root {
+    --neon-cyan: #0ff;
+    --neon-blue: #0077ff;
+    --glass-bg: rgba(10, 20, 30, 0.85);
+    --glass-border: rgba(0, 255, 255, 0.3);
+    --scanline-color: rgba(0, 255, 255, 0.03);
+    --hud-glow: 0 0 10px rgba(0, 255, 255, 0.3);
+    --text-glow: 0 0 5px rgba(0, 255, 255, 0.7);
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+}
+
+/* --- Global Scanline Animation --- */
+@keyframes scanline {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 20px; }
+}
+
+@keyframes hud-pulse {
+    0% { box-shadow: 0 0 5px rgba(0, 255, 255, 0.2), inset 0 0 10px rgba(0, 255, 255, 0.05); border-color: rgba(0, 255, 255, 0.3); }
+    50% { box-shadow: 0 0 15px rgba(0, 255, 255, 0.4), inset 0 0 20px rgba(0, 255, 255, 0.1); border-color: rgba(0, 255, 255, 0.6); }
+    100% { box-shadow: 0 0 5px rgba(0, 255, 255, 0.2), inset 0 0 10px rgba(0, 255, 255, 0.05); border-color: rgba(0, 255, 255, 0.3); }
+}
+
+/* HUD styles reverted to original style.css by user request */
+
+/* --- Tooltip Modernization --- */
+div#GamePlay div.tooltip_Box {
+    background: rgba(5, 10, 15, 0.95) !important;
+    border: 1px solid var(--neon-cyan) !important;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.8), 0 0 10px rgba(0, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 10px !important;
+    font-family: 'Orbitron', sans-serif !important;
+    color: #fff !important;
+    font-size: 12px;
+}
+
+div#GamePlay div.tooltip_Box div.itemName {
+    color: var(--neon-cyan);
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 3px;
+    letter-spacing: 1px;
+}
+
+/* --- Upgrading Progress --- */
+/* Upgrading style */
+
+/* --- Menu/Loading Screen Polish --- */
+.LoadingMsg {
+    font-family: 'Orbitron', sans-serif !important;
+    color: var(--neon-cyan) !important;
+    text-transform: uppercase;
+    letter-spacing: 8px;
+    text-shadow: 0 0 10px var(--neon-cyan);
+    animation: pulse 1.5s infinite alternate;
+}
+
+.levelSelectionBg {
+    background: rgba(5, 10, 15, 0.95) !important;
+    border: 2px solid var(--neon-cyan) !important;
+    border-radius: 8px;
+    box-shadow: 0 0 50px rgba(64, 224, 255, 0.2), inset 0 0 20px rgba(0,0,0,0.5);
+    
+    /* Centering logic */
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    bottom: auto !important; /* Override style.css bottom:0 */
+    transform: translate(-50%, -50%) !important;
+    margin: 0 !important; /* Reset style.css margins */
+    
+    width: 500px !important;
+    height: auto !important;
+    max-height: 80vh !important;
+    overflow-y: auto !important; /* Enable scrolling */
+    padding: 2px 0 !important;
+    z-index: 1000 !important; /* Ensure on top */
+}
+
+.levelItem {
+    background: linear-gradient(90deg, transparent, rgba(64, 224, 255, 0.05)) !important;
+    color: #ccc !important;
+    font-family: 'Orbitron', sans-serif !important;
+    border: none !important;
+    border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+    transition: all 0.3s;
+    font-size: 14px !important;
+    padding: 10px 0 10px 40px !important; /* Reduced padding */
+    position: relative;
+    overflow: hidden;
+    width: 100% !important;
+    margin: 0 !important;
+    display: block !important;
+    cursor: pointer;
+}
+
+.levelItem:hover {
+    background: linear-gradient(90deg, rgba(64, 224, 255, 0.2), transparent) !important;
+    color: #fff !important;
+    padding-left: 80px !important;
+    text-shadow: 0 0 8px var(--neon-cyan);
+}
+
+.levelItem::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--neon-cyan);
+    transform: scaleY(0);
+    transition: transform 0.3s;
+}
+
+.levelItem:hover::before {
+    transform: scaleY(1);
+}
+
+/* Hide legacy dividers or background quirks */
+div#GamePlay div.panel_Info div.override {
+    background: transparent !important;
+}
