@@ -4,6 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <title>StarCraft</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="StarCraft">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="pwa/icons/apple-touch-icon.png">
     <link rel="stylesheet" href="css/style.css" />
     <link rel="stylesheet" href="css/mapStyle.css" />
     <link rel="stylesheet" href="css/buttonStyle.css" />
@@ -136,6 +144,18 @@
         $('body')[0].onload = function () {
             Game.init();
         };
+    </script>
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function () {
+                navigator.serviceWorker.register("sw.js");
+            });
+        }
+    </script>
+    <script>
+        if (screen && screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock("landscape").catch(function () { });
+        }
     </script>
 </body>
 
