@@ -78,6 +78,7 @@ var Game = {
     pause: function () {
         Game.isPaused = true;
         keyController.disable = true;
+        if (window._$ && _$.pauseAllAudio) _$.pauseAllAudio();
         var menu = document.getElementById('PauseMenu');
         if (menu) {
             menu.style.display = 'block';
@@ -89,6 +90,7 @@ var Game = {
     resume: function () {
         Game.isPaused = false;
         keyController.disable = false;
+        if (window._$ && _$.resumeAllAudio) _$.resumeAllAudio();
         var menu = document.getElementById('PauseMenu');
         if (menu) {
             menu.style.display = 'none';

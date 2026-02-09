@@ -132,11 +132,54 @@ Audio.prototype.playFromStart=function(){
     this.play();
 };
 
+_$.audioRegistry=[];
+_$.registerAudio=function(audio){
+    if (!audio) return;
+    if (_$.audioRegistry.indexOf(audio)===-1) _$.audioRegistry.push(audio);
+};
+_$.pauseAllAudio=function(){
+    _$.audioRegistry.forEach(function(a){
+        if (!a) return;
+        var playing=false;
+        try{
+            playing = (a.paused===false && a.ended===false);
+        }catch(e){
+            playing=false;
+        }
+        a.__wasPlayingBeforePause=playing;
+        if (playing) {
+            try{ a.pause(); }catch(e){}
+        }
+    });
+};
+_$.resumeAllAudio=function(){
+    _$.audioRegistry.forEach(function(a){
+        if (!a) return;
+        if (a.__wasPlayingBeforePause) {
+            a.__wasPlayingBeforePause=false;
+            try{
+                var p=a.play();
+                if (p && typeof(p.catch)==='function') p.catch(function(){});
+            }catch(e){}
+        }
+    });
+};
+
+if (!Audio.prototype.__scAudioPlayPatched){
+    Audio.prototype.__scAudioPlayPatched=true;
+    var __nativePlay=Audio.prototype.play;
+    Audio.prototype.play=function(){
+        if (window._$ && _$.registerAudio) _$.registerAudio(this);
+        return __nativePlay.apply(this,arguments);
+    };
+}
+
 _$.lazyAudio=function(src){
     return {
         _audio:null,
         play:function(){
             if (!this._audio) this._audio=new Audio(src);
+            if (window._$ && _$.registerAudio) _$.registerAudio(this._audio);
             return this._audio.play();
         },
         pause:function(){
@@ -144,6 +187,7 @@ _$.lazyAudio=function(src){
         },
         playFromStart:function(){
             if (!this._audio) this._audio=new Audio(src);
+            if (window._$ && _$.registerAudio) _$.registerAudio(this._audio);
             this._audio.playFromStart();
         }
     };
