@@ -52,6 +52,9 @@ Protoss.Probe=AttackableUnit.extends({
             '5':{name:'gather'},
             '7':{name:'BasicStructure'},
             '8':{name:'AdvancedStructure'}
+        },
+        gather:function(target){
+            return Unit.prototype.gather.call(this,target);
         }
     }
 });

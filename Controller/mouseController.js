@@ -76,11 +76,15 @@ var mouseController = {
         new Burst.RightClickCursor({ x: clickX + GameMap.offsetX, y: clickY + GameMap.offsetY });
         if (Game.hapticsEnabled && navigator.vibrate) navigator.vibrate(15);
         //Find selected one or nothing
-        var selectedEnemy = Game.getSelectedOne(clickX + GameMap.offsetX, clickY + GameMap.offsetY, true);//isEnemy
-        //If no enemy found, check for Neutral units (Minerals)
-        if (!selectedEnemy.id) {
-            selectedEnemy = Game.getSelectedOne(clickX + GameMap.offsetX, clickY + GameMap.offsetY, false, false, null, function (chara) {
+        var selectedTarget = Game.getSelectedOne(clickX + GameMap.offsetX, clickY + GameMap.offsetY, true);//isEnemy
+        if (!(selectedTarget instanceof Gobj)) {
+            selectedTarget = Game.getSelectedOne(clickX + GameMap.offsetX, clickY + GameMap.offsetY, false, null, null, function (chara) {
                 return chara instanceof Neutral.Mineral;
+            });
+        }
+        if (!(selectedTarget instanceof Gobj)) {
+            selectedTarget = Game.getSelectedOne(clickX + GameMap.offsetX, clickY + GameMap.offsetY, false, false, null, function (chara) {
+                return (chara instanceof Building) && (['Refinery', 'Extractor', 'Assimilator'].indexOf(chara.name) !== -1);
             });
         }
         Unit.allOurUnits().concat(Building.ourBuildings).forEach(function (chara) {
@@ -103,25 +107,38 @@ var mouseController = {
                     delete chara.hold;
                     Button.reset();
                 }
+                //Gather mode (priority over attack)
+                if ((selectedTarget instanceof Neutral.Mineral ||
+                    ((selectedTarget instanceof Building) && (['Refinery', 'Extractor', 'Assimilator'].indexOf(selectedTarget.name) !== -1)))
+                    && (chara.name == 'SCV' || chara.name == 'Drone' || chara.name == 'Probe')) {
+                    if (chara.gather) chara.gather(selectedTarget);
+                    return;
+                }
                 //Unit cannot attack will always choose move mode
-                var attackOrMove = (chara.attack) ? (selectedEnemy instanceof Gobj) : false;
+                var attackOrMove = (chara.attack) ? (selectedTarget instanceof Gobj) : false;
                 //Attack mode
                 if (attackOrMove) {
-                    if (chara.cannotMove() && !(chara.isInAttackRange(selectedEnemy))) return;
+                    if (chara.gatherTimer) {
+                        clearInterval(chara.gatherTimer);
+                        chara.gatherTimer = 0;
+                        if (chara._gather) delete chara._gather;
+                    }
+                    if (chara.cannotMove() && !(chara.isInAttackRange(selectedTarget))) return;
                     //Intercept invisible enemy
-                    if (selectedEnemy.isInvisible) {
+                    if (selectedTarget.isInvisible) {
                         Referee.voice.pError.play();
                         return;
                     }
                     chara.targetLock = true;
-                    chara.attack(selectedEnemy);
-                }
-                //Gather mode
-                else if (selectedEnemy instanceof Neutral.Mineral && chara.name == 'SCV') {
-                    if (chara.gather) chara.gather(selectedEnemy);
+                    chara.attack(selectedTarget);
                 }
                 //Move mode
                 else {
+                    if (chara.gatherTimer) {
+                        clearInterval(chara.gatherTimer);
+                        chara.gatherTimer = 0;
+                        if (chara._gather) delete chara._gather;
+                    }
                     if (chara.cannotMove()) return;
                     //Only attackable units can stop attack
                     if (chara.attack) chara.stopAttack();

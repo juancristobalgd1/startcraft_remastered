@@ -49,77 +49,15 @@ Terran.SCV = AttackableUnit.extends({
             time: 200
         },
         upgrade: ['UpgradeInfantryArmors'],
-    },
-    items: {
-        '4': { name: 'repair' },
-        '5': { name: 'gather' },
-        '7': { name: 'BasicBuilding' },
-        '8': { name: 'AdvancedBuilding' }
-    },
-    //Gather resource
-    gather: function (minerals) {
-        //Stop old action
-        if (this.status != 'gather') {
-            this.stop();
-            delete this.destination;
+        items: {
+            '4': { name: 'repair' },
+            '5': { name: 'gather' },
+            '7': { name: 'BasicBuilding' },
+            '8': { name: 'AdvancedBuilding' }
+        },
+        gather: function (target) {
+            return Unit.prototype.gather.call(this, target);
         }
-        var myself = this;
-        //State machine for gathering
-        var gatherFrame = function () {
-            //If unit is dead or Minerals is exhausted
-            if (myself.status == 'dead' || minerals.status == 'dead') {
-                if (myself.gatherTimer) clearInterval(myself.gatherTimer);
-                myself.stop();
-                return;
-            }
-            //1. Move to minerals
-            if (!myself.holding) {
-                if (myself.insideCircle({ centerX: minerals.x, centerY: minerals.y, radius: 40 })) {
-                    //Start mining
-                    if (!myself.mining) {
-                        myself.mining = true;
-                        myself.status = 'dock'; // Visual wait
-                        setTimeout(function () {
-                            if (myself.status == 'dead') return; // Check if dead during mining
-                            myself.holding = 8; // Amount gathered
-                            myself.mining = false;
-                            minerals.value -= 8;
-                            if (minerals.value <= 0) minerals.die();
-                        }, 2000); // 2 seconds mining time
-                    }
-                } else {
-                    //Move to minerals
-                    myself.moveTo(minerals.x, minerals.y);
-                }
-            }
-            //2. Return to Command Center
-            else {
-                //Find nearest Command Center
-                var center = Building.ourBuildings.filter(function (chara) {
-                    return chara.name == 'CommandCenter' && chara.status != 'dead';
-                }).sort(function (a, b) {
-                    var distA = (a.x - myself.x) * (a.x - myself.x) + (a.y - myself.y) * (a.y - myself.y);
-                    var distB = (b.x - myself.x) * (b.x - myself.x) + (b.y - myself.y) * (b.y - myself.y);
-                    return distA - distB;
-                })[0];
-                if (center) {
-                    if (myself.insideCircle({ centerX: center.x, centerY: center.y, radius: 100 })) {
-                        //Deposit
-                        Resource[0].mine += myself.holding;
-                        //Game.drawResourceEffect(myself.x,myself.y); // Optional
-                        myself.holding = 0;
-                    } else {
-                        myself.moveTo(center.x, center.y);
-                    }
-                } else {
-                    //No center, stay
-                    myself.stop();
-                }
-            }
-        };
-        //Loop
-        if (this.gatherTimer) clearInterval(this.gatherTimer);
-        this.gatherTimer = setInterval(gatherFrame, 500);
     }
 }
 );

@@ -178,17 +178,25 @@ _$.lazyAudio=function(src){
     return {
         _audio:null,
         play:function(){
-            if (!this._audio) this._audio=new Audio(src);
-            if (window._$ && _$.registerAudio) _$.registerAudio(this._audio);
-            return this._audio.play();
+            try{
+                if (!this._audio) this._audio=new Audio(src);
+                if (window._$ && _$.registerAudio) _$.registerAudio(this._audio);
+                var p=this._audio.play();
+                if (p && typeof(p.catch)==='function') p.catch(function(){});
+                return p;
+            }catch(e){
+                return null;
+            }
         },
         pause:function(){
             if (this._audio) this._audio.pause();
         },
         playFromStart:function(){
-            if (!this._audio) this._audio=new Audio(src);
-            if (window._$ && _$.registerAudio) _$.registerAudio(this._audio);
-            this._audio.playFromStart();
+            try{
+                if (!this._audio) this._audio=new Audio(src);
+                if (window._$ && _$.registerAudio) _$.registerAudio(this._audio);
+                this._audio.playFromStart();
+            }catch(e){}
         }
     };
 };

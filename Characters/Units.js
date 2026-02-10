@@ -376,6 +376,144 @@ var Unit=Gobj.extends({
         lifeStatus:function(){
             var lifeRatio=this.life/this.get('HP');
             return ((lifeRatio>0.7)?"green":(lifeRatio>0.3)?"yellow":"red");
+        },
+        _findGatherCenter:function(){
+            if (typeof Building==='undefined') return null;
+            var names;
+            if (this.name=='SCV') names=['CommandCenter'];
+            else if (this.name=='Drone') names=['Hatchery','Lair','Hive'];
+            else if (this.name=='Probe') names=['Nexus'];
+            else names=['CommandCenter','Hatchery','Lair','Hive','Nexus'];
+            var myself=this;
+            var centers=Building.ourBuildings.filter(function(b){
+                return b && b.status!='dead' && names.indexOf(b.name)!=-1;
+            });
+            centers.sort(function(a,b){
+                var dxA=a.posX()-myself.posX(), dyA=a.posY()-myself.posY();
+                var dxB=b.posX()-myself.posX(), dyB=b.posY()-myself.posY();
+                return (dxA*dxA+dyA*dyA)-(dxB*dxB+dyB*dyB);
+            });
+            return centers[0];
+        },
+        gather:function(target){
+            if (!target) return;
+            if (this.status=='dead') return;
+            if (this.isEnemy) return;
+            if (!(this.name=='SCV' || this.name=='Drone' || this.name=='Probe')) return;
+            if (this.cannotMove && this.cannotMove()) return;
+            if (this.gatherTimer) clearInterval(this.gatherTimer);
+            this.gatherTimer=0;
+            if (this._gather) delete this._gather;
+            if (this.stopAttack) this.stopAttack();
+            if (this.destination) {
+                if (this.destination.next) this.destination.next=null;
+                delete this.destination;
+            }
+            var type=null;
+            if (typeof Neutral!=='undefined' && target instanceof Neutral.Mineral) type='mine';
+            if ((target instanceof Building) && (['Refinery','Extractor','Assimilator'].indexOf(target.name)!=-1)) type='gas';
+            if (!type) return;
+            var myself=this;
+            var state={
+                target:target,
+                type:type,
+                carrying:0,
+                harvesting:false
+            };
+            this._gather=state;
+            var takeAmount=(type=='mine')?8:4;
+            var harvestMs=(type=='mine')?2000:2400;
+            var baseTargetRadius=(type=='mine')?45:80;
+            var workerRadius=(typeof this.radius=='function') ? this.radius() : (Math.min(this.width,this.height)*0.5);
+            var targetObjRadius=(target && typeof target.radius=='function') ? target.radius() : (Math.min(target.width||0,target.height||0)*0.5);
+            var targetRadius=Math.max(baseTargetRadius,workerRadius+targetObjRadius+6);
+            var tick=function(){
+                if (myself.status=='dead') {
+                    clearInterval(myself.gatherTimer);
+                    myself.gatherTimer=0;
+                    if (myself._gather) delete myself._gather;
+                    return;
+                }
+                if (!myself._gather || myself._gather!==state) {
+                    clearInterval(myself.gatherTimer);
+                    myself.gatherTimer=0;
+                    return;
+                }
+                var t=state.target;
+                if (!t || t.status=='dead') {
+                    clearInterval(myself.gatherTimer);
+                    myself.gatherTimer=0;
+                    delete myself._gather;
+                    myself.dock();
+                    return;
+                }
+                if (!state.carrying) {
+                    if (myself.insideCircle({centerX:t.posX(),centerY:t.posY(),radius:targetRadius})) {
+                        if (!state.harvesting) {
+                            state.harvesting=true;
+                            myself.dock();
+                            setTimeout(function(){
+                                if (myself.status=='dead') return;
+                                if (!myself._gather || myself._gather!==state) return;
+                                if (!state.harvesting) return;
+                                if (state.type=='mine') {
+                                    if (t.value==null) t.value=0;
+                                    if (t.value<=0) {
+                                        t.die();
+                                        state.harvesting=false;
+                                        return;
+                                    }
+                                    var got=Math.min(takeAmount,t.value);
+                                    t.value-=got;
+                                    state.carrying=got;
+                                    state.harvesting=false;
+                                    if (t.value<=0) t.die();
+                                }
+                                else {
+                                    if (t.gas==null) t.gas=2500;
+                                    if (t.gas<=0) {
+                                        state.harvesting=false;
+                                        clearInterval(myself.gatherTimer);
+                                        myself.gatherTimer=0;
+                                        delete myself._gather;
+                                        myself.dock();
+                                        return;
+                                    }
+                                    var got=Math.min(takeAmount,t.gas);
+                                    t.gas-=got;
+                                    state.carrying=got;
+                                    state.harvesting=false;
+                                }
+                            },harvestMs);
+                        }
+                    }
+                    else {
+                        myself.moveTo(t.posX(),t.posY(),targetRadius);
+                    }
+                }
+                else {
+                    var center=myself._findGatherCenter();
+                    if (!center) {
+                        clearInterval(myself.gatherTimer);
+                        myself.gatherTimer=0;
+                        delete myself._gather;
+                        myself.dock();
+                        return;
+                    }
+                    var centerRadius=Math.max(110,workerRadius+((typeof center.radius=='function')?center.radius():(Math.min(center.width||0,center.height||0)*0.5))+10);
+                    if (myself.insideCircle({centerX:center.posX(),centerY:center.posY(),radius:centerRadius})) {
+                        if (state.type=='mine') Resource[0].mine+=state.carrying;
+                        else Resource[0].gas+=state.carrying;
+                        state.carrying=0;
+                        state.harvesting=false;
+                    }
+                    else {
+                        myself.moveTo(center.posX(),center.posY(),centerRadius);
+                    }
+                }
+            };
+            tick();
+            this.gatherTimer=setInterval(tick,300);
         }
     }
 });

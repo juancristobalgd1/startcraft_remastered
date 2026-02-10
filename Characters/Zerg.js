@@ -140,6 +140,9 @@ Zerg.Drone=AttackableUnit.extends({
             '9':{name:'Burrow',condition:function(){
                 return Magic.Burrow.enabled
             }}
+        },
+        gather:function(target){
+            return Unit.prototype.gather.call(this,target);
         }
     }
 });

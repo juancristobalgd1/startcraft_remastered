@@ -114,6 +114,9 @@ var Button={
                     $('button[num="'+N+'"]').removeAttr('class').hide();
                 }
             }
+            if (chara instanceof Unit) {
+                $('button.gather').on('click',Button.gatherHandler);
+            }
             if (chara instanceof Building) {
                 var canRally=false;
                 for (var k in chara.items) {
@@ -737,6 +740,35 @@ var Button={
         }
         else {
             //Cancel handler
+            $('div.GameLayer').removeAttr('status');
+            Button.callback=null;
+        }
+    },
+    //Gather button
+    gatherHandler:function(){
+        if (Button.callback==null) {
+            Button.callback=function(location){
+                var target=Game.getSelectedOne(location.x,location.y,null,null,null,function(chara){
+                    return (typeof Neutral!=='undefined' && chara instanceof Neutral.Mineral);
+                });
+                if (!(target instanceof Gobj)) {
+                    target=Game.getSelectedOne(location.x,location.y,null,null,null,function(chara){
+                        return (chara instanceof Building) && (['Refinery','Extractor','Assimilator'].indexOf(chara.name)!==-1);
+                    });
+                }
+                if (!(target instanceof Gobj)) {
+                    if (Referee && Referee.voice && Referee.voice.pError) Referee.voice.pError.play();
+                    return;
+                }
+                Unit.allOurUnits().filter(function(chara){
+                    return chara.selected && (chara.name=='SCV' || chara.name=='Drone' || chara.name=='Probe');
+                }).forEach(function(worker){
+                    if (worker.gather) worker.gather(target);
+                });
+            };
+            $('div.GameLayer').attr('status','button');
+        }
+        else {
             $('div.GameLayer').removeAttr('status');
             Button.callback=null;
         }

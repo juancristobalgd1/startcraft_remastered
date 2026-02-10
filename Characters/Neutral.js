@@ -333,34 +333,58 @@ Neutral.Kakaru = Unit.extends({
 
 Neutral.Mineral = Unit.extends({
     constructorPlus: function (props) {
-        //Resource amount
         this.value = 1500;
-        this.imgPos.dock = this.imgPos.normal;
+        this.isFlying = false;
+        this.direction = undefined;
+        if (typeof sourceLoader !== 'undefined' && sourceLoader && sourceLoader.sources && !sourceLoader.sources['Mineral']) {
+            var c = document.createElement('canvas');
+            c.width = 60;
+            c.height = 60;
+            var ctx = c.getContext('2d');
+            ctx.clearRect(0, 0, 60, 60);
+            ctx.fillStyle = 'rgba(0,0,0,0.25)';
+            ctx.beginPath();
+            ctx.ellipse(30, 44, 18, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#49d6ff';
+            ctx.strokeStyle = '#baf3ff';
+            ctx.lineWidth = 2;
+            [
+                [{ x: 30, y: 10 }, { x: 22, y: 30 }, { x: 30, y: 34 }, { x: 38, y: 30 }],
+                [{ x: 18, y: 18 }, { x: 10, y: 34 }, { x: 18, y: 38 }, { x: 24, y: 26 }],
+                [{ x: 42, y: 18 }, { x: 36, y: 26 }, { x: 42, y: 38 }, { x: 50, y: 34 }]
+            ].forEach(function (poly) {
+                ctx.beginPath();
+                ctx.moveTo(poly[0].x, poly[0].y);
+                for (var i = 1; i < poly.length; i++) ctx.lineTo(poly[i].x, poly[i].y);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            });
+            sourceLoader.sources['Mineral'] = c;
+        }
     },
     prototypePlus: {
-        //Add basic unit info
         name: "Mineral",
+        source: "Mineral",
         imgPos: {
-            normal: {
-                left: [0], // Placeholder frame
-                top: [0]
-            }
+            dock: { left: 0, top: 0 }
         },
         width: 60,
         height: 60,
         frame: {
-            normal: 1,
             dock: 1
         },
         HP: 1500,
         armor: 0,
         sight: 350,
-        unitType: Unit.BUILDING,
+        unitType: Unit.SMALL,
         isEnemy: false,
         selected: false,
-        // Override dock to be static
         dock: function () {
-            // Do nothing
+            this.stop();
+            this.status = 'dock';
+            this.action = 0;
         }
     }
 });

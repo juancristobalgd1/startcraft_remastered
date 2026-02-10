@@ -13,8 +13,14 @@ var Levels = [
             new Terran.Wraith({ x: 200, y: 200 });
             new Terran.BattleCruiser({ x: 100, y: 300 });
             new Terran.Wraith({ x: 200, y: 300 });
+            new Building.TerranBuilding.CommandCenter({ x: 320, y: 260 });
+            new Building.TerranBuilding.Refinery({ x: 520, y: 260 });
+            new Building.ZergBuilding.Hatchery({ x: 320, y: 420 });
+            new Building.ZergBuilding.Extractor({ x: 520, y: 420 });
+            new Building.ProtossBuilding.Nexus({ x: 320, y: 580 });
+            new Building.ProtossBuilding.Assimilator({ x: 520, y: 580 });
             new Terran.SCV({ x: 100, y: 400 });
-            new Neutral.Mineral({ x: 300, y: 400 }); // Test mineral
+            new Neutral.Mineral({ x: 300, y: 400 });
             new Zerg.Drone({ x: 150, y: 400 });
             new Protoss.Probe({ x: 200, y: 400 });
             //Add enemy
