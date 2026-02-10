@@ -20,6 +20,16 @@ var Button={
             startTime:new Date().getTime(),
             time:job.time
         };
+        if (owner instanceof Building && owner.name=='Construction' && owner.imgPos && owner.imgPos.step2 && owner.imgPos.step3 && job.time>0) {
+            setTimeout(function(){
+                if (!owner || owner.status=='dead') return;
+                owner.imgPos.dock=owner.imgPos.step2;
+            },job.time*100/3);
+            setTimeout(function(){
+                if (!owner || owner.status=='dead') return;
+                owner.imgPos.dock=owner.imgPos.step3;
+            },job.time*200/3);
+        }
         setTimeout(function(){
             if (!owner || owner.status=='dead') {
                 if (owner) delete owner.processing;
@@ -91,14 +101,14 @@ var Button={
             height:h
         };
     },
-    _isBuildRectValid:function(rect,ignoreObj){
+    _isBuildRectValid:function(rect,ignoreObj,margin){
         if (!rect || !rect.width || !rect.height) return false;
         var map=GameMap.getCurrentMap();
         if (!map) return false;
         if (rect.x<0 || rect.y<0) return false;
         if ((rect.x+rect.width)>map.width) return false;
         if ((rect.y+rect.height)>map.height) return false;
-        var margin=2;
+        if (margin==null) margin=2;
         return Unit.allUnits.concat(Building.allBuildings).every(function(chara){
             if (!chara || chara.status=='dead') return true;
             if (ignoreObj && chara===ignoreObj) return true;
@@ -120,6 +130,42 @@ var Button={
         if (m<=90) return 'MutationS';
         if (m<=120) return 'MutationM';
         return 'MutationL';
+    },
+    _pickZergMutationComplete:function(buildType){
+        var w=buildType.prototype.width||0;
+        var h=buildType.prototype.height||0;
+        var m=Math.max(w,h);
+        if (m<=90) return 'SmallMutationComplete';
+        if (m<=120) return 'MiddleMutationComplete';
+        return 'LargeMutationComplete';
+    },
+    _spawnBuildingCompleteFx:function(building,buildType){
+        if (!building || building.status=='dead') return;
+        if (typeof Animation!=='object') return;
+        if (building instanceof Building.ZergBuilding) {
+            var fxName=buildType?Button._pickZergMutationComplete(buildType):null;
+            if (fxName && Animation[fxName]) new Animation[fxName]({x:building.posX(),y:building.posY()});
+        }
+        if (building instanceof Building.ProtossBuilding) {
+            if (Animation.ProtossBuildingComplete) new Animation.ProtossBuildingComplete({x:building.posX(),y:building.posY()});
+        }
+    },
+    _notifyError:function(msg){
+        if (Referee && Referee.voice && Referee.voice.pError) Referee.voice.pError.play();
+        if (msg) Game.showMessage(msg);
+    },
+    _isTerranAddon:function(buildName){
+        return ['MachineShop','ControlTower','ComstatStation','NuclearSilo','PhysicsLab','ConvertOps'].indexOf(buildName)!==-1;
+    },
+    _addonRectFor:function(owner,addonType){
+        var w=addonType.prototype.width||0;
+        var h=addonType.prototype.height||0;
+        return {
+            x: (owner.x + owner.width) >> 0,
+            y: (owner.y + owner.height - h) >> 0,
+            width: w,
+            height: h
+        };
     },
     //Equip all buttons for unit
     equipButtonsFor:function(chara){
@@ -471,18 +517,86 @@ var Button={
                             && Object.keys(owner.items).some(function(k){
                                 return owner.items[k] && owner.items[k].name===buildName;
                             });
+                        var buildType=Build[buildName];
+                        if (!buildType) {
+                            Button._notifyError('Operación inválida');
+                            Button.reset();
+                            return;
+                        }
 
                         if (isZergMorph) {
-                            if (Resource.paypal(cost) && hasTime) {
-                                Button.queueJob(owner,{
-                                    name:buildName,
-                                    time:duration,
-                                    run:function(){
-                                        var building=owner.evolveTo(Build[buildName]);
-                                        if (building instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
-                                        return building;
-                                    }
-                                });
+                            if (!hasTime) {
+                                Button._notifyError('Operación inválida');
+                                Button.reset();
+                                return;
+                            }
+                            if (Resource.paypal(cost)) {
+                                var from=owner;
+                                var wasSelected=from.selected;
+                                var wasMain=from===Game.selectedUnit;
+                                from.dieEffect=from.sound.death=null;
+                                from.die();
+                                var placeholder=new Build[Button._pickZergMutation(buildType)]({x:from.x,y:from.y});
+                                setTimeout(function(){
+                                    if (wasSelected) Game.addIntoAllSelected(placeholder);
+                                    if (wasMain) Game.changeSelectedTo(placeholder);
+                                },0);
+                                if (placeholder instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
+                                if (duration<=0) {
+                                    var done=placeholder.evolveTo(buildType);
+                                    Button._spawnBuildingCompleteFx(done,buildType);
+                                    if (done instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
+                                }
+                                else {
+                                    Button.queueJob(placeholder,{
+                                        name:buildName,
+                                        time:duration,
+                                        run:function(){
+                                            var done=placeholder.evolveTo(buildType);
+                                            Button._spawnBuildingCompleteFx(done,buildType);
+                                            if (done instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
+                                            return done;
+                                        }
+                                    });
+                                }
+                            }
+                            Button.reset();
+                            return;
+                        }
+
+                        var isTerranAddon=(Build===Building.TerranBuilding)
+                            && (owner instanceof Building.TerranBuilding)
+                            && owner.items
+                            && Object.keys(owner.items).some(function(k){
+                                return owner.items[k] && owner.items[k].name===buildName;
+                            })
+                            && Button._isTerranAddon(buildName);
+                        if (isTerranAddon) {
+                            if (!hasTime) {
+                                Button._notifyError('Operación inválida');
+                                Button.reset();
+                                return;
+                            }
+                            var rect=Button._addonRectFor(owner,buildType);
+                            if (!Button._isBuildRectValid(rect,null,0)) {
+                                Button._notifyError('No se puede colocar aquí');
+                                Button.reset();
+                                return;
+                            }
+                            if (Resource.paypal(cost)) {
+                                var placeholder=new Build[Button._pickTerranConstruction(buildType)]({x:rect.x,y:rect.y});
+                                if (duration<=0) {
+                                    placeholder.evolveTo(buildType);
+                                }
+                                else {
+                                    Button.queueJob(placeholder,{
+                                        name:buildName,
+                                        time:duration,
+                                        run:function(){
+                                            return placeholder.evolveTo(buildType);
+                                        }
+                                    });
+                                }
                             }
                             Button.reset();
                             return;
@@ -493,10 +607,9 @@ var Button={
                             var worker=owner;
                             Button.callback=function(location){
                                 if (!worker || worker.status=='dead') return;
-                                var buildType=Build[buildName];
                                 var rect=Button._buildRectFor(buildType,location);
-                                if (!Button._isBuildRectValid(rect,worker)) {
-                                    if (Referee && Referee.voice && Referee.voice.pError) Referee.voice.pError.play();
+                                if (!Button._isBuildRectValid(rect,worker,2)) {
+                                    Button._notifyError('No se puede colocar aquí');
                                     return;
                                 }
                                 if (!Resource.paypal(cost)) return;
@@ -526,6 +639,7 @@ var Button={
                                 if (placeholder instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
                                 if (duration<=0) {
                                     var done=placeholder.evolveTo(buildType);
+                                    Button._spawnBuildingCompleteFx(done,buildType);
                                     if (done instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
                                     return;
                                 }
@@ -534,6 +648,7 @@ var Button={
                                     time:duration,
                                     run:function(){
                                         var done=placeholder.evolveTo(buildType);
+                                        Button._spawnBuildingCompleteFx(done,buildType);
                                         if (done instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
                                         return done;
                                     }
