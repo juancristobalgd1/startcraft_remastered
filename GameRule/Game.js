@@ -12,6 +12,7 @@ var Game = {
     cxt: $('#middleCanvas')[0].getContext('2d'),
     frontCxt: $('#frontCanvas')[0].getContext('2d'),
     backCxt: $('#backCanvas')[0].getContext('2d'),
+    fogCxt: null, // Will be initialized
     _timer: -1,
     _frameInterval: 100,
     _clock: 0,
@@ -474,7 +475,7 @@ var Game = {
         for (var level = 1; level <= Levels.length; level++) {
             var levelLabel = Levels[level - 1].label ? Levels[level - 1].label : "Level " + level;
             var item = $('<div class="levelItem" data-level="' + level + '">' + levelLabel + '</div>');
-            item.on('click', function() {
+            item.on('click', function () {
                 var lvl = parseInt($(this).data('level'));
                 if (lvl) {
                     $('.levelItem').css('background-color', 'blue');

@@ -109,13 +109,10 @@ var mouseController = {
             //Control chara moving if it's selected
             if (chara.selected) {
                 //Sound effect
-                if (chara.sound.moving) chara.sound.moving.play();
-                //Interrupt old destination routing
-                if (chara.destination) {
-                    //Break possible dead lock
-                    if (chara.destination.next) chara.destination.next = null;
-                    delete chara.destination;
-                }
+                if (chara.sound && chara.sound.moving) chara.sound.moving.play();
+                var isShift = keyController.shift;
+                if (!isShift && chara.commandQueue) chara.commandQueue = [];
+                var isBusy = (chara.status !== 'dock' || chara.routingTimer || (chara.attack && chara.target && chara.target.status !== 'dead') || chara.gatherTimer);
                 //Cancel possible hold
                 if (chara.hold) {
                     delete chara.AI;
@@ -127,48 +124,66 @@ var mouseController = {
                 if ((selectedTarget instanceof Neutral.Mineral ||
                     ((selectedTarget instanceof Building) && (['Refinery', 'Extractor', 'Assimilator'].indexOf(selectedTarget.name) !== -1)))
                     && (chara.name == 'SCV' || chara.name == 'Drone' || chara.name == 'Probe')) {
-                    if (chara.gather) chara.gather(selectedTarget);
+                    if (isShift && isBusy) {
+                        chara.commandQueue.push({ type: 'gather', target: selectedTarget });
+                    }
+                    else {
+                        if (chara.gather) chara.gather(selectedTarget);
+                    }
                     return;
                 }
                 //Unit cannot attack will always choose move mode
                 var attackOrMove = (chara.attack) ? (selectedTarget instanceof Gobj) : false;
                 //Attack mode
                 if (attackOrMove) {
-                    if (chara.gatherTimer) {
-                        clearInterval(chara.gatherTimer);
-                        chara.gatherTimer = 0;
-                        if (chara._gather) delete chara._gather;
+                    if (isShift && isBusy) {
+                        chara.commandQueue.push({ type: 'attack', target: selectedTarget });
                     }
-                    if (chara.cannotMove() && !(chara.isInAttackRange(selectedTarget))) return;
-                    //Intercept invisible enemy
-                    if (selectedTarget.isInvisible) {
-                        Referee.voice.pError.play();
-                        return;
+                    else {
+                        if (chara.gatherTimer) {
+                            clearInterval(chara.gatherTimer);
+                            chara.gatherTimer = 0;
+                            if (chara._gather) delete chara._gather;
+                        }
+                        if (chara.cannotMove() && !(chara.isInAttackRange(selectedTarget))) return;
+                        //Intercept invisible enemy
+                        if (selectedTarget.isInvisible) {
+                            Referee.voice.pError.play();
+                            return;
+                        }
+                        chara.targetLock = true;
+                        chara.attack(selectedTarget);
                     }
-                    chara.targetLock = true;
-                    chara.attack(selectedTarget);
                 }
                 //Move mode
                 else {
-                    if (chara.gatherTimer) {
-                        clearInterval(chara.gatherTimer);
-                        chara.gatherTimer = 0;
-                        if (chara._gather) delete chara._gather;
+                    var mx = clickX + GameMap.offsetX;
+                    var my = clickY + GameMap.offsetY;
+                    if (isShift && isBusy) {
+                        var type = (Button.callback == 'patrol') ? 'patrol' : 'move';
+                        chara.commandQueue.push({ type: type, x: mx, y: my });
                     }
-                    if (chara.cannotMove()) return;
-                    //Only attackable units can stop attack
-                    if (chara.attack) chara.stopAttack();
-                    //Lock destination by default
-                    chara.targetLock = !unlock;
-                    chara.moveTo(clickX + GameMap.offsetX, clickY + GameMap.offsetY);
-                    //Record destination
-                    if (Button.callback == 'attack') {
-                        chara.destination = { x: clickX + GameMap.offsetX, y: clickY + GameMap.offsetY };
-                    }
-                    if (Button.callback == 'patrol') {
-                        //Patrol dead lock
-                        chara.destination = { x: clickX + GameMap.offsetX, y: clickY + GameMap.offsetY };
-                        chara.destination.next = { x: chara.posX(), y: chara.posY(), next: chara.destination };
+                    else {
+                        if (chara.gatherTimer) {
+                            clearInterval(chara.gatherTimer);
+                            chara.gatherTimer = 0;
+                            if (chara._gather) delete chara._gather;
+                        }
+                        if (chara.cannotMove()) return;
+                        //Only attackable units can stop attack
+                        if (chara.attack) chara.stopAttack();
+                        //Lock destination by default
+                        chara.targetLock = !unlock;
+                        chara.moveTo(mx, my);
+                        //Record destination
+                        if (Button.callback == 'attack') {
+                            chara.destination = { x: mx, y: my };
+                        }
+                        if (Button.callback == 'patrol') {
+                            //Patrol dead lock
+                            chara.destination = { x: mx, y: my };
+                            chara.destination.next = { x: chara.posX(), y: chara.posY(), next: chara.destination };
+                        }
                     }
                 }
             }

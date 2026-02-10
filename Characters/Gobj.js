@@ -201,7 +201,7 @@ proto.removeBuffer = function (bufferObj) {
 };
 
 proto.cannotMove = function () {
-    return (this instanceof Building) || Boolean(this.burrowBuffer);
+    return (this instanceof Building && !this.isFlying) || Boolean(this.burrowBuffer);
 };
 
 proto.evolveTo = function (charaType, burstArr) {
