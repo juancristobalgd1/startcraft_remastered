@@ -98,6 +98,10 @@ button[num='9']{
 .Cancel{
     background-position: -216px -374px;
 }
+.SetRallyPoint{
+    background-position: -396px -340px;
+    border-color: rgba(0,255,255,0.8);
+}
 .Load{
     background-position: 0 -578px;
 }

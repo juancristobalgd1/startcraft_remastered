@@ -166,6 +166,18 @@ div#GamePlay div.panel_Info div.infoCenter p {
     margin:2px 0;
     font:12px Verdana,Arial;
 }
+div#GamePlay[data-font-scale='large'] div.panel_Info div.infoCenter h3 {
+    font-size:22px;
+}
+div#GamePlay[data-font-scale='large'] div.panel_Info div.infoCenter p {
+    font-size:15px;
+}
+div#GamePlay[data-font-scale='xlarge'] div.panel_Info div.infoCenter h3 {
+    font-size:26px;
+}
+div#GamePlay[data-font-scale='xlarge'] div.panel_Info div.infoCenter p {
+    font-size:18px;
+}
 div#GamePlay div.panel_Info div.infoCenter p.detector {
     color:yellow;
 }
@@ -313,6 +325,12 @@ div#GamePlay div.warning_Box {
     color:red;
     display:none;
 }
+div#GamePlay[data-font-scale='large'] div.warning_Box {
+    font-size:28px;
+}
+div#GamePlay[data-font-scale='xlarge'] div.warning_Box {
+    font-size:32px;
+}
 div#GamePlay div#cheat_Box {
     width:400px;
     height:30px;
@@ -344,11 +362,23 @@ div#GamePlay div.message_Box {
     color:white;
     display:none;
 }
+div#GamePlay[data-font-scale='large'] div.message_Box {
+    font-size:1.0em;
+}
+div#GamePlay[data-font-scale='xlarge'] div.message_Box {
+    font-size:1.2em;
+}
 div#GamePlay div.resource_Box {
     right:30px;
     top:20px;
     font:bolder 1em Verdana,Arial;
     color: #00ff00;
+}
+div#GamePlay[data-font-scale='large'] div.resource_Box {
+    font-size:1.2em;
+}
+div#GamePlay[data-font-scale='xlarge'] div.resource_Box {
+    font-size:1.4em;
 }
 div#GamePlay div.resource_Box div, div#GamePlay div.tooltip_Box div.cost div{
     position:relative;
@@ -415,6 +445,12 @@ div#GamePlay button#PauseButton{
     background: rgba(0,0,0,0.5);
     border:2px solid rgba(255,255,255,0.6);
     border-radius:8px;
+}
+div#GamePlay[data-font-scale='large'] button#PauseButton{
+    font-size:18px;
+}
+div#GamePlay[data-font-scale='xlarge'] button#PauseButton{
+    font-size:20px;
 }
 
 div#GamePlay div#GameHUD{

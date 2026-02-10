@@ -17,6 +17,7 @@ var Game = {
     _clock: 0,
     isPaused: false,
     hapticsEnabled: false,
+    reducedMotion: false,
     ui: {
         lastResource: { mine: null, gas: null, curMan: null, totalMan: null, manColor: null, supplyBlocked: null, supplyWarnAt: 0 },
         lastSelected: { life: null, shield: null, magic: null, kill: null, lifeColor: null },
@@ -34,6 +35,7 @@ var Game = {
         aiNearMargin: 180
     },
     uiScale: 'normal',
+    fontScale: 'normal',
     pathfinding: {
         _tasks: {},
         _order: [],
@@ -249,6 +251,20 @@ var Game = {
         if (gp) gp.setAttribute('data-ui-scale', scale);
         Game._syncPauseMenuOptions();
     },
+    setFontScale: function (scale) {
+        if (!scale) return;
+        Game.fontScale = scale;
+        var gp = document.getElementById('GamePlay');
+        if (gp) gp.setAttribute('data-font-scale', scale);
+        Game._syncPauseMenuOptions();
+    },
+    setReducedMotion: function (enabled) {
+        Game.reducedMotion = Boolean(enabled);
+        var gp = document.getElementById('GamePlay');
+        if (gp) gp.setAttribute('data-reduced-motion', Game.reducedMotion ? 'true' : 'false');
+        if (document && document.body) document.body.setAttribute('data-reduced-motion', Game.reducedMotion ? 'true' : 'false');
+        Game._syncPauseMenuOptions();
+    },
     _syncPauseMenuOptions: function () {
         var metricsBtn = document.getElementById('PauseToggleMetrics');
         if (metricsBtn) metricsBtn.textContent = 'FPS/Input: ' + (Game.metrics.enabled ? 'On' : 'Off');
@@ -258,6 +274,13 @@ var Game = {
         if (uiBtn) {
             var label = Game.uiScale === 'large' ? 'Large' : (Game.uiScale === 'xlarge' ? 'XL' : 'Normal');
             uiBtn.textContent = 'UI Size: ' + label;
+        }
+        var motionBtn = document.getElementById('PauseReducedMotion');
+        if (motionBtn) motionBtn.textContent = 'Reduced Motion: ' + (Game.reducedMotion ? 'On' : 'Off');
+        var fontBtn = document.getElementById('PauseFontScale');
+        if (fontBtn) {
+            var flabel = Game.fontScale === 'large' ? 'Large' : (Game.fontScale === 'xlarge' ? 'XL' : 'Normal');
+            fontBtn.textContent = 'Font Size: ' + flabel;
         }
     },
     restartLevel: function () {
@@ -422,6 +445,20 @@ var Game = {
                 var next = (Game.uiScale === 'normal') ? 'large' : (Game.uiScale === 'large') ? 'xlarge' : 'normal';
                 Game.setUiScale(next);
             };
+            var reducedMotionBtn = document.getElementById('PauseReducedMotion');
+            if (reducedMotionBtn) reducedMotionBtn.onclick = function (event) {
+                event.preventDefault();
+                Game.setReducedMotion(!Game.reducedMotion);
+            };
+            var fontScaleBtn = document.getElementById('PauseFontScale');
+            if (fontScaleBtn) fontScaleBtn.onclick = function (event) {
+                event.preventDefault();
+                var next = (Game.fontScale === 'normal') ? 'large' : (Game.fontScale === 'large') ? 'xlarge' : 'normal';
+                Game.setFontScale(next);
+            };
+            Game.setUiScale(Game.uiScale);
+            Game.setFontScale(Game.fontScale);
+            Game.setReducedMotion(Game.reducedMotion);
             Game._syncPauseMenuOptions();
             Game.start();
         });
@@ -522,7 +559,7 @@ var Game = {
         //Build a new team
         Game.teams[teamNum] = _$.mixin([], Game.allSelected);
     },
-    callTeam: function (teamNum) {
+    callTeam: function (teamNum, centerOnGroup) {
         var team = _$.mixin([], Game.teams[teamNum]);
         //When team already exist
         if (team instanceof Array) {
@@ -536,8 +573,9 @@ var Game = {
                 Game.changeSelectedTo(team[0]);
                 //Sound effect
                 team[0].sound.selected.play();
-                //Relocate map center
-                GameMap.relocateAt(team[0].posX(), team[0].posY());
+                if (centerOnGroup) {
+                    GameMap.relocateAt(team[0].posX(), team[0].posY());
+                }
             }
         }
     },
@@ -1068,7 +1106,15 @@ var Game = {
                 Game.ui.lastProcessing.percent = percent;
             }
             var queue = Game.selectedUnit.productionQueue;
-            var queueText = (queue && queue.length) ? ('Queue: ' + queue.slice(0, 4).map(function (j) { return j.name; }).join(', ')) : '';
+            var queueText = '';
+            if (processing && processing.name) {
+                queueText = 'Now: ' + processing.name;
+            }
+            if (queue && queue.length) {
+                var shown = queue.slice(0, 4).map(function (j) { return j.name; });
+                var more = queue.length - shown.length;
+                queueText += (queueText ? ' | ' : '') + 'Next: ' + shown.join(', ') + (more > 0 ? (' +' + more) : '');
+            }
             if (Game.ui.lastProcessing.queueText !== queueText) {
                 $('div.upgrading div[name="processing"] div.queue')[0].textContent = queueText;
                 Game.ui.lastProcessing.queueText = queueText;

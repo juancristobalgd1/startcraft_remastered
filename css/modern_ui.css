@@ -130,3 +130,9 @@ div#GamePlay div.tooltip_Box div.itemName {
 div#GamePlay div.panel_Info div.override {
     background: transparent !important;
 }
+body[data-reduced-motion='true'] *,
+body[data-reduced-motion='true'] *::before,
+body[data-reduced-motion='true'] *::after {
+    animation: none !important;
+    transition: none !important;
+}

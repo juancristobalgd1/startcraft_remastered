@@ -2,6 +2,8 @@ var keyController={
 	shift:false,
     ctrl:false,
     disable:false,
+    _lastTeamNum:null,
+    _lastTeamAt:0,
     start:function(){
         //Keyboard settings
         window.onkeydown=function(event){
@@ -25,10 +27,16 @@ var keyController={
                     //Building team
                     if (keyController.ctrl) {
                         Game.addSelectedIntoTeam(teamNum);
+                        keyController._lastTeamNum=null;
+                        keyController._lastTeamAt=0;
                     }
                     //Call team
                     else {
-                        Game.callTeam(teamNum);
+                        var now=(window.performance && performance.now)?performance.now():Date.now();
+                        var isDouble=(keyController._lastTeamNum===teamNum) && ((now-keyController._lastTeamAt)<=350);
+                        Game.callTeam(teamNum,isDouble);
+                        keyController._lastTeamNum=teamNum;
+                        keyController._lastTeamAt=now;
                     }
                     break;
                 //Move map

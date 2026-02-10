@@ -25,11 +25,32 @@ var Button={
                 if (owner) delete owner.processing;
                 return;
             }
-            if (typeof(job.run)=='function') job.run();
+            var product;
+            if (typeof(job.run)=='function') product=job.run();
+            if (product) Button._applyRally(owner,product);
             delete owner.processing;
             Button._startNext(owner);
         },job.time*100);
         return true;
+    },
+    _cloneWaypointChain:function(node){
+        if (!node) return null;
+        var copy={x:node.x,y:node.y};
+        if (node.next) copy.next=Button._cloneWaypointChain(node.next);
+        return copy;
+    },
+    _applyRally:function(owner,product){
+        if (!owner || !owner.rallyPoint) return;
+        if (!(product instanceof Unit)) return;
+        if (product.status=='dead') return;
+        var dest=Button._cloneWaypointChain(owner.rallyPoint);
+        if (!dest) return;
+        product.destination=dest;
+        setTimeout(function(){
+            if (product.status=='dead') return;
+            if (!product.destination) return;
+            if (typeof product.moveTo=='function') product.moveTo(product.destination.x,product.destination.y);
+        },0);
     },
     _startNext:function(owner){
         if (!owner) return;
@@ -91,6 +112,27 @@ var Button={
                 }
                 else {
                     $('button[num="'+N+'"]').removeAttr('class').hide();
+                }
+            }
+            if (chara instanceof Building) {
+                var canRally=false;
+                for (var k in chara.items) {
+                    var it=chara.items[k];
+                    if (!it || !it.name) continue;
+                    if ((typeof Terran==='object' && Terran[it.name]) || (typeof Protoss==='object' && Protoss[it.name])) {
+                        canRally=true;
+                        break;
+                    }
+                }
+                if (canRally) {
+                    var slot=null;
+                    for (var s=9;s>=1;s--){
+                        var key=String(s);
+                        if (!chara.items[key]) { slot=key; break; }
+                    }
+                    if (slot) {
+                        $('button[num="'+slot+'"]').off('click').removeAttr('disabled').attr('class','SetRallyPoint').html('R').show();
+                    }
                 }
             }
             //Bind basic callbacks
@@ -293,10 +335,12 @@ var Button={
                                         name:unitType,
                                         time:duration,
                                         run:function(){
+                                            var unit;
                                             if (Race[unitType].prototype.isFlying)
-                                                new Race[unitType]({x:owner.x,y:owner.y});
+                                                unit=new Race[unitType]({x:owner.x,y:owner.y});
                                             else
-                                                new Race[unitType]({x:owner.x,y:owner.y+owner.height});
+                                                unit=new Race[unitType]({x:owner.x,y:owner.y+owner.height});
+                                            return unit;
                                         }
                                     });
                                 }
@@ -364,6 +408,7 @@ var Button={
                                     run:function(){
                                         var building=new Build[buildName]({x:owner.x,y:owner.y});
                                         if (building instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
+                                        return building;
                                     }
                                 });
                             }
@@ -371,6 +416,33 @@ var Button={
                         Button.reset();
                     });
                 });
+            });
+            $('button.SetRallyPoint').on('click',function(){
+                if (Button.callback==null) {
+                    Button.callback=function(location){
+                        var buildings=Building.ourBuildings.filter(function(b){
+                            return b.selected && b.status!='dead';
+                        });
+                        if (!buildings.length && (Game.selectedUnit instanceof Building) && Game.selectedUnit.status!='dead') {
+                            buildings=[Game.selectedUnit];
+                        }
+                        buildings.forEach(function(b){
+                            if (keyController.shift && b.rallyPoint) {
+                                var tail=b.rallyPoint;
+                                while (tail.next) tail=tail.next;
+                                tail.next={x:location.x,y:location.y};
+                            }
+                            else {
+                                b.rallyPoint={x:location.x,y:location.y};
+                            }
+                        });
+                    };
+                    $('div.GameLayer').attr('status','button');
+                }
+                else {
+                    $('div.GameLayer').removeAttr('status');
+                    Button.callback=null;
+                }
             });
         }
         //Bind tooltip callbacks
