@@ -1,4 +1,4 @@
-const CACHE_NAME = "starcraft-pwa-v1";
+const CACHE_NAME = "starcraft-pwa-v4";
 const CORE_ASSETS = [
   "./",
   "./index.html",
@@ -24,15 +24,15 @@ const CORE_ASSETS = [
   "./Characters/Neutral.js",
   "./Characters/Hero.js",
   "./Characters/Bullets.js",
-  "./Characters/Button.js?v=3",
-  "./Characters/Map.js?v=3",
+  "./Characters/Button.js?v=4",
+  "./Characters/Map.js?v=5",
   "./GameRule/Resource.js",
   "./GameRule/Referee.js",
-  "./GameRule/Levels.js?v=3",
-  "./GameRule/Game.js?v=3",
-  "./GameRule/Cheat.js?v=3",
-  "./Controller/mouseController.js?v=3",
-  "./Controller/keyController.js?v=3"
+  "./GameRule/Levels.js?v=6",
+  "./GameRule/Game.js?v=4",
+  "./GameRule/Cheat.js?v=4",
+  "./Controller/mouseController.js?v=4",
+  "./Controller/keyController.js?v=4"
 ];
 
 self.addEventListener("install", (event) => {
