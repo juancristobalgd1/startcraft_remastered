@@ -155,6 +155,81 @@ var Button={
         if (Referee && Referee.voice && Referee.voice.pError) Referee.voice.pError.play();
         if (msg) Game.showMessage(msg);
     },
+    _issueWorkerBuildOrder:function(worker,Build,buildType,buildName,rect,duration,cost){
+        if (!worker || worker.status=='dead') return false;
+        if (!rect || !rect.width || !rect.height) return false;
+        var rectCenterX=rect.x + rect.width*0.5;
+        var rectCenterY=rect.y + rect.height*0.5;
+        var workerRadius=(typeof worker.radius=='function') ? worker.radius() : (Math.min(worker.width,worker.height)*0.5);
+        var buildRadius=Math.min(rect.width,rect.height)*0.5;
+        var approachRange=Math.max(Unit.moveRange,workerRadius+buildRadius+10);
+
+        var started=false;
+        var beginConstruction=function(){
+            if (started) return;
+            started=true;
+            if (!worker || worker.status=='dead') return;
+            if (!Button._isBuildRectValid(rect,worker,2)) {
+                Button._notifyError('No se puede colocar aquí');
+                return;
+            }
+            if (!Resource.paypal(cost)) return;
+
+            var placeholder;
+            if (Build===Building.TerranBuilding) {
+                placeholder=new Build[Button._pickTerranConstruction(buildType)]({x:rect.x,y:rect.y});
+                if (duration>0) {
+                    worker.processing={
+                        name:buildName,
+                        startTime:new Date().getTime(),
+                        time:duration
+                    };
+                    setTimeout(function(){
+                        if (!worker || worker.status=='dead') return;
+                        if (worker.processing && worker.processing.name===buildName) delete worker.processing;
+                    },duration*100);
+                }
+            }
+            else if (Build===Building.ProtossBuilding) {
+                placeholder=new Build.Tranfer({x:rect.x,y:rect.y});
+            }
+            else if (Build===Building.ZergBuilding) {
+                var wasSelected=worker.selected;
+                var wasMain=worker===Game.selectedUnit;
+                worker.dieEffect=worker.sound.death=null;
+                worker.die();
+                placeholder=new Build[Button._pickZergMutation(buildType)]({x:rect.x,y:rect.y});
+                setTimeout(function(){
+                    if (wasSelected) Game.addIntoAllSelected(placeholder);
+                    if (wasMain) Game.changeSelectedTo(placeholder);
+                },0);
+            }
+            else {
+                placeholder=new Build[buildName]({x:rect.x,y:rect.y});
+            }
+
+            if (placeholder instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
+            if (duration<=0) {
+                var done=placeholder.evolveTo(buildType);
+                Button._spawnBuildingCompleteFx(done,buildType);
+                if (done instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
+                return;
+            }
+            Button.queueJob(placeholder,{
+                name:buildName,
+                time:duration,
+                run:function(){
+                    var done=placeholder.evolveTo(buildType);
+                    Button._spawnBuildingCompleteFx(done,buildType);
+                    if (done instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
+                    return done;
+                }
+            });
+        };
+
+        worker.moveTo(rectCenterX,rectCenterY,approachRange,beginConstruction);
+        return true;
+    },
     _isTerranAddon:function(buildName){
         return ['MachineShop','ControlTower','ComstatStation','NuclearSilo','PhysicsLab','ConvertOps'].indexOf(buildName)!==-1;
     },
@@ -613,47 +688,7 @@ var Button={
                                     Button._notifyError('No se puede colocar aquí');
                                     return;
                                 }
-                                if (!Resource.paypal(cost)) return;
-
-                                var placeholder;
-                                if (Build===Building.TerranBuilding) {
-                                    placeholder=new Build[Button._pickTerranConstruction(buildType)]({x:rect.x,y:rect.y});
-                                }
-                                else if (Build===Building.ProtossBuilding) {
-                                    placeholder=new Build.Tranfer({x:rect.x,y:rect.y});
-                                }
-                                else if (Build===Building.ZergBuilding) {
-                                    var wasSelected=worker.selected;
-                                    var wasMain=worker===Game.selectedUnit;
-                                    worker.dieEffect=worker.sound.death=null;
-                                    worker.die();
-                                    placeholder=new Build[Button._pickZergMutation(buildType)]({x:rect.x,y:rect.y});
-                                    setTimeout(function(){
-                                        if (wasSelected) Game.addIntoAllSelected(placeholder);
-                                        if (wasMain) Game.changeSelectedTo(placeholder);
-                                    },0);
-                                }
-                                else {
-                                    placeholder=new Build[buildName]({x:rect.x,y:rect.y});
-                                }
-
-                                if (placeholder instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
-                                if (duration<=0) {
-                                    var done=placeholder.evolveTo(buildType);
-                                    Button._spawnBuildingCompleteFx(done,buildType);
-                                    if (done instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
-                                    return;
-                                }
-                                Button.queueJob(placeholder,{
-                                    name:buildName,
-                                    time:duration,
-                                    run:function(){
-                                        var done=placeholder.evolveTo(buildType);
-                                        Button._spawnBuildingCompleteFx(done,buildType);
-                                        if (done instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
-                                        return done;
-                                    }
-                                });
+                                Button._issueWorkerBuildOrder(worker,Build,buildType,buildName,rect,duration,cost);
                             };
                             $('div.GameLayer').attr('status','button');
                             Button.reset();

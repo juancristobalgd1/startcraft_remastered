@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>StarCraft - Tests</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 16px; }
+      .ok { color: #0a7a0a; }
+      .fail { color: #b00020; }
+      pre { background: #111; color: #eee; padding: 12px; border-radius: 8px; overflow: auto; }
+    </style>
+  </head>
+  <body>
+    <h1>Tests: construcción con worker</h1>
+    <div id="summary"></div>
+    <pre id="log"></pre>
+    <script>
+      (function () {
+        var logEl = document.getElementById('log');
+        var summaryEl = document.getElementById('summary');
+        var lines = [];
+        var results = [];
+        function log(s) { lines.push(String(s)); logEl.textContent = lines.join('\n'); }
+        function ok(name) { results.push({ name: name, ok: true }); log('OK  ' + name); }
+        function fail(name, err) { results.push({ name: name, ok: false, err: err }); log('FAIL ' + name + ' -> ' + (err && err.message ? err.message : String(err))); }
+        function assert(cond, msg) { if (!cond) throw new Error(msg || 'assertion failed'); }
+        function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+        window.Unit = { moveRange: 20 };
+        window.GameMap = { drawMud: function () {}, getCurrentMap: function () { return { width: 4096, height: 4096 }; } };
+        window.Referee = { voice: { pError: { play: function () {} } } };
+        window.Game = {
+          selectedUnit: null,
+          showMessage: function () {},
+          changeSelectedTo: function () {},
+          addIntoAllSelected: function () {},
+          unselectAll: function () {}
+        };
+        window.Resource = { paypal: function () { return true; } };
+        window.Animation = {};
+        window._$ = { clone: function (o) { return JSON.parse(JSON.stringify(o)); } };
+
+        function BuildingBase() {}
+        window.Building = BuildingBase;
+        Building.ZergBuilding = function ZergBuilding() {};
+        Building.ZergBuilding.prototype = Object.create(BuildingBase.prototype);
+        Building.ZergBuilding.prototype.constructor = Building.ZergBuilding;
+        Building.TerranBuilding = {};
+        Building.ProtossBuilding = {};
+
+        function makePlaceholder(name) {
+          function P(props) {
+            this.x = props.x;
+            this.y = props.y;
+            this.width = 96;
+            this.height = 70;
+            this.status = 'dock';
+            this.name = name;
+            this.imgPos = { step2: {}, step3: {}, dock: {} };
+          }
+          P.prototype = Object.create(BuildingBase.prototype);
+          P.prototype.constructor = P;
+          P.prototype.evolveTo = function (Type) {
+            var Done = function () {};
+            Done.prototype = Object.create(BuildingBase.prototype);
+            Done.prototype.constructor = Done;
+            var done = new Done();
+            done.name = (Type && Type.prototype && Type.prototype.name) ? Type.prototype.name : 'Built';
+            done.status = 'dock';
+            return done;
+          };
+          return P;
+        }
+
+        Building.TerranBuilding.ConstructionS = makePlaceholder('Construction');
+        Building.TerranBuilding.ConstructionM = makePlaceholder('Construction');
+        Building.TerranBuilding.ConstructionL = makePlaceholder('Construction');
+        Building.ProtossBuilding.Tranfer = makePlaceholder('Tranfer');
+        Building.ZergBuilding.MutationS = makePlaceholder('Mutation');
+        Building.ZergBuilding.MutationM = makePlaceholder('Mutation');
+        Building.ZergBuilding.MutationL = makePlaceholder('Mutation');
+
+        function loadScript(src) {
+          return new Promise(function (resolve, reject) {
+            var s = document.createElement('script');
+            s.src = src;
+            s.onload = resolve;
+            s.onerror = reject;
+            document.head.appendChild(s);
+          });
+        }
+
+        var calls = { moveTo: [], paypal: 0, queueJob: [] };
+        Resource.paypal = function () { calls.paypal++; return true; };
+
+        function makeWorker(opts) {
+          var w = {
+            width: 40,
+            height: 44,
+            status: 'dock',
+            selected: true,
+            sound: {},
+            die: function () { this.status = 'dead'; },
+            radius: function () { return 20; },
+            processing: null,
+            moveTo: opts.moveTo
+          };
+          return w;
+        }
+
+        function makeBuildType(name, w, h) {
+          function T() {}
+          T.prototype = { name: name, width: w, height: h };
+          return T;
+        }
+
+        async function run() {
+          await loadScript('../Characters/Button.js');
+
+          var oldIsValid = Button._isBuildRectValid;
+          Button._isBuildRectValid = function () { return true; };
+          var oldQueueJob = Button.queueJob;
+          Button.queueJob = function (owner, job) { calls.queueJob.push({ owner: owner, job: job }); return true; };
+
+          try {
+            await (async function () {
+              var name = 'Terran: SCV se mueve y empieza construcción al llegar';
+              calls.moveTo = [];
+              calls.paypal = 0;
+              calls.queueJob = [];
+
+              var worker = makeWorker({
+                moveTo: function (x, y, range, cb) {
+                  calls.moveTo.push({ x: x, y: y, range: range });
+                  setTimeout(function () { cb && cb(); }, 10);
+                }
+              });
+              var Build = Building.TerranBuilding;
+              var buildType = makeBuildType('SupplyDepot', 96, 70);
+              var rect = { x: 100, y: 120, width: 96, height: 70 };
+              var duration = 1;
+              var cost = { mine: 1, time: 1 };
+
+              Button._issueWorkerBuildOrder(worker, Build, buildType, 'SupplyDepot', rect, duration, cost);
+              assert(calls.paypal === 0, 'paypal debe ejecutarse después de llegar');
+              assert(calls.queueJob.length === 0, 'queueJob debe ejecutarse después de llegar');
+              assert(calls.moveTo.length === 1, 'moveTo debe llamarse una vez');
+              assert(Math.abs(calls.moveTo[0].x - (rect.x + rect.width * 0.5)) < 0.001, 'x incorrecta');
+              assert(Math.abs(calls.moveTo[0].y - (rect.y + rect.height * 0.5)) < 0.001, 'y incorrecta');
+              assert(calls.moveTo[0].range >= Unit.moveRange, 'range mínimo incorrecto');
+
+              await sleep(30);
+              assert(calls.paypal === 1, 'paypal debe ejecutarse al llegar');
+              assert(calls.queueJob.length === 1, 'queueJob debe ejecutarse al llegar');
+              assert(worker.processing && worker.processing.name === 'SupplyDepot', 'worker.processing debe marcarse');
+
+              await sleep(150);
+              assert(!worker.processing, 'worker.processing debe limpiarse al terminar');
+              ok(name);
+            })();
+
+            await (async function () {
+              var name = 'Protoss: Probe se mueve y la construcción arranca al llegar';
+              calls.moveTo = [];
+              calls.paypal = 0;
+              calls.queueJob = [];
+
+              var worker = makeWorker({
+                moveTo: function (x, y, range, cb) {
+                  calls.moveTo.push({ x: x, y: y, range: range });
+                  cb && cb();
+                }
+              });
+              var Build = Building.ProtossBuilding;
+              Build.Tranfer = Building.ProtossBuilding.Tranfer;
+              var buildType = makeBuildType('Pylon', 60, 68);
+              var rect = { x: 200, y: 220, width: 60, height: 68 };
+              var duration = 1;
+              var cost = { mine: 1, time: 1 };
+
+              Button._issueWorkerBuildOrder(worker, Build, buildType, 'Pylon', rect, duration, cost);
+              assert(calls.moveTo.length === 1, 'moveTo debe llamarse');
+              assert(calls.paypal === 1, 'paypal debe ejecutarse');
+              assert(calls.queueJob.length === 1, 'queueJob debe ejecutarse');
+              assert(!worker.processing, 'Probe no debe quedar con processing');
+              ok(name);
+            })();
+
+          } catch (e) {
+            fail('Suite', e);
+          } finally {
+            Button._isBuildRectValid = oldIsValid;
+            Button.queueJob = oldQueueJob;
+          }
+
+          var passed = results.filter(function (r) { return r.ok; }).length;
+          var failed = results.length - passed;
+          summaryEl.innerHTML = '<div class=\"' + (failed ? 'fail' : 'ok') + '\">' +
+            passed + ' passed, ' + failed + ' failed' +
+            '</div>';
+        }
+
+        run().catch(function (e) { fail('Boot', e); });
+      })();
+    </script>
+  </body>
+</html>
