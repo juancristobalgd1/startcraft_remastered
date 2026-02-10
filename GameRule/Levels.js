@@ -17,6 +17,8 @@ var Levels = [
             new Building.TerranBuilding.Refinery({ x: 520, y: 260 });
             new Building.ZergBuilding.Hatchery({ x: 320, y: 420 });
             new Building.ZergBuilding.Extractor({ x: 520, y: 420 });
+            new Building.ZergBuilding.SpawningPool({ x: 660, y: 420 });
+            new Building.ZergBuilding.EvolutionChamber({ x: 660, y: 520 });
             new Building.ProtossBuilding.Nexus({ x: 320, y: 580 });
             new Building.ProtossBuilding.Assimilator({ x: 520, y: 580 });
             new Terran.SCV({ x: 100, y: 400 });

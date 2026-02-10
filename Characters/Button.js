@@ -29,7 +29,16 @@ var Button={
             if (typeof(job.run)=='function') product=job.run();
             if (product) Button._applyRally(owner,product);
             delete owner.processing;
-            Button._startNext(owner);
+            if (owner.status=='dead' && (product instanceof Building)) {
+                if (owner.productionQueue && owner.productionQueue.length) {
+                    product.productionQueue=owner.productionQueue;
+                }
+                delete owner.productionQueue;
+                Button._startNext(product);
+            }
+            else {
+                Button._startNext(owner);
+            }
         },job.time*100);
         return true;
     },
@@ -61,6 +70,56 @@ var Button={
         else {
             delete owner.productionQueue;
         }
+    },
+    _rectsOverlap:function(a,b,margin){
+        if (!a || !b) return false;
+        if (margin==null) margin=0;
+        return !(
+            (a.x+a.width+margin)<=b.x ||
+            (b.x+b.width+margin)<=a.x ||
+            (a.y+a.height+margin)<=b.y ||
+            (b.y+b.height+margin)<=a.y
+        );
+    },
+    _buildRectFor:function(buildType,location){
+        var w=buildType.prototype.width||0;
+        var h=buildType.prototype.height||0;
+        return {
+            x:(location.x-w/2)>>0,
+            y:(location.y-h/2)>>0,
+            width:w,
+            height:h
+        };
+    },
+    _isBuildRectValid:function(rect,ignoreObj){
+        if (!rect || !rect.width || !rect.height) return false;
+        var map=GameMap.getCurrentMap();
+        if (!map) return false;
+        if (rect.x<0 || rect.y<0) return false;
+        if ((rect.x+rect.width)>map.width) return false;
+        if ((rect.y+rect.height)>map.height) return false;
+        var margin=2;
+        return Unit.allUnits.concat(Building.allBuildings).every(function(chara){
+            if (!chara || chara.status=='dead') return true;
+            if (ignoreObj && chara===ignoreObj) return true;
+            return !Button._rectsOverlap(rect,{x:chara.x,y:chara.y,width:chara.width,height:chara.height},margin);
+        });
+    },
+    _pickTerranConstruction:function(buildType){
+        var w=buildType.prototype.width||0;
+        var h=buildType.prototype.height||0;
+        var m=Math.max(w,h);
+        if (m<=90) return 'ConstructionS';
+        if (m<=120) return 'ConstructionM';
+        return 'ConstructionL';
+    },
+    _pickZergMutation:function(buildType){
+        var w=buildType.prototype.width||0;
+        var h=buildType.prototype.height||0;
+        var m=Math.max(w,h);
+        if (m<=90) return 'MutationS';
+        if (m<=120) return 'MutationM';
+        return 'MutationL';
     },
     //Equip all buttons for unit
     equipButtonsFor:function(chara){
@@ -398,23 +457,103 @@ var Button={
                 }
                 buildNames.forEach(function(buildName){
                     $('button.'+buildName).on('click',function(){
+                        var owner=Game.selectedUnit;
+                        if (!owner || owner.status=='dead') return;
+                        var cost=Resource.getCost(buildName);
+                        var hasTime=cost && cost.time!=null;
+                        var duration=hasTime?cost.time:0;
+                        if (Cheat.cwal) duration=0;
+
                         //Payment
-                        if (Resource.paypal(Resource.getCost(buildName))){
-                            if (Resource.getCost(buildName) && Resource.getCost(buildName).time){
-                                var owner=Game.selectedUnit;
-                                var duration=Resource.getCost(buildName).time;
-                                //Cheat: Operation cwal
-                                if (Cheat.cwal) duration=0;
+                        var isZergMorph=(Build===Building.ZergBuilding)
+                            && (owner instanceof Building.ZergBuilding)
+                            && owner.items
+                            && Object.keys(owner.items).some(function(k){
+                                return owner.items[k] && owner.items[k].name===buildName;
+                            });
+
+                        if (isZergMorph) {
+                            if (Resource.paypal(cost) && hasTime) {
                                 Button.queueJob(owner,{
                                     name:buildName,
                                     time:duration,
                                     run:function(){
-                                        var building=new Build[buildName]({x:owner.x,y:owner.y});
+                                        var building=owner.evolveTo(Build[buildName]);
                                         if (building instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
                                         return building;
                                     }
                                 });
                             }
+                            Button.reset();
+                            return;
+                        }
+
+                        var isWorker=(owner instanceof Unit) && (owner.name=='SCV' || owner.name=='Drone' || owner.name=='Probe');
+                        if (isWorker && Button.callback==null && hasTime) {
+                            var worker=owner;
+                            Button.callback=function(location){
+                                if (!worker || worker.status=='dead') return;
+                                var buildType=Build[buildName];
+                                var rect=Button._buildRectFor(buildType,location);
+                                if (!Button._isBuildRectValid(rect,worker)) {
+                                    if (Referee && Referee.voice && Referee.voice.pError) Referee.voice.pError.play();
+                                    return;
+                                }
+                                if (!Resource.paypal(cost)) return;
+
+                                var placeholder;
+                                if (Build===Building.TerranBuilding) {
+                                    placeholder=new Build[Button._pickTerranConstruction(buildType)]({x:rect.x,y:rect.y});
+                                }
+                                else if (Build===Building.ProtossBuilding) {
+                                    placeholder=new Build.Tranfer({x:rect.x,y:rect.y});
+                                }
+                                else if (Build===Building.ZergBuilding) {
+                                    var wasSelected=worker.selected;
+                                    var wasMain=worker===Game.selectedUnit;
+                                    worker.dieEffect=worker.sound.death=null;
+                                    worker.die();
+                                    placeholder=new Build[Button._pickZergMutation(buildType)]({x:rect.x,y:rect.y});
+                                    setTimeout(function(){
+                                        if (wasSelected) Game.addIntoAllSelected(placeholder);
+                                        if (wasMain) Game.changeSelectedTo(placeholder);
+                                    },0);
+                                }
+                                else {
+                                    placeholder=new Build[buildName]({x:rect.x,y:rect.y});
+                                }
+
+                                if (placeholder instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
+                                if (duration<=0) {
+                                    var done=placeholder.evolveTo(buildType);
+                                    if (done instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
+                                    return;
+                                }
+                                Button.queueJob(placeholder,{
+                                    name:buildName,
+                                    time:duration,
+                                    run:function(){
+                                        var done=placeholder.evolveTo(buildType);
+                                        if (done instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
+                                        return done;
+                                    }
+                                });
+                            };
+                            $('div.GameLayer').attr('status','button');
+                            Button.reset();
+                            return;
+                        }
+
+                        if (Resource.paypal(cost) && hasTime) {
+                            Button.queueJob(owner,{
+                                name:buildName,
+                                time:duration,
+                                run:function(){
+                                    var building=new Build[buildName]({x:owner.x,y:owner.y});
+                                    if (building instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud,0);
+                                    return building;
+                                }
+                            });
                         }
                         Button.reset();
                     });
