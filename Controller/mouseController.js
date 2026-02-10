@@ -78,9 +78,25 @@ var mouseController = {
         //Find selected one or nothing
         var selectedTarget = Game.getSelectedOne(clickX + GameMap.offsetX, clickY + GameMap.offsetY, true);//isEnemy
         if (!(selectedTarget instanceof Gobj)) {
-            selectedTarget = Game.getSelectedOne(clickX + GameMap.offsetX, clickY + GameMap.offsetY, false, null, null, function (chara) {
+            var mx = clickX + GameMap.offsetX;
+            var my = clickY + GameMap.offsetY;
+            var minerals = Game.getInRangeOnes(mx, my, 55, false, true, false, function (chara) {
                 return chara instanceof Neutral.Mineral;
             });
+            if (minerals && minerals.length) {
+                minerals.sort(function (a, b) {
+                    var dax = mx - a.posX(), day = my - a.posY();
+                    var dbx = mx - b.posX(), dby = my - b.posY();
+                    return dax * dax + day * day - (dbx * dbx + dby * dby);
+                });
+                selectedTarget = minerals[0];
+            }
+            else {
+                if (GameMap && GameMap._spawnMineralNear) {
+                    var spawned = GameMap._spawnMineralNear(mx, my);
+                    if (spawned) selectedTarget = spawned;
+                }
+            }
         }
         if (!(selectedTarget instanceof Gobj)) {
             selectedTarget = Game.getSelectedOne(clickX + GameMap.offsetX, clickY + GameMap.offsetY, false, false, null, function (chara) {

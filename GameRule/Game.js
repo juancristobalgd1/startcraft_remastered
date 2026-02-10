@@ -802,6 +802,7 @@ var Game = {
         if (chara.status == "dead") return;//Will not show dead
         //Won't draw units outside screen
         if (!chara.insideScreen()) return;
+        if (chara.noRender) return;
         //Choose context
         var cxt = ((chara instanceof Unit) || (chara instanceof Building)) ? Game.cxt : Game.frontCxt;
         //Draw shadow

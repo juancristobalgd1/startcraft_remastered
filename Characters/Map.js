@@ -37,6 +37,8 @@ var GameMap={
         GameMap.shadowCxt.beginPath();
         GameMap.shadowCxt.arc(50,50,50,0,Math.PI*2);
         GameMap.shadowCxt.fill();
+        GameMap._clearMapResources();
+        GameMap._spawnMapResources();
     },
     getCurrentMap:function(){
         return sourceLoader.sources['Map_'+GameMap.currentMap];
@@ -266,5 +268,246 @@ var GameMap={
         GameMap.offsetX=offsetX;
         GameMap.offsetY=offsetY;
         GameMap.needRefresh=true;//For synchronize
+    }
+};
+
+var Map=GameMap;
+
+GameMap._resourceCache={};
+GameMap._mapScanCache={};
+GameMap._spawnedResourceIndex={};
+GameMap._clearMapResources=function(){
+    var isRes=function(chara){
+        return Boolean(chara && chara._isMapResource);
+    };
+    var removeFrom=function(arr){
+        if (!arr || !arr.length) return;
+        for (var i=arr.length-1;i>=0;i--){
+            if (isRes(arr[i])) arr.splice(i,1);
+        }
+    };
+    if (typeof Unit!=='undefined' && Unit){
+        removeFrom(Unit.allUnits);
+        removeFrom(Unit.ourGroundUnits);
+        removeFrom(Unit.enemyGroundUnits);
+        removeFrom(Unit.ourFlyingUnits);
+        removeFrom(Unit.enemyFlyingUnits);
+    }
+    if (typeof Game!=='undefined' && Game){
+        if (Game.selectedUnit && isRes(Game.selectedUnit)) Game.changeSelectedTo({});
+        if (Game.allSelected && Game.allSelected.length){
+            for (var i=Game.allSelected.length-1;i>=0;i--){
+                if (isRes(Game.allSelected[i])) Game.allSelected.splice(i,1);
+            }
+        }
+    }
+};
+
+GameMap._getMapScan=function(){
+    var map=GameMap.getCurrentMap();
+    if (!map || !map.width || !map.height) return null;
+    var mapName=GameMap.currentMap;
+    var cached=GameMap._mapScanCache[mapName];
+    if (cached && cached.mapW===map.width && cached.mapH===map.height && cached.factor) return cached;
+
+    var maxDim=Math.max(map.width,map.height);
+    var factor=Math.max(1,Math.ceil(maxDim/512));
+    var w=(map.width/factor)>>0;
+    var h=(map.height/factor)>>0;
+    if (w<2 || h<2) return null;
+
+    var c=document.createElement('canvas');
+    c.width=w;
+    c.height=h;
+    var ctx=c.getContext('2d');
+    try{
+        ctx.drawImage(map,0,0,w,h);
+    }catch(e){
+        return null;
+    }
+    var data;
+    try{
+        data=ctx.getImageData(0,0,w,h).data;
+    }catch(e){
+        return null;
+    }
+    cached={factor:factor,w:w,h:h,data:data,mapW:map.width,mapH:map.height};
+    GameMap._mapScanCache[mapName]=cached;
+    return cached;
+};
+
+GameMap._isMineralPixel=function(r,g,b){
+    if (b<110) return false;
+    if (b<g+5) return false;
+    if (b<r+35) return false;
+    if (g<50) return false;
+    return true;
+};
+
+GameMap._spawnMineralAt=function(cx,cy,bw,bh){
+    if (typeof Neutral==='undefined' || !Neutral || !Neutral.Mineral) return null;
+    var w=Math.max(30,Math.min(80,bw||60));
+    var h=Math.max(30,Math.min(80,bh||60));
+    var mineral=new Neutral.Mineral({x:(cx-w/2)>>0,y:(cy-h/2)>>0});
+    mineral.width=w;
+    mineral.height=h;
+    mineral.noRender=true;
+    mineral._isMapResource=true;
+    mineral.selected=false;
+    mineral.includePoint=function(){return false;};
+    mineral.include=function(){return false;};
+    mineral.stop();
+    mineral.dock();
+    return mineral;
+};
+
+GameMap._findMineralClusterNear=function(worldX,worldY){
+    var scan=GameMap._getMapScan();
+    if (!scan) return null;
+    var factor=scan.factor;
+    var w=scan.w,h=scan.h,data=scan.data;
+    var sx=(worldX/factor)>>0;
+    var sy=(worldY/factor)>>0;
+    if (sx<0 || sy<0 || sx>=w || sy>=h) return null;
+
+    var radius=12;
+    var minX=Math.max(0,sx-radius);
+    var maxX=Math.min(w-1,sx+radius);
+    var minY=Math.max(0,sy-radius);
+    var maxY=Math.min(h-1,sy+radius);
+    var count=0,sumX=0,sumY=0,bx0=maxX,bx1=minX,by0=maxY,by1=minY;
+    for (var y=minY;y<=maxY;y++){
+        for (var x=minX;x<=maxX;x++){
+            var i=(y*w+x)<<2;
+            var r=data[i],g=data[i+1],b=data[i+2];
+            if (!GameMap._isMineralPixel(r,g,b)) continue;
+            count++;
+            sumX+=x;
+            sumY+=y;
+            if (x<bx0) bx0=x;
+            if (x>bx1) bx1=x;
+            if (y<by0) by0=y;
+            if (y>by1) by1=y;
+        }
+    }
+    if (count<10) return null;
+    var bwPx=bx1-bx0+1;
+    var bhPx=by1-by0+1;
+    if (bwPx>28 || bhPx>28) return null;
+    var density=count/(bwPx*bhPx);
+    if (density<0.08) return null;
+    var cx=((sumX/count)+0.5)*factor;
+    var cy=((sumY/count)+0.5)*factor;
+    var bw=(bx1-bx0+1)*factor;
+    var bh=(by1-by0+1)*factor;
+    return {x:cx,y:cy,w:bw,h:bh};
+};
+
+GameMap._spawnMineralNear=function(worldX,worldY){
+    if (typeof Unit!=='undefined' && Unit && Unit.allUnits && Unit.allUnits.length){
+        var existing=Unit.allUnits.filter(function(u){
+            return u && u._isMapResource && (typeof Neutral!=='undefined' && u instanceof Neutral.Mineral);
+        }).sort(function(a,b){
+            var dax=worldX-a.posX(),day=worldY-a.posY();
+            var dbx=worldX-b.posX(),dby=worldY-b.posY();
+            return dax*dax+day*day-(dbx*dbx+dby*dby);
+        })[0];
+        if (existing){
+            var dx=worldX-existing.posX(),dy=worldY-existing.posY();
+            if (dx*dx+dy*dy<70*70) return existing;
+        }
+    }
+    var cluster=GameMap._findMineralClusterNear(worldX,worldY);
+    if (!cluster) return null;
+    var mapName=GameMap.currentMap;
+    var idx=GameMap._spawnedResourceIndex[mapName];
+    if (!idx) idx=GameMap._spawnedResourceIndex[mapName]={};
+    var key=((cluster.x/8)>>0)+','+((cluster.y/8)>>0);
+    if (idx[key]) return null;
+    idx[key]=true;
+    return GameMap._spawnMineralAt(cluster.x,cluster.y,cluster.w,cluster.h);
+};
+
+GameMap._spawnMapResources=function(){
+    var map=GameMap.getCurrentMap();
+    if (!map || !map.width || !map.height) return;
+    var mapName=GameMap.currentMap;
+    var cached=GameMap._resourceCache[mapName];
+    if (!cached) {
+        var scan=GameMap._getMapScan();
+        if (!scan) return;
+        var factor=scan.factor,w=scan.w,h=scan.h,data=scan.data;
+        var size=w*h;
+        var mask=new Uint8Array(size);
+        for (var p=0,i=0;p<size;p++,i+=4){
+            if (GameMap._isMineralPixel(data[i],data[i+1],data[i+2])) mask[p]=1;
+        }
+        var visited=new Uint8Array(size);
+        var queue=new Int32Array(size);
+        var nodes=[];
+        for (var start=0;start<size;start++){
+            if (!mask[start] || visited[start]) continue;
+            var qh=0,qt=0;
+            queue[qt++]=start;
+            visited[start]=1;
+            var count=0,sumX=0,sumY=0;
+            var minX=w,maxX=0,minY=h,maxY=0;
+            while (qh<qt){
+                var cur=queue[qh++];
+                var cx=cur%w;
+                var cy=(cur/w)>>0;
+                count++;
+                sumX+=cx;
+                sumY+=cy;
+                if (cx<minX) minX=cx;
+                if (cx>maxX) maxX=cx;
+                if (cy<minY) minY=cy;
+                if (cy>maxY) maxY=cy;
+                var left=cur-1;
+                if (cx>0 && mask[left] && !visited[left]) { visited[left]=1; queue[qt++]=left; }
+                var right=cur+1;
+                if (cx<w-1 && mask[right] && !visited[right]) { visited[right]=1; queue[qt++]=right; }
+                var up=cur-w;
+                if (cy>0 && mask[up] && !visited[up]) { visited[up]=1; queue[qt++]=up; }
+                var down=cur+w;
+                if (cy<h-1 && mask[down] && !visited[down]) { visited[down]=1; queue[qt++]=down; }
+            }
+            var bw=maxX-minX+1;
+            var bh=maxY-minY+1;
+            if (count<14) continue;
+            if (bw>120 || bh>120) continue;
+            var density=count/(bw*bh);
+            if (density<0.06) continue;
+            var centerX=((sumX/count)+0.5)*factor;
+            var centerY=((sumY/count)+0.5)*factor;
+            var ow=Math.max(30,Math.min(80,bw*factor));
+            var oh=Math.max(30,Math.min(80,bh*factor));
+            nodes.push({x:centerX,y:centerY,w:ow,h:oh});
+        }
+        nodes.sort(function(a,b){
+            return a.x-b.x;
+        });
+        var pruned=[];
+        var minDist=50;
+        var minDist2=minDist*minDist;
+        for (var k=0;k<nodes.length;k++){
+            var n=nodes[k];
+            var ok=true;
+            for (var j=pruned.length-1;j>=0 && j>pruned.length-16;j--){
+                var p=pruned[j];
+                var dx=n.x-p.x,dy=n.y-p.y;
+                if (dx*dx+dy*dy<minDist2) { ok=false; break; }
+            }
+            if (ok) pruned.push(n);
+        }
+        cached=pruned;
+        GameMap._resourceCache[mapName]=cached;
+    }
+    GameMap._spawnedResourceIndex[mapName]={};
+    for (var i=0;i<cached.length;i++){
+        var n=cached[i];
+        var key=((n.x/8)>>0)+','+((n.y/8)>>0);
+        GameMap._spawnedResourceIndex[mapName][key]=true;
+        GameMap._spawnMineralAt(n.x,n.y,n.w,n.h);
     }
 };

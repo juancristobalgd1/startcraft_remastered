@@ -3,13 +3,11 @@ var Levels=[
         level:1,
         load:function(){
             //Load map
-            GameMap.setCurrentMap('Switchback');
-            GameMap.offsetX=50;
-            GameMap.offsetY=50;
+            Map.setCurrentMap('Switchback');
+            Map.offsetX=50;
+            Map.offsetY=50;
             //Apply race style
             Game.race.choose('Terran');
-            Resource[0].mine=1000;
-            Resource[0].gas=1000;
             //Load units
             new Terran.BattleCruiser({x:100,y:100});
             new Terran.Wraith({x:200,y:100});
@@ -37,7 +35,7 @@ var Levels=[
         level:2,
         load:function(){
             //Load map
-            GameMap.setCurrentMap('Volcanis');
+            Map.setCurrentMap('Volcanis');
             //Apply race style
             Game.race.choose('Zerg');
             //Load units
@@ -63,7 +61,7 @@ var Levels=[
         level:3,
         load:function(){
             //Load map
-            GameMap.setCurrentMap('TrenchWars');
+            Map.setCurrentMap('TrenchWars');
             //Apply race style
             Game.race.choose('Zerg');
             //Load units
@@ -91,7 +89,7 @@ var Levels=[
         level:4,
         load:function(){
             //Load map
-            GameMap.setCurrentMap('BloodBath');
+            Map.setCurrentMap('BloodBath');
             //Apply race style
             Game.race.choose('Zerg');
             //Apply cheat for testing
@@ -128,7 +126,7 @@ var Levels=[
         level:5,
         load:function(){
             //Load map
-            GameMap.setCurrentMap('OrbitalRelay');
+            Map.setCurrentMap('OrbitalRelay');
             //Apply race style
             Game.race.choose('Terran');
             //Apply cheat for testing
@@ -163,7 +161,7 @@ var Levels=[
         level:6,
         load:function(){
             //Load map
-            GameMap.setCurrentMap('ThinIce');
+            Map.setCurrentMap('ThinIce');
             //Apply race style
             Game.race.choose('Protoss');
             //Apply cheat for testing
@@ -203,7 +201,7 @@ var Levels=[
         level:7,
         load:function(){
             //Load map
-            GameMap.setCurrentMap('BigGameHunters');
+            Map.setCurrentMap('BigGameHunters');
             //Apply race style
             Game.race.choose('Protoss');
             //Add buildings
@@ -275,9 +273,9 @@ var Levels=[
         label:'Campaign',
         load:function(){
             //Load map
-            GameMap.setCurrentMap('TheHunters');
-            GameMap.offsetX=0;
-            GameMap.offsetY=3424;
+            Map.setCurrentMap('TheHunters');
+            Map.offsetX=0;
+            Map.offsetY=3424;
             //Apply race style
             Game.race.choose('Terran');
             //Apply cheat
@@ -439,10 +437,10 @@ var Levels=[
         label:'ProtectAthena',
         load:function(){
             //Load map
-            GameMap.setCurrentMap('OrbitalRelay');
-            GameMap.offsetX=(1536-Game.HBOUND/2)>>0;
-            GameMap.offsetY=(1536-Game.VBOUND/2)>>0;
-            GameMap.fogFlag=false;
+            Map.setCurrentMap('OrbitalRelay');
+            Map.offsetX=(1536-Game.HBOUND/2)>>0;
+            Map.offsetY=(1536-Game.VBOUND/2)>>0;
+            Map.fogFlag=false;
             //Apply race style
             Game.race.choose('Protoss');
             //Add our buildings and units

@@ -133,6 +133,7 @@ var Referee={
     //Avoid collision
     judgeCollision:function(){
         var collideGround=function(chara1,chara2){
+            if (chara1._isMapResource || chara2._isMapResource) return;
             var dist=chara1.distanceFrom(chara2);
             var distLimit;
             if (chara2 instanceof Unit){
