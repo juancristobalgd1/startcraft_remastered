@@ -39,6 +39,7 @@ var Button={
             if (typeof(job.run)=='function') product=job.run();
             if (product) Button._applyRally(owner,product);
             delete owner.processing;
+            setTimeout(Button.reset,0);
             if (owner.status=='dead' && (product instanceof Building)) {
                 if (owner.productionQueue && owner.productionQueue.length) {
                     product.productionQueue=owner.productionQueue;
