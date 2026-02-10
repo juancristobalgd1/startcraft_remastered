@@ -7,7 +7,10 @@ var sourceLoader={
         sourceLoader.sourceNum++;
         sourceLoader.allLoaded=false;
         var source;
+        var done=false;
         var loaded=function(){
+            if (done) return;
+            done=true;
             sourceLoader.loadedNum++;
             if(sourceLoader.loadedNum==sourceLoader.sourceNum){
                 sourceLoader.allLoaded=true;
@@ -17,11 +20,26 @@ var sourceLoader={
             source=new Image();
             source.src=src;
             source.onload=loaded;
+            source.onerror=function(){
+                try{
+                    var c=document.createElement('canvas');
+                    c.width=c.height=8;
+                    var ctx=c.getContext('2d');
+                    ctx.fillStyle='#ff00ff';
+                    ctx.fillRect(0,0,8,8);
+                    ctx.fillStyle='#000000';
+                    ctx.fillRect(0,0,4,4);
+                    ctx.fillRect(4,4,4,4);
+                    sourceLoader.sources[id]=c;
+                }catch(e){}
+                loaded();
+            };
             sourceLoader.sources[id]=source;
         }
         if (type=='audio'){
             source=new Audio();
             source.addEventListener('canplaythrough',loaded,false);
+            source.addEventListener('error',loaded,false);
             //source.oncanplaythrough=loaded;
             source.src=src;//Pose after listener to prevent fired early
             sourceLoader.sources[id]=source;
@@ -34,6 +52,7 @@ var sourceLoader={
                 _$.modules[src]=_$.define.loadedBuilders.shift();
                 loaded();
             };
+            node.onerror=loaded;
             node.src=src+'.js';
             document.getElementsByTagName('head')[0].appendChild(node);
         }

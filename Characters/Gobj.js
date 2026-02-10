@@ -51,11 +51,13 @@ proto.posY = function () {
 proto.detectOutOfBound = function () { };
 
 proto.updateLocation = function () {
+    if (typeof Game !== 'undefined' && Game && Game.isPaused) return;
     this.x += this.speed.x;
     this.y += this.speed.y;
 };
 
 proto.animeFrame = function () {
+    if (typeof Game !== 'undefined' && Game && Game.isPaused) return;
     if (++this.action >= this.frame[this.status]) {
         this.action = 0;
     }
@@ -67,6 +69,7 @@ proto.moving = function () {
     var self = this;
 
     var tick = function () {
+        if (typeof Game !== 'undefined' && Game && Game.isPaused) return;
         self.animeFrame();
         self.updateLocation();
         self.detectOutOfBound();

@@ -41,6 +41,7 @@ var Unit=Gobj.extends({
         isFlying:true,
         //Override Gobj method
         animeFrame:function(){
+            if (typeof Game!=='undefined' && Game && Game.isPaused) return;
             //Animation play
             this.action++;
             //Override Gobj here, support hidden frames
@@ -98,6 +99,8 @@ var Unit=Gobj.extends({
             this.action=0;
             //Stop routing
             clearInterval(this.routingTimer);
+            if (typeof Game!=='undefined' && Game.pathfinding) Game.pathfinding.cancel(this);
+            this.routingTimer=0;
             var myself=this;
             this._timer=setInterval(function(){
                 //Only play animation, will not move
@@ -125,6 +128,7 @@ var Unit=Gobj.extends({
                 //Stop routing
                 clearInterval(this.routingTimer);
                 this.routingTimer=0;
+                if (typeof Game!=='undefined' && Game.pathfinding) Game.pathfinding.cancel(this);
                 //Reach destination flag
                 return true;
             }
@@ -161,6 +165,18 @@ var Unit=Gobj.extends({
                     this.collision=undefined;
                 }*/
                 this.turnTo(direction);
+                if (this.collision) {
+                    var directionLeft=(direction-1+8)%8;
+                    var speedLeft=(this.get('speed') instanceof Array)?this.get('speed')[directionLeft]:this.get('speed');
+                    var nextStepLeft={x:this.posX()+speedLeft.x,y:this.posY()+speedLeft.y};
+                    var directionRight=(direction+1)%8;
+                    var speedRight=(this.get('speed') instanceof Array)?this.get('speed')[directionRight]:this.get('speed');
+                    var nextStepRight={x:this.posX()+speedRight.x,y:this.posY()+speedRight.y};
+                    direction=(this.collision.distanceFrom(nextStepLeft)>this.collision.distanceFrom(nextStepRight))
+                        ?directionLeft:directionRight;
+                    this.turnTo(direction);
+                    this.collision=undefined;
+                }
             }
         },
         faceTo:function(target,preventAction){
@@ -192,7 +208,8 @@ var Unit=Gobj.extends({
         },
         moveTo:function(clickX,clickY,range,callback){
             if (!range) range=Unit.moveRange;//Smallest limit by default
-            if (this._routingTarget && this.routingTimer &&
+            var hasScheduledRouting = (typeof Game!=='undefined' && Game.pathfinding && Game.pathfinding.has && Game.pathfinding.has(this));
+            if (this._routingTarget && (this.routingTimer || hasScheduledRouting) &&
                 Math.abs(this._routingTarget.x - clickX) < 2 && Math.abs(this._routingTarget.y - clickY) < 2 &&
                 Math.abs(this._routingTarget.range - range) < 1) {
                 return;
@@ -201,20 +218,26 @@ var Unit=Gobj.extends({
             if (this.routingTimer) {
                 clearInterval(this.routingTimer);//then break routing
             }
-            //Start new routing
-            var myself=this;
             this._routingTarget={x:clickX,y:clickY,range:range};
-            var routingFrame=function(){
-                if (myself.navigateTo(clickX,clickY,range)){
-                    //Run callback when reach target
+            if (typeof Game!=='undefined' && Game.pathfinding) {
+                if (this.navigateTo(clickX,clickY,range)) {
                     if (typeof(callback)=='function') callback();
-                    return true;
+                    callback=null;
                 }
-            };
-            //Add one missing frame, fix twice callback issue
-            if (routingFrame()) callback=null;
-            var interval=(this.insideScreen && this.insideScreen()) ? 100 : 200;
-            this.routingTimer=setInterval(routingFrame,interval);
+                Game.pathfinding.schedulePoint(this, clickX, clickY, range, callback);
+            }
+            else {
+                var myself=this;
+                var routingFrame=function(){
+                    if (myself.navigateTo(clickX,clickY,range)){
+                        if (typeof(callback)=='function') callback();
+                        return true;
+                    }
+                };
+                if (routingFrame()) callback=null;
+                var interval=(this.insideScreen && this.insideScreen()) ? 100 : 200;
+                this.routingTimer=setInterval(routingFrame,interval);
+            }
             //Start moving
             this.run();
         },
@@ -224,27 +247,36 @@ var Unit=Gobj.extends({
             if (this.routingTimer) {
                 clearInterval(this.routingTimer);//then break routing
             }
-            //Start new routing
-            var myself=this;
-            var routingFrame=function(){
-                if (target.status!='dead'){
-                    if (myself.navigateTo(target.posX(),target.posY(),range)) {
-                        //Run callback when reach target
+            if (typeof Game!=='undefined' && Game.pathfinding) {
+                if (target && target.status!='dead'){
+                    if (this.navigateTo(target.posX(),target.posY(),range)) {
                         if (typeof(callback)=='function') callback();
-                        //Reach destination flag, fix twice callback issue
-                        return true;
+                        callback=null;
                     }
+                    Game.pathfinding.scheduleFollow(this, target, range, callback);
                 }
-                //Will stop move toward dead target
                 else {
-                    clearInterval(myself.routingTimer);
-                    myself.dock();
+                    this.dock();
                 }
-            };
-            //Add one missing frame, fix twice callback issue
-            if (routingFrame()) callback=null;
-            var interval=(this.insideScreen && this.insideScreen()) ? 100 : 200;
-            this.routingTimer=setInterval(routingFrame,interval);
+            }
+            else {
+                var myself=this;
+                var routingFrame=function(){
+                    if (target.status!='dead'){
+                        if (myself.navigateTo(target.posX(),target.posY(),range)) {
+                            if (typeof(callback)=='function') callback();
+                            return true;
+                        }
+                    }
+                    else {
+                        clearInterval(myself.routingTimer);
+                        myself.dock();
+                    }
+                };
+                if (routingFrame()) callback=null;
+                var interval=(this.insideScreen && this.insideScreen()) ? 100 : 200;
+                this.routingTimer=setInterval(routingFrame,interval);
+            }
             //Start moving
             this.run();
         },
@@ -255,6 +287,7 @@ var Unit=Gobj.extends({
             this.life=0;
             //Stop routing
             clearInterval(this.routingTimer);
+            if (typeof Game!=='undefined' && Game.pathfinding) Game.pathfinding.cancel(this);
             //If has sound effect
             if (this.sound.death && this.insideScreen()) {
                 this.sound.death.play();

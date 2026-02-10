@@ -33,6 +33,147 @@ var Game = {
         cullMargin: 60,
         aiNearMargin: 180
     },
+    uiScale: 'normal',
+    pathfinding: {
+        _tasks: {},
+        _order: [],
+        _maxPerTick: 80,
+        _keyOf: function (unit) {
+            return unit && unit.id != null ? String(unit.id) : null;
+        },
+        has: function (unit) {
+            var key = Game.pathfinding._keyOf(unit);
+            if (!key) return false;
+            return Boolean(Game.pathfinding._tasks[key]);
+        },
+        _intervalTicksFor: function (unit) {
+            if (!unit) return 2;
+            if (unit.selected) return 1;
+            if (Game._isVisible(unit, Game.perf.aiNearMargin)) return 1;
+            var cx = GameMap.offsetX + (Game.HBOUND * 0.5);
+            var cy = GameMap.offsetY + (Game.VBOUND * 0.5);
+            var dx = Math.abs(unit.posX() - cx);
+            var dy = Math.abs(unit.posY() - cy);
+            if (dx > Game.HBOUND * 1.5 || dy > Game.VBOUND * 1.5) return 6;
+            return 3;
+        },
+        reset: function () {
+            Game.pathfinding._tasks = {};
+            Game.pathfinding._order = [];
+        },
+        _cancelByKey: function (key) {
+            if (!key) return;
+            if (!Game.pathfinding._tasks[key]) return;
+            delete Game.pathfinding._tasks[key];
+            var idx = Game.pathfinding._order.indexOf(key);
+            if (idx !== -1) Game.pathfinding._order.splice(idx, 1);
+        },
+        cancel: function (unit) {
+            var key = Game.pathfinding._keyOf(unit);
+            if (!key) return;
+            if (!Game.pathfinding._tasks[key]) return;
+            Game.pathfinding._cancelByKey(key);
+            if (unit) unit.routingTimer = 0;
+        },
+        schedulePoint: function (unit, x, y, range, callback) {
+            var key = Game.pathfinding._keyOf(unit);
+            if (!key) return;
+            var task = Game.pathfinding._tasks[key];
+            if (!task) {
+                task = { unit: unit };
+                Game.pathfinding._tasks[key] = task;
+                Game.pathfinding._order.push(key);
+            }
+            task.mode = 'point';
+            task.x = x;
+            task.y = y;
+            task.range = range;
+            task.callback = callback;
+            task.nextAt = Game._clock;
+            task.intervalTicks = Game.pathfinding._intervalTicksFor(unit);
+            task._stuckCount = 0;
+        },
+        scheduleFollow: function (unit, target, range, callback) {
+            var key = Game.pathfinding._keyOf(unit);
+            if (!key) return;
+            var task = Game.pathfinding._tasks[key];
+            if (!task) {
+                task = { unit: unit };
+                Game.pathfinding._tasks[key] = task;
+                Game.pathfinding._order.push(key);
+            }
+            task.mode = 'follow';
+            task.target = target;
+            task.range = range;
+            task.callback = callback;
+            task.nextAt = Game._clock;
+            task.intervalTicks = Game.pathfinding._intervalTicksFor(unit);
+            task._stuckCount = 0;
+        },
+        tick: function () {
+            var now = Game._clock;
+            var processed = 0;
+            for (var i = 0; i < Game.pathfinding._order.length; i++) {
+                if (processed >= Game.pathfinding._maxPerTick) break;
+                var key = Game.pathfinding._order[i];
+                var task = Game.pathfinding._tasks[key];
+                if (!task) continue;
+                var unit = task.unit;
+                if (!unit || unit.status === 'dead') {
+                    Game.pathfinding._cancelByKey(key);
+                    i--;
+                    continue;
+                }
+                if (task.nextAt != null && now < task.nextAt) continue;
+                task.intervalTicks = Game.pathfinding._intervalTicksFor(unit);
+                var tx = task.x, ty = task.y;
+                if (task.mode === 'follow') {
+                    if (!task.target || task.target.status === 'dead') {
+                        Game.pathfinding._cancelByKey(key);
+                        if (unit.dock) unit.dock();
+                        i--;
+                        continue;
+                    }
+                    tx = task.target.posX();
+                    ty = task.target.posY();
+                }
+                if (unit.cannotMove && unit.cannotMove()) {
+                    task.nextAt = now + task.intervalTicks;
+                    processed++;
+                    continue;
+                }
+                if (task.mode === 'point') {
+                    if (task._lastUx == null) {
+                        task._lastUx = unit.x;
+                        task._lastUy = unit.y;
+                        task._stuckCount = 0;
+                    } else {
+                        var dxu = Math.abs(unit.x - task._lastUx);
+                        var dyu = Math.abs(unit.y - task._lastUy);
+                        task._lastUx = unit.x;
+                        task._lastUy = unit.y;
+                        if (unit.status === 'moving' && dxu < 1 && dyu < 1) task._stuckCount++;
+                        else task._stuckCount = 0;
+                    }
+                    if (task._stuckCount >= 6) {
+                        tx = tx + ((Math.random() * 96) - 48);
+                        ty = ty + ((Math.random() * 96) - 48);
+                        task._stuckCount = 0;
+                    }
+                }
+                var reached = unit.navigateTo(tx, ty, task.range);
+                if (reached) {
+                    var cb = task.callback;
+                    Game.pathfinding._cancelByKey(key);
+                    i--;
+                    if (typeof cb === 'function') cb();
+                } else {
+                    task.nextAt = now + task.intervalTicks;
+                }
+                processed++;
+            }
+        }
+    },
     selectedUnit: {},
     allSelected: [],
     _oldAllSelected: [],
@@ -86,6 +227,7 @@ var Game = {
         }
         var btn = document.getElementById('PauseButton');
         if (btn) btn.textContent = 'Resume';
+        Game._syncPauseMenuOptions();
     },
     resume: function () {
         Game.isPaused = false;
@@ -98,10 +240,30 @@ var Game = {
         }
         var btn = document.getElementById('PauseButton');
         if (btn) btn.textContent = 'Pause';
+        Game._syncPauseMenuOptions();
+    },
+    setUiScale: function (scale) {
+        if (!scale) return;
+        Game.uiScale = scale;
+        var gp = document.getElementById('GamePlay');
+        if (gp) gp.setAttribute('data-ui-scale', scale);
+        Game._syncPauseMenuOptions();
+    },
+    _syncPauseMenuOptions: function () {
+        var metricsBtn = document.getElementById('PauseToggleMetrics');
+        if (metricsBtn) metricsBtn.textContent = 'FPS/Input: ' + (Game.metrics.enabled ? 'On' : 'Off');
+        var hapticsBtn = document.getElementById('PauseToggleHaptics');
+        if (hapticsBtn) hapticsBtn.textContent = 'Haptics: ' + (Game.hapticsEnabled ? 'On' : 'Off');
+        var uiBtn = document.getElementById('PauseUiScale');
+        if (uiBtn) {
+            var label = Game.uiScale === 'large' ? 'Large' : (Game.uiScale === 'xlarge' ? 'XL' : 'Normal');
+            uiBtn.textContent = 'UI Size: ' + label;
+        }
     },
     restartLevel: function () {
         Game.resume();
         Game.stopAnimation();
+        if (Game.pathfinding) Game.pathfinding.reset();
         var all = Unit.allUnits.concat(Building.allBuildings);
         all.forEach(function (chara) {
             if (!chara) return;
@@ -185,10 +347,10 @@ var Game = {
         Game._assetSrc = {
             Map_Switchback: "img/Maps/(2)Switchback.jpg",
             Map_Volcanis: "img/Maps/(2)Volcanis.jpg",
-            Map_TrenchWars: "img/Maps/(3)Trench wars.jpg",
-            Map_BloodBath: "img/Maps/(4)Blood Bath.jpg",
-            Map_OrbitalRelay: "img/Maps/(4)Orbital Relay.jpg",
-            Map_ThinIce: "img/Maps/(6)Thin Ice.jpg",
+            Map_TrenchWars: "img/Maps/(3)Trench%20wars.jpg",
+            Map_BloodBath: "img/Maps/(4)Blood%20Bath.jpg",
+            Map_OrbitalRelay: "img/Maps/(4)Orbital%20Relay.jpg",
+            Map_ThinIce: "img/Maps/(6)Thin%20Ice.jpg",
             Map_BigGameHunters: "img/Maps/(8)BigGameHunters.jpg",
             Map_TheHunters: "img/Maps/(8)TheHunters.jpg",
             Map_Turbo: "img/Maps/(8)Turbo.jpg",
@@ -246,12 +408,21 @@ var Game = {
                     if (hud) hud.style.display = 'none';
                     Game.ui.lastMetrics.visible = false;
                 }
+                Game._syncPauseMenuOptions();
             };
             var toggleHapticsBtn = document.getElementById('PauseToggleHaptics');
             if (toggleHapticsBtn) toggleHapticsBtn.onclick = function (event) {
                 event.preventDefault();
                 Game.hapticsEnabled = !Game.hapticsEnabled;
+                Game._syncPauseMenuOptions();
             };
+            var uiScaleBtn = document.getElementById('PauseUiScale');
+            if (uiScaleBtn) uiScaleBtn.onclick = function (event) {
+                event.preventDefault();
+                var next = (Game.uiScale === 'normal') ? 'large' : (Game.uiScale === 'large') ? 'xlarge' : 'normal';
+                Game.setUiScale(next);
+            };
+            Game._syncPauseMenuOptions();
             Game.start();
         });
     },
@@ -1002,6 +1173,7 @@ var Game = {
                 GameMap.refresh(GameMap.needRefresh);
                 GameMap.needRefresh = false;
             }
+            if (Game.pathfinding) Game.pathfinding.tick();
             //Layer1: Show all buildings
             for (var N = 0; N < Building.allBuildings.length; N++) {
                 var build = Building.allBuildings[N];
