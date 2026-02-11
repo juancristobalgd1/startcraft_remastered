@@ -226,9 +226,13 @@ var Unit = Gobj.extends({
         },
         escapeFrom: function (enemy) {
             //Add to fix holding issue
-            if (this.hold) return;
+            if (this.hold || this.cannotMove()) return;
             var escapeDirection = Unit.prototype.faceTo.call(enemy, this, true);//Fix escape from attackable building issue
-            var escapeSpeed = this.get('speed')[escapeDirection];
+            var speeds = this.get('speed');
+            // Safety check for speed array (buildings or specific units might not have it)
+            if (!(speeds instanceof Array)) return;
+            var escapeSpeed = speeds[escapeDirection];
+            if (!escapeSpeed) return;
             var escapeSteps = 100 / (Math.abs(escapeSpeed.x) + Math.abs(escapeSpeed.y));
             //Escape by multiple steps
             this.moveTo(this.posX() + escapeSpeed.x * escapeSteps, this.posY() + escapeSpeed.y * escapeSteps);
@@ -335,7 +339,7 @@ var Unit = Gobj.extends({
                 return;
             }
             //Run away toward bullet direction
-            if (this.status == "dock" && !onlyDamage) {
+            if (this.status == "dock" && !onlyDamage && !this.cannotMove()) {
                 this.escapeFrom(enemy);
             }
         },

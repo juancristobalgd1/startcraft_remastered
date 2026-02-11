@@ -70,7 +70,7 @@ async function staleWhileRevalidate(request) {
   const cached = await cache.match(request);
   const networkPromise = fetch(request)
     .then((response) => {
-      if (response && response.ok) cache.put(request, response.clone());
+      if (response && response.status === 200) cache.put(request, response.clone());
       return response;
     })
     .catch(() => undefined);
@@ -82,7 +82,7 @@ async function cacheFirst(request) {
   const cached = await cache.match(request);
   if (cached) return cached;
   const response = await fetch(request);
-  if (response && response.ok) cache.put(request, response.clone());
+  if (response && response.status === 200) cache.put(request, response.clone());
   return response;
 }
 
@@ -98,8 +98,10 @@ self.addEventListener("fetch", (event) => {
       (async () => {
         try {
           const response = await fetch(request);
-          const cache = await caches.open(CACHE_NAME);
-          cache.put("./index.html", response.clone());
+          if (response && response.status === 200) {
+            const cache = await caches.open(CACHE_NAME);
+            cache.put("./index.html", response.clone());
+          }
           return response;
         } catch (_) {
           const cached = await caches.match("./index.html");
