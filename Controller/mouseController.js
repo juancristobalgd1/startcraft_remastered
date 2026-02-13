@@ -257,7 +257,7 @@ var mouseController = {
         };
         //Global client refresh map
         window.onmousemove = function (event) {
-            event.preventDefault();
+            if (event && event.cancelable && event.preventDefault) event.preventDefault();
             if (window.Game && Game.isPaused) return;
             //Mouse at (clickX,clickY)
             var clickX = event.clientX;

@@ -183,7 +183,7 @@ var Game = {
     addIntoAllSelected: function (chara, override) {
         if (chara instanceof Gobj) {
             if (Game.allSelected.indexOf(chara) == -1) {
-                if (override) Game.allSelected = chara;
+                if (override) Game.allSelected = [chara];
                 else Game.allSelected.push(chara);
                 chara.selected = true;
             }
