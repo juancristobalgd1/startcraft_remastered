@@ -112,7 +112,10 @@ var mouseController = {
                 return (chara instanceof Building) && (['Refinery', 'Extractor', 'Assimilator'].indexOf(chara.name) !== -1);
             });
         }
-        Unit.allOurUnits().concat(Building.ourBuildings).forEach(function (chara) {
+        // Iterate our units and buildings without creating a new concatenated array
+        var _rcUnits = Unit.allOurUnits();
+        var _rcBuildings = Building.ourBuildings;
+        var _rcProcess = function (chara) {
             //Cannot control dead man
             if (chara.status == "dead") return;
             //Control chara moving if it's selected
@@ -196,7 +199,9 @@ var mouseController = {
                     }
                 }
             }
-        });
+        };
+        for (var _ri = 0; _ri < _rcUnits.length; _ri++) _rcProcess(_rcUnits[_ri]);
+        for (var _ri = 0; _ri < _rcBuildings.length; _ri++) _rcProcess(_rcBuildings[_ri]);
     },
     dblClick: function () {
         if (window.Game && Game.isPaused) return;

@@ -588,8 +588,9 @@ var Game = {
         }
     },
     unselectAll: function () {
-        var units = Unit.allUnits.concat(Building.allBuildings);
-        units.forEach((chara) => { chara.selected = false });
+        // Iterate directly without creating a new concatenated array
+        for (var i = 0; i < Unit.allUnits.length; i++) Unit.allUnits[i].selected = false;
+        for (var i = 0; i < Building.allBuildings.length; i++) Building.allBuildings[i].selected = false;
         Game.addIntoAllSelected([], true);
     },
     multiSelectInRect: function () {

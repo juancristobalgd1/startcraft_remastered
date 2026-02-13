@@ -97,18 +97,14 @@ var Unit = Gobj.extends({
         dock: function () {
             //Clear old timer
             this.stop();
-            //Launch new dock timer
+            //Launch new dock timer via centralized animation ticker
             this.status = "dock";
             this.action = 0;
             //Stop routing
             clearInterval(this.routingTimer);
             if (typeof Game !== 'undefined' && Game.pathfinding) Game.pathfinding.cancel(this);
             this.routingTimer = 0;
-            var myself = this;
-            this._timer = setInterval(function () {
-                //Only play animation, will not move
-                myself.animeFrame();
-            }, 100);
+            Gobj.registerDockAnim(this);
             delete this._routingTarget;
             //Shift-queue: execute next command if idle
             if (this.commandQueue && this.commandQueue.length > 0) {
@@ -958,32 +954,30 @@ var AttackableUnit = Unit.extends({
                 units = Unit.allEnemyUnits();
                 buildings = Building.enemyBuildings;
             }
+            var myX = this.posX();
+            var myY = this.posY();
+            var sightRange = this.get('sight');
+            var sightSq = sightRange * sightRange;
             var myself = this;
-            [units, buildings].forEach((charas) => {
-                var myX = myself.posX();
-                var myY = myself.posY();
-                charas = charas.filter((chara) => {
-                    return !chara.isInvisible && myself.canSee(chara) && myself.matchAttackLimit(chara);
-                }).sort((chara1, chara2) => {
-                    var X1 = chara1.posX(), Y1 = chara1.posY(), X2 = chara2.posX(), Y2 = chara1.posY();
-                    return (X1 - myX) * (X1 - myX) + (Y1 - myY) * (Y1 - myY) - (X2 - myX) * (X2 - myX) - (Y2 - myY) * (Y2 - myY);
-                });
-                results = results.concat(charas);
-            });
-            //Calculate order delay, reverse to priority
-            var _getDelay = function (chara) {
-                var delay = 0;
-                if (chara.attack) {
-                    //Measure delay by attack times needed to kill enemy
-                    if (chara.matchAttackLimit(myself))
-                        delay += ((chara.life + chara.SP ? chara.shield : 0) / chara.calculateDamageBy(myself));
-                    else delay += 32;
+            // Pre-filter with squared distance check before expensive canSee/matchAttackLimit
+            var _filterAndAdd = function (charas) {
+                for (var i = 0; i < charas.length; i++) {
+                    var chara = charas[i];
+                    if (chara.isInvisible) continue;
+                    var dx = chara.posX() - myX;
+                    var dy = chara.posY() - myY;
+                    if (dx * dx + dy * dy > sightSq) continue;
+                    if (!myself.matchAttackLimit(chara)) continue;
+                    results.push(chara);
                 }
-                else delay += 64;
-                return delay;
             };
+            _filterAndAdd(units);
+            _filterAndAdd(buildings);
+            //Sort by priority: attackable > kill-time efficiency
             results.sort(function (chara1, chara2) {
-                return _getDelay(chara1) - _getDelay(chara2);
+                var d1 = chara1.attack ? ((chara1.matchAttackLimit(myself) ? ((chara1.life + (chara1.SP ? chara1.shield : 0)) / chara1.calculateDamageBy(myself)) : 32)) : 64;
+                var d2 = chara2.attack ? ((chara2.matchAttackLimit(myself) ? ((chara2.life + (chara2.SP ? chara2.shield : 0)) / chara2.calculateDamageBy(myself)) : 32)) : 64;
+                return d1 - d2;
             });
             //Take near>>unit>>attackable>>killtimes as priority, will attracted if be attacked
             return results;
