@@ -42,13 +42,9 @@ var Building = Gobj.extends({
         dock: function () {
             //Clear old timer
             this.stop();
-            //Launch new dock timer
+            //Launch new dock timer via centralized animation ticker
             this.status = "dock";
-            var myself = this;
-            this._timer = setInterval(function () {
-                //Only play animation, will not move
-                myself.animeFrame();
-            }, 100);
+            Gobj.registerDockAnim(this);
         },
         //Support movement when flying
         moving: function () {

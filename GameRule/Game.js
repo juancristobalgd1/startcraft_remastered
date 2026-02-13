@@ -238,9 +238,10 @@ var Game = {
         Game.isPaused = false;
         keyController.disable = false;
         if (window._$ && _$.resumeAllAudio) _$.resumeAllAudio();
-        if (Game._timer === -1 && typeof Game._loop === 'function') {
+        if (!Game._rafId && typeof Game._loop === 'function') {
             Game.metrics._lastFrameAt = 0;
-            Game._timer = setInterval(Game._loop, Game._frameInterval);
+            Game._lastLoopTime = 0;
+            Game._rafId = requestAnimationFrame(Game._loop);
         }
         var menu = document.getElementById('PauseMenu');
         if (menu) {
@@ -587,8 +588,9 @@ var Game = {
         }
     },
     unselectAll: function () {
-        var units = Unit.allUnits.concat(Building.allBuildings);
-        units.forEach((chara) => { chara.selected = false });
+        // Iterate directly without creating a new concatenated array
+        for (var i = 0; i < Unit.allUnits.length; i++) Unit.allUnits[i].selected = false;
+        for (var i = 0; i < Building.allBuildings.length; i++) Building.allBuildings[i].selected = false;
         Game.addIntoAllSelected([], true);
     },
     multiSelectInRect: function () {
@@ -812,16 +814,13 @@ var Game = {
         if (chara.noRender) return;
         //Choose context
         var cxt = ((chara instanceof Unit) || (chara instanceof Building)) ? Game.cxt : Game.frontCxt;
-        //Draw shadow
-        cxt.save();
-        //cxt.shadowBlur=50;//Different blur level on Firefox and Chrome, bad performance
-        cxt.shadowOffsetX = (chara.isFlying) ? 5 : 3;
-        cxt.shadowOffsetY = (chara.isFlying) ? 20 : 8;
-        cxt.shadowColor = "rgba(0,0,0,0.4)";
-        //Close shadow for burrowed
-        if (chara.buffer.Burrow) cxt.shadowOffsetX = cxt.shadowOffsetY = 0;
+        //Shadows disabled for performance - canvas shadows are extremely expensive
+        //as they force double-rendering of every sprite
+        var needRestore = false;
         //Draw invisible
         if (chara.isInvisible != undefined) {
+            cxt.save();
+            needRestore = true;
             cxt.globalAlpha = (chara.isEnemy && chara.isInvisible) ? 0 : 0.5;
             if (chara.burrowBuffer && !chara.isEnemy) cxt.globalAlpha = 1;
         }
@@ -887,8 +886,8 @@ var Game = {
                     charaX, charaY, chara.width, chara.height);
             }
         }
-        //Remove shadow
-        cxt.restore();
+        //Restore context if modified
+        if (needRestore) cxt.restore();
         //Draw HP if has selected and is true
         if (chara.selected == true) {
             cxt = Game.frontCxt;
@@ -935,16 +934,10 @@ var Game = {
         if (!chara.insideScreen()) return;
         //Choose context
         var cxt = Game.frontCxt;
-        //Draw shadow
-        cxt.save();
-        //cxt.shadowBlur=50;//Different blur level on Firefox and Chrome, bad performance
-        cxt.shadowOffsetX = (chara.isFlying) ? 5 : 3;
-        cxt.shadowOffsetY = (chara.isFlying) ? 20 : 8;
-        cxt.shadowColor = "rgba(0,0,0,0.4)";
+        //Shadows disabled for performance
         var imgSrc = sourceLoader.sources[chara.name];
         if (!imgSrc) {
             Game.ensureAsset(chara.name);
-            cxt.restore();
             return;
         }
         //Convert position
@@ -966,8 +959,6 @@ var Game = {
                 _left, _top, chara.width, chara.height,
                 charaX, charaY, chara.width * times >> 0, chara.height * times >> 0);
         }
-        //Remove shadow
-        cxt.restore();
     },
     drawBullet: function (chara) {
         //Bullet array
@@ -997,12 +988,7 @@ var Game = {
         //Rotate to draw bullet
         Game.frontCxt.translate(centerX, centerY);
         Game.frontCxt.rotate(-chara.angle);
-        //Draw shadow
-        //Game.frontCxt.shadowBlur=50;//Different blur level on Firefox and Chrome, bad performance
-        Game.frontCxt.shadowOffsetX = (chara.owner.isFlying) ? 5 : 3;
-        Game.frontCxt.shadowOffsetY = (chara.owner.isFlying) ? 20 : 5;
-        Game.frontCxt.shadowColor = "rgba(0,0,0,0.4)";
-        //Game.frontCxt.shadowColor="rgba(255,0,0,1)";
+        //Shadows disabled for performance
         //Multiple actions status
         if (_left instanceof Array || _top instanceof Array) {
             Game.frontCxt.drawImage(imgSrc,
@@ -1021,65 +1007,84 @@ var Game = {
         //Game.frontCxt.translate(-centerX,-centerY);
         //Game.frontCxt.rotate(chara.angle);
     },
+    _domCache: null,
+    _ensureDomCache: function () {
+        if (Game._domCache) return;
+        Game._domCache = {
+            healthColor: $('div.infoLeft span._Health')[0],
+            life: $('div.infoLeft span.life')[0],
+            shield: $('div.infoLeft span.shield')[0],
+            magic: $('div.infoLeft span.magic')[0],
+            kill: $('div.infoCenter p.kill span')[0],
+            mineNum: $('div.resource_Box span.mineNum')[0],
+            gasNum: $('div.resource_Box span.gasNum')[0],
+            manSpans: $('div.resource_Box span.manNum>span'),
+            manNum: $('div.resource_Box span.manNum')[0]
+        };
+    },
     drawInfoBox: function () {
         //Update selected unit active info which need refresh
         if (Game.selectedUnit instanceof Gobj && Game.selectedUnit.status != "dead") {
+            Game._ensureDomCache();
+            var dc = Game._domCache;
             //Update selected unit life,shield and magic
             var lifeRatio = Game.selectedUnit.life / Game.selectedUnit.get('HP');
             var lifeColor = ((lifeRatio > 0.7) ? "green" : (lifeRatio > 0.3) ? "yellow" : "red");
             if (Game.ui.lastSelected.lifeColor !== lifeColor) {
-                $('div.infoLeft span._Health')[0].style.color = lifeColor;
+                dc.healthColor.style.color = lifeColor;
                 Game.ui.lastSelected.lifeColor = lifeColor;
             }
             var life = Game.selectedUnit.life >> 0;
             if (Game.ui.lastSelected.life !== life) {
-                $('div.infoLeft span.life')[0].innerHTML = life;
+                dc.life.innerHTML = life;
                 Game.ui.lastSelected.life = life;
             }
             if (Game.selectedUnit.SP) {
                 var shield = Game.selectedUnit.shield >> 0;
                 if (Game.ui.lastSelected.shield !== shield) {
-                    $('div.infoLeft span.shield')[0].innerHTML = shield;
+                    dc.shield.innerHTML = shield;
                     Game.ui.lastSelected.shield = shield;
                 }
             }
             if (Game.selectedUnit.MP) {
                 var magic = Game.selectedUnit.magic >> 0;
                 if (Game.ui.lastSelected.magic !== magic) {
-                    $('div.infoLeft span.magic')[0].innerHTML = magic;
+                    dc.magic.innerHTML = magic;
                     Game.ui.lastSelected.magic = magic;
                 }
             }
             //Update selected unit kill
             if (Game.selectedUnit.kill != null) {
                 if (Game.ui.lastSelected.kill !== Game.selectedUnit.kill) {
-                    $('div.infoCenter p.kill span')[0].innerHTML = Game.selectedUnit.kill;
+                    dc.kill.innerHTML = Game.selectedUnit.kill;
                     Game.ui.lastSelected.kill = Game.selectedUnit.kill;
                 }
             }
         }
     },
     drawSourceBox: function () {
+        Game._ensureDomCache();
+        var dc = Game._domCache;
         //Update min, gas, curMan and totalMan
         if (Game.ui.lastResource.mine !== Resource[0].mine) {
-            $('div.resource_Box span.mineNum')[0].innerHTML = Resource[0].mine;
+            dc.mineNum.innerHTML = Resource[0].mine;
             Game.ui.lastResource.mine = Resource[0].mine;
         }
         if (Game.ui.lastResource.gas !== Resource[0].gas) {
-            $('div.resource_Box span.gasNum')[0].innerHTML = Resource[0].gas;
+            dc.gasNum.innerHTML = Resource[0].gas;
             Game.ui.lastResource.gas = Resource[0].gas;
         }
         if (Game.ui.lastResource.curMan !== Resource[0].curMan) {
-            $('div.resource_Box span.manNum>span')[0].innerHTML = Resource[0].curMan;
+            dc.manSpans[0].innerHTML = Resource[0].curMan;
             Game.ui.lastResource.curMan = Resource[0].curMan;
         }
         if (Game.ui.lastResource.totalMan !== Resource[0].totalMan) {
-            $('div.resource_Box span.manNum>span')[1].innerHTML = Resource[0].totalMan;
+            dc.manSpans[1].innerHTML = Resource[0].totalMan;
             Game.ui.lastResource.totalMan = Resource[0].totalMan;
         }
         var manColor = (Resource[0].curMan > Resource[0].totalMan) ? "red" : (Resource[0].curMan === Resource[0].totalMan) ? "yellow" : "#00ff00";
         if (Game.ui.lastResource.manColor !== manColor) {
-            $('div.resource_Box span.manNum')[0].style.color = manColor;
+            dc.manNum.style.color = manColor;
             Game.ui.lastResource.manColor = manColor;
         }
         var supplyBlocked = Resource[0].totalMan > 0 && Resource[0].curMan >= Resource[0].totalMan;
@@ -1216,12 +1221,18 @@ var Game = {
     animation: function () {
         var loop = function () {
             if (Game.isPaused) return;
+            // Throttle game logic to _frameInterval pace using rAF
+            var now = performance.now();
+            if (Game._lastLoopTime && (now - Game._lastLoopTime) < Game._frameInterval) {
+                Game._rafId = requestAnimationFrame(Game._loop);
+                return;
+            }
+            Game._lastLoopTime = now;
             var cullMargin = Game.perf.cullMargin;
             var aiMargin = Game.perf.aiNearMargin;
             //Clear all canvas
             Game.cxt.clearRect(0, 0, Game.HBOUND, Game.VBOUND);
             Game.frontCxt.clearRect(0, 0, Game.HBOUND, Game.VBOUND);
-            //Game.backCxt.clearRect(0,0,Game.HBOUND,Game.VBOUND);//Only clear when refresh map
             //Layer0: Refresh map if needed
             if (window.mouseController && typeof mouseController.edgeScrollTick === 'function') {
                 mouseController.edgeScrollTick();
@@ -1231,73 +1242,53 @@ var Game = {
                 GameMap.needRefresh = false;
             }
             if (Game.pathfinding) Game.pathfinding.tick();
-            //Layer1: Show all buildings
-            for (var N = 0; N < Building.allBuildings.length; N++) {
+            //Layer1: Show all buildings - GC with reverse sweep
+            for (var N = Building.allBuildings.length - 1; N >= 0; N--) {
                 var build = Building.allBuildings[N];
-                //GC
                 if (build.status == "dead") {
-                    if (build.isEnemy) {
-                        var index = $.inArray(build, Building.enemyBuildings);
-                        Building.enemyBuildings.splice(index, (index == -1) ? 0 : 1);
-                    }
-                    else {
-                        var index = $.inArray(build, Building.ourBuildings);
-                        Building.ourBuildings.splice(index, (index == -1) ? 0 : 1);
-                    }
+                    var subArr = build.isEnemy ? Building.enemyBuildings : Building.ourBuildings;
+                    var index = subArr.indexOf(build);
+                    if (index !== -1) subArr.splice(index, 1);
                     Building.allBuildings.splice(N, 1);
-                    N--;//Next unit come to this position
                     continue;
                 }
+            }
+            for (var N = 0; N < Building.allBuildings.length; N++) {
+                var build = Building.allBuildings[N];
                 var inView = Game._isVisible(build, cullMargin);
                 if (inView) Game.draw(build);
                 if (build.bullet && (inView || Game._anyVisibleBullet(build.bullet))) Game.drawBullet(build.bullet);
                 if (build.AI && Game._shouldRunAI(build, Game._isVisible(build, aiMargin))) build.AI();
             }
-            //Layer2: Show all existed units
+            //Layer2: Show all existed units - GC with reverse sweep
+            for (var N = Unit.allUnits.length - 1; N >= 0; N--) {
+                var chara = Unit.allUnits[N];
+                if (chara.status == "dead") {
+                    var subArr = chara.isFlying
+                        ? (chara.isEnemy ? Unit.enemyFlyingUnits : Unit.ourFlyingUnits)
+                        : (chara.isEnemy ? Unit.enemyGroundUnits : Unit.ourGroundUnits);
+                    var index = subArr.indexOf(chara);
+                    if (index !== -1) subArr.splice(index, 1);
+                    Unit.allUnits.splice(N, 1);
+                }
+            }
             for (var N = 0; N < Unit.allUnits.length; N++) {
                 var chara = Unit.allUnits[N];
-                //GC
-                if (chara.status == "dead") {
-                    if (chara.isFlying) {
-                        if (chara.isEnemy) {
-                            var index = $.inArray(chara, Unit.enemyFlyingUnits);
-                            Unit.enemyFlyingUnits.splice(index, (index == -1) ? 0 : 1);
-                        }
-                        else {
-                            var index = $.inArray(chara, Unit.ourFlyingUnits);
-                            Unit.ourFlyingUnits.splice(index, (index == -1) ? 0 : 1);
-                        }
-                    }
-                    else {
-                        if (chara.isEnemy) {
-                            var index = $.inArray(chara, Unit.enemyGroundUnits);
-                            Unit.enemyGroundUnits.splice(index, (index == -1) ? 0 : 1);
-                        }
-                        else {
-                            var index = $.inArray(chara, Unit.ourGroundUnits);
-                            Unit.ourGroundUnits.splice(index, (index == -1) ? 0 : 1);
-                        }
-                    }
-                    Unit.allUnits.splice(N, 1);
-                    N--;//Next unit come to this position
-                    continue;
-                }
                 var inView = Game._isVisible(chara, cullMargin);
                 if (inView) Game.draw(chara);
                 if (chara.bullet && (inView || Game._anyVisibleBullet(chara.bullet))) Game.drawBullet(chara.bullet);
                 if (chara.attack && chara.AI && Game._shouldRunAI(chara, Game._isVisible(chara, aiMargin))) chara.AI();
                 if (inView || (Game._clock % 5 === 0)) Referee.judgeReachDestination(chara);
             }
-            //Layer3: Draw effects above units
-            for (var N = 0; N < Burst.allEffects.length; N++) {
+            //Layer3: Draw effects above units - GC with reverse sweep
+            for (var N = Burst.allEffects.length - 1; N >= 0; N--) {
                 var effect = Burst.allEffects[N];
-                //GC
                 if (effect.status == "dead" || (effect.target && effect.target.status == "dead")) {
                     Burst.allEffects.splice(N, 1);
-                    N--;//Next unit come to this position
-                    continue;
                 }
-                if (Game._isVisible(effect, cullMargin)) Game.drawEffect(effect);
+            }
+            for (var N = 0; N < Burst.allEffects.length; N++) {
+                if (Game._isVisible(Burst.allEffects[N], cullMargin)) Game.drawEffect(Burst.allEffects[N]);
             }
             //Layer4: Draw drag rect
             if (mouseController.drag) {
@@ -1321,14 +1312,14 @@ var Game = {
             Referee.judgeArbiter();
             //Mr.Referee will judge detector: override Arbiter effect
             Referee.judgeDetect();
-            //Adjust location for collision
-            Referee.judgeCollision();
+            //Adjust location for collision (throttle to every 2 ticks)
+            if (Game._clock % 2 === 0) Referee.judgeCollision();
             //Mr.Referee will recover charas when needed
             Referee.judgeRecover();
             //Mr.Referee will kill die survivor
             Referee.judgeDying();
-            //Update man data
-            Referee.judgeMan();
+            //Update man data (throttle to every 5 ticks instead of every tick)
+            if (Game._clock % 5 === 0) Referee.judgeMan();
             //Mr.Referee will help add larvas
             Referee.addLarva();
             //Mr.Referee will monitor mini map every 1 sec
@@ -1341,12 +1332,20 @@ var Game = {
             Referee.judgeWinLose();
             //Clock ticking
             Game._clock++;
+            //Schedule next frame
+            Game._rafId = requestAnimationFrame(Game._loop);
         };
         Game._loop = loop;
+        Game._lastLoopTime = 0;
         Game.stopAnimation();
-        Game._timer = setInterval(Game._loop, Game._frameInterval);
+        Game._rafId = requestAnimationFrame(Game._loop);
     },
     stopAnimation: function () {
+        if (Game._rafId) {
+            cancelAnimationFrame(Game._rafId);
+            Game._rafId = 0;
+        }
+        // Legacy fallback cleanup
         if (Game._timer !== -1) {
             clearInterval(Game._timer);
             Game._timer = -1;

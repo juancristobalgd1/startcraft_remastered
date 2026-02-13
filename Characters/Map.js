@@ -99,36 +99,40 @@ var GameMap = {
             ctx.globalCompositeOperation = mCtx.globalCompositeOperation = 'destination-out';
             ctx.fillStyle = mCtx.fillStyle = 'rgba(0,0,0,1)'; // Full transparency
 
-            var ourUnits = Unit.allOurUnits().concat(Building.ourBuildings);
-            var parasitedEnemies = Unit.allEnemyUnits().filter(function (chara) {
-                return chara.buffer.Parasite;
-            });
-            var scannerSweeps = Burst.allEffects.filter(function (anime) {
-                return Animation.getName(anime) == "ScannerSweep";
-            });
-            var addInObjs = parasitedEnemies.concat(scannerSweeps);
-
-            ourUnits.concat(addInObjs).forEach(function (chara) {
-                if (chara.status != 'dead') {
-                    if (chara.insideScreen && chara.insideScreen()) {
-                        ctx.beginPath();
-                        ctx.arc(chara.posX() - GameMap.offsetX, chara.posY() - GameMap.offsetY, chara.get('sight'), 0, 2 * Math.PI);
-                        ctx.fill();
-                        GameMap.markExplored(chara.posX(), chara.posY(), chara.get('sight'));
-                    }
-
-                    var mx = (chara.posX() * 130 / GameMap.getCurrentMap().width) >> 0;
-                    var my = (chara.posY() * 130 / GameMap.getCurrentMap().height) >> 0;
-                    var sight = (chara.get('sight') * 130 / GameMap.getCurrentMap().height) >> 0;
-                    mCtx.beginPath();
-                    if (GameMap.fogType) {
-                        mCtx.drawImage(GameMap.shadowCanvas, 0, 0, 100, 100, mx - (sight << 1), my - (sight << 1), sight << 2, sight << 2);
-                    } else {
-                        mCtx.arc(mx, my, sight, 0, 2 * Math.PI);
-                        mCtx.fill();
-                    }
+            // Process visibility without creating intermediate arrays
+            var _fogProcess = function (chara) {
+                if (chara.status == 'dead') return;
+                if (chara.insideScreen && chara.insideScreen()) {
+                    ctx.beginPath();
+                    ctx.arc(chara.posX() - GameMap.offsetX, chara.posY() - GameMap.offsetY, chara.get('sight'), 0, 2 * Math.PI);
+                    ctx.fill();
+                    GameMap.markExplored(chara.posX(), chara.posY(), chara.get('sight'));
                 }
-            });
+                var mapW = GameMap.getCurrentMap().width;
+                var mapH = GameMap.getCurrentMap().height;
+                var mx = (chara.posX() * 130 / mapW) >> 0;
+                var my = (chara.posY() * 130 / mapH) >> 0;
+                var sight = (chara.get('sight') * 130 / mapH) >> 0;
+                mCtx.beginPath();
+                if (GameMap.fogType) {
+                    mCtx.drawImage(GameMap.shadowCanvas, 0, 0, 100, 100, mx - (sight << 1), my - (sight << 1), sight << 2, sight << 2);
+                } else {
+                    mCtx.arc(mx, my, sight, 0, 2 * Math.PI);
+                    mCtx.fill();
+                }
+            };
+            // Our units (iterate directly, no concat)
+            var _ourU = Unit.allOurUnits();
+            for (var _fi = 0; _fi < _ourU.length; _fi++) _fogProcess(_ourU[_fi]);
+            for (var _fi = 0; _fi < Building.ourBuildings.length; _fi++) _fogProcess(Building.ourBuildings[_fi]);
+            // Parasited enemies and scanner sweeps (these are rare, filter is ok)
+            var _enemyU = Unit.allEnemyUnits();
+            for (var _fi = 0; _fi < _enemyU.length; _fi++) {
+                if (_enemyU[_fi].buffer.Parasite) _fogProcess(_enemyU[_fi]);
+            }
+            for (var _fi = 0; _fi < Burst.allEffects.length; _fi++) {
+                if (Animation.getName(Burst.allEffects[_fi]) == "ScannerSweep") _fogProcess(Burst.allEffects[_fi]);
+            }
 
             ctx.globalCompositeOperation = mCtx.globalCompositeOperation = 'source-over';
         }
