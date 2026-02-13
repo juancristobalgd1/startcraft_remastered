@@ -14,6 +14,7 @@ var Game = {
     backCxt: $('#backCanvas')[0].getContext('2d'),
     fogCxt: null, // Will be initialized
     _timer: -1,
+    _loop: null,
     _frameInterval: 100,
     _clock: 0,
     isPaused: false,
@@ -223,6 +224,7 @@ var Game = {
         Game.isPaused = true;
         keyController.disable = true;
         if (window._$ && _$.pauseAllAudio) _$.pauseAllAudio();
+        Game.stopAnimation();
         var menu = document.getElementById('PauseMenu');
         if (menu) {
             menu.style.display = 'block';
@@ -236,6 +238,10 @@ var Game = {
         Game.isPaused = false;
         keyController.disable = false;
         if (window._$ && _$.resumeAllAudio) _$.resumeAllAudio();
+        if (Game._timer === -1 && typeof Game._loop === 'function') {
+            Game.metrics._lastFrameAt = 0;
+            Game._timer = setInterval(Game._loop, Game._frameInterval);
+        }
         var menu = document.getElementById('PauseMenu');
         if (menu) {
             menu.style.display = 'none';
@@ -1333,10 +1339,15 @@ var Game = {
             //Clock ticking
             Game._clock++;
         };
-        Game._timer = setInterval(loop, Game._frameInterval);
+        Game._loop = loop;
+        Game.stopAnimation();
+        Game._timer = setInterval(Game._loop, Game._frameInterval);
     },
     stopAnimation: function () {
-        clearInterval(Game._timer);
+        if (Game._timer !== -1) {
+            clearInterval(Game._timer);
+            Game._timer = -1;
+        }
     },
     stop: function (charas) {
         charas.forEach(function (chara) {
@@ -1402,5 +1413,6 @@ var Game = {
         GameMap.draw();
         //Need re-calculate fog immediately
         GameMap.refreshFog();
+        if (window.mouseController && mouseController._updateFrontOffset) mouseController._updateFrontOffset();
     }
 };

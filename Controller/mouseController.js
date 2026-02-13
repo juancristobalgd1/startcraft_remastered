@@ -3,6 +3,15 @@ var mouseController = {
     drag: false,
     startPoint: { x: 0, y: 0 },
     endPoint: { x: 0, y: 0 },
+    _frontOffset: null,
+    _updateFrontOffset: function () {
+        var off = $('#frontCanvas').offset();
+        mouseController._frontOffset = off || { left: 0, top: 0 };
+        return mouseController._frontOffset;
+    },
+    _frontOffsetAt: function () {
+        return mouseController._frontOffset || mouseController._updateFrontOffset();
+    },
     _touch: {
         id: null,
         down: false,
@@ -23,7 +32,7 @@ var mouseController = {
         if (window.Game && Game.isPaused) return;
         if (window.Game && Game.metrics) Game.metrics._lastInputAt = (window.performance && performance.now) ? performance.now() : Date.now();
         //Mouse at (clickX,clickY)
-        var offset = $('#frontCanvas').offset();
+        var offset = mouseController._frontOffsetAt();
         var clickX = event.pageX - offset.left;
         var clickY = event.pageY - offset.top;
         //Intercept event inside infoBox
@@ -67,7 +76,7 @@ var mouseController = {
         if (window.Game && Game.isPaused) return;
         if (window.Game && Game.metrics) Game.metrics._lastInputAt = (window.performance && performance.now) ? performance.now() : Date.now();
         //Mouse at (clickX,clickY)
-        var offset = $('#frontCanvas').offset();
+        var offset = mouseController._frontOffsetAt();
         var clickX = event.pageX - offset.left;
         var clickY = event.pageY - offset.top;
         //Intercept event inside infoBox
@@ -202,9 +211,10 @@ var mouseController = {
     },
     //Can control all units
     toControlAll: function () {
+        mouseController._updateFrontOffset();
         //Mouse left click
         $('#frontCanvas')[0].onclick = function (event) {
-            event.preventDefault();
+            if (event && event.cancelable && event.preventDefault) event.preventDefault();
             if (mouseController.drag) {
                 //End drag, onclick triggered after onmouseup, don't do default left click action
                 mouseController.drag = false;
@@ -216,7 +226,7 @@ var mouseController = {
         //Mouse right click
         $('#frontCanvas')[0].oncontextmenu = function (event) {
             //Prevent context menu show
-            event.preventDefault();
+            if (event && event.cancelable && event.preventDefault) event.preventDefault();
             mouseController.rightClick(event);
             //Cancel pointer
             $('div.GameLayer').removeAttr('status');
@@ -227,26 +237,28 @@ var mouseController = {
         };
         //Double click
         $('#frontCanvas').on('dblclick', function (event) {
-            event.preventDefault();
+            if (event && event.cancelable && event.preventDefault) event.preventDefault();
             mouseController.dblClick();
         });
         //Mouse click start
         $('#frontCanvas')[0].onmousedown = function (event) {
-            event.preventDefault();
+            if (event && event.cancelable && event.preventDefault) event.preventDefault();
             if (!mouseController.down) {
                 //Mouse at (clickX,clickY)
-                var clickX = event.pageX - $('#frontCanvas').offset().left;
-                var clickY = event.pageY - $('#frontCanvas').offset().top;
+                var offset = mouseController._frontOffsetAt();
+                var clickX = event.pageX - offset.left;
+                var clickY = event.pageY - offset.top;
                 mouseController.startPoint = { x: clickX, y: clickY };
                 mouseController.down = true;
             }
         };
         //Mouse drag
         $('#frontCanvas')[0].onmousemove = function (event) {
-            event.preventDefault();
+            if (event && event.cancelable && event.preventDefault) event.preventDefault();
             //Mouse at (clickX,clickY)
-            var clickX = event.pageX - $('#frontCanvas').offset().left;
-            var clickY = event.pageY - $('#frontCanvas').offset().top;
+            var offset = mouseController._frontOffsetAt();
+            var clickX = event.pageX - offset.left;
+            var clickY = event.pageY - offset.top;
             if (mouseController.down) {
                 mouseController.endPoint = { x: clickX, y: clickY };
                 if (Math.abs(clickX - mouseController.startPoint.x) > 5 &&
@@ -270,7 +282,7 @@ var mouseController = {
         };
         //Mouse click end
         $('#frontCanvas')[0].onmouseup = function (event) {
-            event.preventDefault();
+            if (event && event.cancelable && event.preventDefault) event.preventDefault();
             mouseController.down = false;
             if (mouseController.drag) {
                 //Multi select inside rect
@@ -279,7 +291,7 @@ var mouseController = {
         };
         //For mobile
         $('#frontCanvas')[0].ontouchstart = function (event) {
-            event.preventDefault();
+            if (event && event.cancelable && event.preventDefault) event.preventDefault();
             if (window.Game && Game.isPaused) return;
             if (!event.touches || event.touches.length == 0) return;
             if (event.touches.length > 1) {
@@ -289,8 +301,9 @@ var mouseController = {
                 return;
             }
             var touch = event.touches[0];
-            var clickX = touch.pageX - $('#frontCanvas').offset().left;
-            var clickY = touch.pageY - $('#frontCanvas').offset().top;
+            var offset = mouseController._frontOffsetAt();
+            var clickX = touch.pageX - offset.left;
+            var clickY = touch.pageY - offset.top;
             mouseController.startPoint = { x: clickX, y: clickY };
             mouseController.endPoint = { x: clickX, y: clickY };
             mouseController.down = true;
@@ -310,7 +323,7 @@ var mouseController = {
             }, 350);
         };
         $('#frontCanvas')[0].ontouchmove = function (event) {
-            event.preventDefault();
+            if (event && event.cancelable && event.preventDefault) event.preventDefault();
             if (window.Game && Game.isPaused) return;
             if (!mouseController._touch.down) return;
             var touch = null;
@@ -321,8 +334,9 @@ var mouseController = {
                 }
             }
             if (!touch) return;
-            var clickX = touch.pageX - $('#frontCanvas').offset().left;
-            var clickY = touch.pageY - $('#frontCanvas').offset().top;
+            var offset = mouseController._frontOffsetAt();
+            var clickX = touch.pageX - offset.left;
+            var clickY = touch.pageY - offset.top;
             mouseController.startPoint = mouseController._touch.startPoint;
             mouseController.endPoint = { x: clickX, y: clickY };
             mouseController._touch.endPoint = { x: clickX, y: clickY };
@@ -338,7 +352,7 @@ var mouseController = {
         };
         $('#frontCanvas')[0].ontouchend = function (event) {
             //Prevent context menu show
-            event.preventDefault();
+            if (event && event.cancelable && event.preventDefault) event.preventDefault();
             if (window.Game && Game.isPaused) return;
             if (mouseController._touch.longPressTimer) {
                 clearTimeout(mouseController._touch.longPressTimer);
@@ -349,8 +363,9 @@ var mouseController = {
             mouseController.down = false;
             mouseController.drag = mouseController._touch.drag;
             if (!touch) return;
-            var clickX = touch.pageX - $('#frontCanvas').offset().left;
-            var clickY = touch.pageY - $('#frontCanvas').offset().top;
+            var offset = mouseController._frontOffsetAt();
+            var clickX = touch.pageX - offset.left;
+            var clickY = touch.pageY - offset.top;
             mouseController.endPoint = { x: clickX, y: clickY };
             if (mouseController._touch.drag) {
                 mouseController._touch.drag = false;
@@ -381,14 +396,14 @@ var mouseController = {
         };
 
         $('div#GamePlay div').on('contextmenu', function (event) {
-            event.preventDefault();
+            if (event && event.cancelable && event.preventDefault) event.preventDefault();
         });
         $('canvas[name="mini_map"]').on('click', function (event) {
-            event.preventDefault();
+            if (event && event.cancelable && event.preventDefault) event.preventDefault();
             GameMap.clickHandler(event);
         });
         $('canvas[name="mini_map"]').on('contextmenu', function (event) {
-            event.preventDefault();
+            if (event && event.cancelable && event.preventDefault) event.preventDefault();
             GameMap.dblClickHandler(event);
         });
     }
