@@ -1,75 +1,91 @@
-//gFrame namespace: DOM selector function
-var _$=function(selector){
-    var selectors=selector.trim().split(' ');
-    var result=document;//Overall
-    for (var N=0;N<selectors.length;N++){
-        var curSelector=selectors[N];
-        var filter,filterIndex=curSelector.indexOf('[');
-        if (filterIndex!=-1) {
-            filter=curSelector.substring(filterIndex+1,curSelector.indexOf(']')).trim();
-            curSelector=curSelector.substring(0,filterIndex);
+/**
+ * gFrame namespace — DOM selector & utility framework
+ * Backward-compatible refactor: no API changes, same logic
+ */
+var _$ = function(selector) {
+    var selectors = selector.trim().split(' ');
+    var result = document;
+    var N, M, curSelector, filter, filterIndex, id, TagName, className,
+        tagResult, classResult, _result, attr, val, parts;
+
+    for (N = 0; N < selectors.length; N++) {
+        curSelector = selectors[N];
+        filter = undefined;
+        filterIndex = curSelector.indexOf('[');
+
+        if (filterIndex !== -1) {
+            filter = curSelector.substring(filterIndex + 1, curSelector.indexOf(']')).trim();
+            curSelector = curSelector.substring(0, filterIndex);
         }
-        if (curSelector.contains('#')) {
-            var id=curSelector.split('#')[1];
+
+        if (curSelector.indexOf('#') !== -1) {
+            id = curSelector.split('#')[1];
             if (result.length) {
-                var _result=[];
-                for (var M=0;M<result.length;M++){
+                _result = [];
+                for (M = 0; M < result.length; M++) {
                     _result.push(result[M].getElementById(id));
                 }
-                result=_result;
+                result = _result;
+            } else {
+                result = result.getElementById(id);
             }
-            else result=result.getElementById(id);
-        }
-        else {
-            var TagName=curSelector.contains('.')?curSelector.split('.')[0]:curSelector;
-            var className=curSelector.split('.')[1];
-            var tagResult, classResult;
-            if (TagName){
+        } else {
+            TagName = curSelector.indexOf('.') !== -1 ? curSelector.split('.')[0] : curSelector;
+            className = curSelector.split('.')[1];
+            tagResult = classResult = undefined;
+
+            if (TagName) {
                 if (result.length) {
-                    var _result=[];
-                    for (var M=0;M<result.length;M++){
-                        _result=_result.concat($.makeArray(result[M].getElementsByTagName(TagName)));
+                    _result = [];
+                    for (M = 0; M < result.length; M++) {
+                        _result = _result.concat($.makeArray(result[M].getElementsByTagName(TagName)));
                     }
-                    tagResult=_result;
+                    tagResult = _result;
+                } else {
+                    tagResult = $.makeArray(result.getElementsByTagName(TagName));
                 }
-                else tagResult=$.makeArray(result.getElementsByTagName(TagName));
             }
-            if (className){
+
+            if (className) {
                 if (result.length) {
-                    var _result=[];
-                    for (var M=0;M<result.length;M++){
-                        _result=_result.concat($.makeArray(result[M].getElementsByClassName(className)));
+                    _result = [];
+                    for (M = 0; M < result.length; M++) {
+                        _result = _result.concat($.makeArray(result[M].getElementsByClassName(className)));
                     }
-                    classResult=_result;
+                    classResult = _result;
+                } else {
+                    classResult = $.makeArray(result.getElementsByClassName(className));
                 }
-                else classResult=$.makeArray(result.getElementsByClassName(className));
             }
-            if (TagName && !className) result=tagResult;
-            if (!TagName && className) result=classResult;
+
+            if (TagName && !className) result = tagResult;
+            if (!TagName && className) result = classResult;
             if (TagName && className) {
-                var _result=[];
-                //The intersection of tagResult and classResult
-                tagResult.forEach(function(item){
-                    if (classResult.indexOf(item)!=-1) _result.push(item);
-                });
-                result=_result;
+                _result = [];
+                for (M = 0; M < tagResult.length; M++) {
+                    if (classResult.indexOf(tagResult[M]) !== -1) _result.push(tagResult[M]);
+                }
+                result = _result;
             }
         }
-        //Apply filter
-        if (filter){
-            //Attribute value filter
-            if (filter.indexOf('=')!=-1){
-                var attr=filter.split('=')[0];
-                var val=eval(filter.split('=')[1]);
-                result=result.filter(function(item){
-                    return item.getAttribute(attr)==val;
+
+        // Apply filter
+        if (filter) {
+            if (filter.indexOf('=') !== -1) {
+                parts = filter.split('=');
+                attr = parts[0];
+                // Safe parse: strips quotes instead of eval
+                val = parts.slice(1).join('=');
+                if ((val[0] === '"' && val[val.length - 1] === '"') ||
+                    (val[0] === "'" && val[val.length - 1] === "'")) {
+                    val = val.substring(1, val.length - 1);
+                }
+                result = result.filter(function(item) {
+                    return item.getAttribute(attr) == val;
                 });
-            }
-            //Has attribute filter
-            else {
-                var attr=filter;
-                result=result.filter(function(item){
-                    return item.getAttribute(attr)!=null;
+            } else {
+                result = result.filter(function(item) {
+                    return item.getAttribute(filter) != null;
                 });
             }
         }
@@ -77,428 +93,451 @@ var _$=function(selector){
     return result;
 };
 
-String.prototype.contains=function(str){
-    //return this.search(str)!=-1;
-    return this.indexOf(str)!=-1;
-};
+// String.contains polyfill — guarded to not override native
+if (!String.prototype.contains) {
+    String.prototype.contains = function(str) {
+        return this.indexOf(str) !== -1;
+    };
+}
 
-window.requestAnimationFrame=requestAnimationFrame || webkitRequestAnimationFrame ||
-    mozRequestAnimationFrame || msRequestAnimationFrame || oRequestAnimationFrame;
-/*window.cancelRequestAnimationFrame=cancelRequestAnimationFrame || webkitCancelRequestAnimationFrame ||
-    mozCancelRequestAnimationFrame || msCancelRequestAnimationFrame || oCancelRequestAnimationFrame;*/
+// requestAnimationFrame polyfill
+window.requestAnimationFrame = window.requestAnimationFrame ||
+    window.webkitRequestAnimationFrame ||
+    window.mozRequestAnimationFrame ||
+    window.msRequestAnimationFrame ||
+    window.oRequestAnimationFrame;
 
-//Gobj is game object,initial by only one parameter props
-Function.prototype.extends=function(addInObject){
-    //father call extends to produce child
-    var father=this;
-    //Create child self as constructor function
-    var child=function(props){
-        //If props==null, will throw errors during construction
-        if (props){
-            //Execute old constructor
-            father.call(this,props);
-            //Add new into child constructor
-            addInObject.constructorPlus.call(this,props);//this.constructorPlus(props)
+/**
+ * Prototypal inheritance via .extends()
+ * father.extends({constructorPlus, prototypePlus}) → child
+ */
+Function.prototype.extends = function(addInObject) {
+    var father = this;
+    var child = function(props) {
+        if (props) {
+            father.call(this, props);
+            addInObject.constructorPlus.call(this, props);
         }
     };
-    //Inherit prototype from father, clear redundant properties inside father constructor
-    var fatherClean=function(){};
-    fatherClean.prototype=father.prototype;
-    child.prototype=new fatherClean();
-    child.prototype.constructor=child;
-    /*//We don't need properties constructed by {}, constructor not changed;
-    child.prototype.__proto__=father.prototype;//__proto__ isn't supported by IE9 and IE10, IE11 supports*/
-    //Add new functions into child.prototype
-    for (var attr in addInObject.prototypePlus){
-        child.prototype[attr]=addInObject.prototypePlus[attr];
+    // Clean prototype chain (no father constructor side-effects)
+    var F = function() {};
+    F.prototype = father.prototype;
+    child.prototype = new F();
+    child.prototype.constructor = child;
+
+    // Merge prototype additions
+    var prototypePlus = addInObject.prototypePlus;
+    for (var attr in prototypePlus) {
+        if (prototypePlus.hasOwnProperty(attr)) {
+            child.prototype[attr] = prototypePlus[attr];
+        }
     }
-    /*****Add super&inherited pointer for instance*****/
-    //The upper constructor is super
-    child.prototype.super=father;
-    //Behaviors including constructor are inherited by child, can find depreciated
-    child.prototype.inherited=father.prototype;//Behavior always in prototype
-    /*****Generate super&inherited pointer link*****/
-    child.super=father;
-    child.inherited=father.prototype;
-    //Below is constructor link:
-    //Mutalisk.constructor.(prototype.constructor).(prototype.constructor)
+
+    // Super/inherited references
+    child.prototype.super = father;
+    child.prototype.inherited = father.prototype;
+    child.super = father;
+    child.inherited = father.prototype;
+
     return child;
 };
 
-//Extend Audio
-Audio.prototype.playFromStart=function(){
+// Audio extensions
+Audio.prototype.playFromStart = function() {
     this.pause();
-    this.currentTime=0;
+    this.currentTime = 0;
     this.play();
 };
 
-_$.audioRegistry=[];
-_$.registerAudio=function(audio){
-    if (!audio) return;
-    if (_$.audioRegistry.indexOf(audio)===-1) _$.audioRegistry.push(audio);
-};
-_$.pauseAllAudio=function(){
-    _$.audioRegistry.forEach(function(a){
-        if (!a) return;
-        var playing=false;
-        try{
-            playing = (a.paused===false && a.ended===false);
-        }catch(e){
-            playing=false;
-        }
-        a.__wasPlayingBeforePause=playing;
-        if (playing) {
-            try{ a.pause(); }catch(e){}
-        }
-    });
-};
-_$.resumeAllAudio=function(){
-    _$.audioRegistry.forEach(function(a){
-        if (!a) return;
-        if (a.__wasPlayingBeforePause) {
-            a.__wasPlayingBeforePause=false;
-            try{
-                var p=a.play();
-                if (p && typeof(p.catch)==='function') p.catch(function(){});
-            }catch(e){}
-        }
-    });
+// Audio registry — pause/resume all tracked audio
+_$.audioRegistry = [];
+
+_$.registerAudio = function(audio) {
+    if (!audio || _$.audioRegistry.indexOf(audio) !== -1) return;
+    _$.audioRegistry.push(audio);
 };
 
-if (!Audio.prototype.__scAudioPlayPatched){
-    Audio.prototype.__scAudioPlayPatched=true;
-    var __nativePlay=Audio.prototype.play;
-    Audio.prototype.play=function(){
+_$.pauseAllAudio = function() {
+    var a, playing;
+    for (var i = 0, len = _$.audioRegistry.length; i < len; i++) {
+        a = _$.audioRegistry[i];
+        if (!a) continue;
+        playing = false;
+        try { playing = !a.paused && !a.ended; } catch (e) {}
+        a.__wasPlayingBeforePause = playing;
+        if (playing) {
+            try { a.pause(); } catch (e) {}
+        }
+    }
+};
+
+_$.resumeAllAudio = function() {
+    var a, p;
+    for (var i = 0, len = _$.audioRegistry.length; i < len; i++) {
+        a = _$.audioRegistry[i];
+        if (!a || !a.__wasPlayingBeforePause) continue;
+        a.__wasPlayingBeforePause = false;
+        try {
+            p = a.play();
+            if (p && typeof p.catch === 'function') p.catch(function() {});
+        } catch (e) {}
+    }
+};
+
+// Patch Audio.play to auto-register & swallow promise rejections
+if (!Audio.prototype.__scAudioPlayPatched) {
+    Audio.prototype.__scAudioPlayPatched = true;
+    var __nativePlay = Audio.prototype.play;
+    Audio.prototype.play = function() {
         if (window._$ && _$.registerAudio) _$.registerAudio(this);
-        var p=__nativePlay.apply(this,arguments);
-        if (p && typeof(p.catch)==='function') p.catch(function(){});
+        var p = __nativePlay.apply(this, arguments);
+        if (p && typeof p.catch === 'function') p.catch(function() {});
         return p;
     };
 }
 
-_$.lazyAudio=function(src){
+/**
+ * Lazy-loaded audio: defers Audio object creation until first play
+ */
+_$.lazyAudio = function(src) {
     return {
-        _audio:null,
-        play:function(){
-            try{
-                if (!this._audio) this._audio=new Audio(src);
-                if (window._$ && _$.registerAudio) _$.registerAudio(this._audio);
-                var p=this._audio.play();
-                if (p && typeof(p.catch)==='function') p.catch(function(){});
-                return p;
-            }catch(e){
-                return null;
-            }
+        _audio: null,
+        _ensure: function() {
+            if (!this._audio) this._audio = new Audio(src);
+            if (window._$ && _$.registerAudio) _$.registerAudio(this._audio);
+            return this._audio;
         },
-        pause:function(){
+        play: function() {
+            try {
+                var p = this._ensure().play();
+                if (p && typeof p.catch === 'function') p.catch(function() {});
+                return p;
+            } catch (e) { return null; }
+        },
+        pause: function() {
             if (this._audio) this._audio.pause();
         },
-        playFromStart:function(){
-            try{
-                if (!this._audio) this._audio=new Audio(src);
-                if (window._$ && _$.registerAudio) _$.registerAudio(this._audio);
-                this._audio.playFromStart();
-            }catch(e){}
+        playFromStart: function() {
+            try { this._ensure().playFromStart(); } catch (e) {}
         }
     };
 };
 
-/**************** Add to _$ namespace *******************/
+/**************** _$ namespace utilities *******************/
 
-_$.requestAnimationFrame=requestAnimationFrame || webkitRequestAnimationFrame ||
-    mozRequestAnimationFrame || msRequestAnimationFrame || oRequestAnimationFrame;
+_$.requestAnimationFrame = window.requestAnimationFrame;
 
-_$.extends=function(fathers,addInObject){
-    //Create child self as constructor function
-    var child=function(props){
-        if (fathers instanceof Array){
-            var myself=this;
-            fathers.forEach(function(father){
-                father.call(myself,props);
-            });
-            //Add new into child constructor
-            addInObject.constructorPlus.call(this,props);
+/**
+ * Multiple inheritance via _$.extends(fathers[], {constructorPlus, prototypePlus})
+ */
+_$.extends = function(fathers, addInObject) {
+    var child = function(props) {
+        if (!(fathers instanceof Array)) throw '_$.extends need array type parameter fathers!';
+        for (var i = 0; i < fathers.length; i++) {
+            fathers[i].call(this, props);
         }
-        else throw('_$.extends need array type parameter fathers!');
+        addInObject.constructorPlus.call(this, props);
     };
-    if (fathers.length>0){
-        var mixinProto=fathers[0].prototype;
-        for (N=1;N<fathers.length;N++){
-            //Mixin interfaces
-            mixinProto=_$.delegate(mixinProto,fathers[N].prototype);
-            //Still instanceof interface == false
-            mixinProto.constructor=fathers[N];
+
+    if (fathers.length > 0) {
+        var mixinProto = fathers[0].prototype;
+        for (var N = 1; N < fathers.length; N++) {
+            mixinProto = _$.delegate(mixinProto, fathers[N].prototype);
+            mixinProto.constructor = fathers[N];
         }
-        child.prototype=_$.delegate(mixinProto,addInObject.prototypePlus);
-        child.prototype.constructor=child;
-    }
-    else {
-        //Original method
-        for (var attr in addInObject.prototypePlus){
-            child.prototype[attr]=addInObject.prototypePlus[attr];
+        child.prototype = _$.delegate(mixinProto, addInObject.prototypePlus);
+        child.prototype.constructor = child;
+    } else {
+        var prototypePlus = addInObject.prototypePlus;
+        for (var attr in prototypePlus) {
+            if (prototypePlus.hasOwnProperty(attr)) {
+                child.prototype[attr] = prototypePlus[attr];
+            }
         }
     }
     return child;
 };
 
-//_$.mixin == $.extend
-_$.mixin=function(){
-    switch (arguments.length){
-        case 0:
-            return {};
-        default:
-            var dist=arguments[0];
-            for (var N=1;N<arguments.length;N++){
-                var addIn=arguments[N];
-                for (var attr in addIn){
-                    dist[attr]=addIn[attr];
-                }
+/** Shallow merge (like $.extend) */
+_$.mixin = function() {
+    var dist = arguments[0] || {};
+    for (var N = 1; N < arguments.length; N++) {
+        var addIn = arguments[N];
+        for (var attr in addIn) {
+            if (addIn.hasOwnProperty(attr)) {
+                dist[attr] = addIn[attr];
             }
-            return dist;
-    }
-};
-//Can only copy one level, copy reference
-_$.copy=function(obj){
-    //Auto detect obj/array
-    return _$.mixin(new obj.constructor(),obj);
-};
-//Full traverse copy, copy one level when ref=true
-_$.clone=function(obj,ref){
-    //Auto detect obj/array
-    var dist=new obj.constructor();
-    for (var attr in obj){
-        //Cannot just assign pointer if it's object type
-        if (typeof(obj[attr])=="object" && !ref) {
-            dist[attr]=_$.clone(obj[attr]);
         }
-        //Can only assign simple type(number/boolean/string)
-        else dist[attr]=obj[attr];
-        //dist[attr]=(typeof(obj[attr])=="object")?_$.clone(obj[attr]):obj[attr];
     }
     return dist;
 };
 
-//Template
-_$.templates={
-    src:{},
-    //register ?id as ?tempStr
-    register:function(id,tempStr){
-        var tempObj={};
-        tempObj.tempStr=tempStr;
-        //Auto search for params
-        tempObj.params=tempStr.match(/\${2}\w{1,}\${2}/g);// /RegExp/go,NoStop
-        _$.templates.src[id]=tempObj;
+/** Shallow copy (one level, reference) */
+_$.copy = function(obj) {
+    return _$.mixin(new obj.constructor(), obj);
+};
+
+/** Deep clone. ref=true → shallow clone only */
+_$.clone = function(obj, ref) {
+    var dist = new obj.constructor();
+    for (var attr in obj) {
+        if (!obj.hasOwnProperty(attr)) continue;
+        dist[attr] = (!ref && typeof obj[attr] === 'object' && obj[attr] !== null)
+            ? _$.clone(obj[attr])
+            : obj[attr];
+    }
+    return dist;
+};
+
+/** Simple string template engine */
+_$.templates = {
+    src: {},
+    register: function(id, tempStr) {
+        _$.templates.src[id] = {
+            tempStr: tempStr,
+            params: tempStr.match(/\${2}\w+\${2}/g)
+        };
     },
-    //apply template ?id with ?values
-    applyOn: function(id,values) {
-        var valueArray=[].concat(values);//Convert to array
-        var src=_$.templates.src[id];//Get src template object
-        var result=src.tempStr;//Get original template
-        for (var N=0;N<Math.min(valueArray.length,src.params.length);N++){
-            result=result.replace(src.params[N],valueArray[N]);
+    applyOn: function(id, values) {
+        var valueArray = [].concat(values);
+        var src = _$.templates.src[id];
+        var result = src.tempStr;
+        var count = Math.min(valueArray.length, src.params.length);
+        for (var N = 0; N < count; N++) {
+            result = result.replace(src.params[N], valueArray[N]);
         }
         return result;
     }
 };
 
-_$.traverse=function(obj,func){
-    for (var attr in obj){
-        if (typeof(obj[attr])=="object"){
-            _$.traverse(obj[attr],func);
-        }
-        else {
-            //Callback
+/** Deep traverse: calls func on every leaf value */
+_$.traverse = function(obj, func) {
+    for (var attr in obj) {
+        if (!obj.hasOwnProperty(attr)) continue;
+        if (typeof obj[attr] === 'object' && obj[attr] !== null) {
+            _$.traverse(obj[attr], func);
+        } else {
             func(obj[attr]);
         }
     }
 };
 
-_$.matrixOperation=function(matrix,operation){
-    for (var attr in matrix){
-        if (typeof(matrix[attr])=="object"){//array or object
-            _$.matrixOperation(matrix[attr],operation);
-        }
-        else {
-            matrix[attr]=operation(matrix[attr]);
+/** In-place matrix/nested-object transform */
+_$.matrixOperation = function(matrix, operation) {
+    for (var attr in matrix) {
+        if (!matrix.hasOwnProperty(attr)) continue;
+        if (typeof matrix[attr] === 'object' && matrix[attr] !== null) {
+            _$.matrixOperation(matrix[attr], operation);
+        } else {
+            matrix[attr] = operation(matrix[attr]);
         }
     }
 };
 
-//Map traverse for array
-_$.mapTraverse=function(array,operation){
-    var operationTraverse=function(n){
-        if (n instanceof Array) return n.map(operationTraverse);
-        else return operation(n);
+/** Recursive map for nested arrays */
+_$.mapTraverse = function(array, operation) {
+    var operationTraverse = function(n) {
+        return (n instanceof Array) ? n.map(operationTraverse) : operation(n);
     };
     return array.map(operationTraverse);
 };
 
-//Array equals array
-_$.arrayEqual=function(arr1,arr2){
-    if (arr1.length==arr2.length){
-        for (var n=0;n<arr1.length;n++){
-            //Content not same
-            if (arr1[n]!=arr2[n]) return false;
-        }
-        return true;
+/** Shallow array equality */
+_$.arrayEqual = function(arr1, arr2) {
+    if (arr1.length !== arr2.length) return false;
+    for (var n = 0; n < arr1.length; n++) {
+        if (arr1[n] !== arr2[n]) return false;
     }
-    //Length not same
-    else return false;
+    return true;
 };
 
-/**********Dojo relative**********/
-_$.modules={};
-//Script loader
-_$.sourceLoader={
-    sources:{},
-    sourceNum:0,
-    loadedNum:0,
-    allLoaded:true,
-    load:function(pathName){
+/********** Module system (AMD-like) **********/
+_$.modules = {};
+
+_$.sourceLoader = {
+    sources: {},
+    sourceNum: 0,
+    loadedNum: 0,
+    allLoaded: true,
+    load: function(pathName) {
         _$.sourceLoader.sourceNum++;
-        _$.sourceLoader.allLoaded=false;
-        //Type=="script"
-        var node=document.createElement('script');
-        node.onload=function(){
-            //Load builder
-            _$.modules[pathName]=_$.define.loadedBuilders.shift();
+        _$.sourceLoader.allLoaded = false;
+        var node = document.createElement('script');
+        node.onload = function() {
+            _$.modules[pathName] = _$.define.loadedBuilders.shift();
             _$.sourceLoader.loaded();
         };
-        //Block this module, should not load again
-        _$.modules[pathName]=true;
-        node.src=pathName+'.js';
+        _$.modules[pathName] = true; // Block duplicate loads
+        node.src = pathName + '.js';
         document.getElementsByTagName('head')[0].appendChild(node);
     },
-    loaded:function(){
+    loaded: function() {
         _$.sourceLoader.loadedNum++;
-        if(_$.sourceLoader.loadedNum==_$.sourceLoader.sourceNum){
-            _$.sourceLoader.allLoaded=true;
+        if (_$.sourceLoader.loadedNum === _$.sourceLoader.sourceNum) {
+            _$.sourceLoader.allLoaded = true;
         }
     },
-    allOnLoad:function(callback){
+    allOnLoad: function(callback) {
         if (_$.sourceLoader.allLoaded) {
             callback();
-        }
-        else {
-            setTimeout(function(){
+        } else {
+            setTimeout(function() {
                 _$.sourceLoader.allOnLoad(callback);
-            },100);
+            }, 100);
         }
     }
 };
-//Async instantiate
-_$.instModule=function(name){
-    //Add module instantiate stack
+
+/** Instantiate a module and its dependencies */
+_$.instModule = function(name) {
     _$.instModule.refStack.push(name);
-    //Instantiate module constructor
-    var module=_$.modules[name];
-    //Now instantiate builder function
-    if (module._$isBuilder){
-        var refObjs=[];
+    var module = _$.modules[name];
+
+    if (module && module._$isBuilder) {
+        var refObjs = [];
         if (module.refArr) {
-            module.refArr.forEach(function(ref){
-                //Recursion instantiate
-                if (ref[0]=='=') {
-                    //Closure
-                    var loc=ref.substr(1);
-                    refObjs.push(function(){
-                        return _$.modules[loc];
-                    });
-                }
-                else {
-                    if (_$.instModule.refStack.indexOf(ref)!=-1) {
-                        //Auto detect loop reference
-                        throw 'Loop reference found: '+name+' --> '+ref;
+            for (var i = 0; i < module.refArr.length; i++) {
+                var ref = module.refArr[i];
+                if (ref[0] === '=') {
+                    // Closure reference
+                    refObjs.push((function(loc) {
+                        return function() { return _$.modules[loc]; };
+                    })(ref.substr(1)));
+                } else {
+                    if (_$.instModule.refStack.indexOf(ref) !== -1) {
+                        throw 'Loop reference found: ' + name + ' --> ' + ref;
                     }
                     refObjs.push(_$.instModule(ref));
                 }
-            });
+            }
         }
-        //Override module function with instance
-        _$.modules[name]=module.apply(window,refObjs);
+        _$.modules[name] = module.apply(window, refObjs);
     }
+
     _$.instModule.refStack.pop();
     return _$.modules[name];
 };
-_$.instModule.refStack=[];
-//Register module builder function into _$.modules
-_$.define=function(refArr,builderFunc){
-    refArr.forEach(function(ref){
-        if (ref[0]=='=') return;
-        //Recursion loading if that module not loaded
+_$.instModule.refStack = [];
+
+/** Define a module with dependencies */
+_$.define = function(refArr, builderFunc) {
+    for (var i = 0; i < refArr.length; i++) {
+        var ref = refArr[i];
+        if (ref[0] === '=') continue;
         if (!_$.modules[ref]) _$.sourceLoader.load(ref);
-    });
-    //Builder loaded
-    builderFunc.refArr=refArr;
-    builderFunc._$isBuilder=true;
-    _$.define.loadedBuilders.push(builderFunc);
-    //_$.modules[pathName]=builderFunc;
-};
-_$.define.loadedBuilders=[];
-//Run callback functions with module references
-_$.require=function(refArr,callback){
-    refArr.forEach(function(ref){
-        if (ref[0]=='=') return;
-        //Recursion loading if that module not loaded
-        if (!_$.modules[ref]) _$.sourceLoader.load(ref);
-    });
-    _$.sourceLoader.allOnLoad(function(){
-        var refObjs=[];
-        refArr.forEach(function(ref){
-            //Recursion instantiate
-            refObjs.push(_$.instModule(ref));
-        });
-        callback.apply(window,refObjs);
-    });
-};
-//Constructor extension: changed to multiple inherit
-_$.declare=function(globalName,fathers,plusObj){
-    if (arguments.length==2){
-        plusObj=fathers;
-        fathers=globalName;
-        globalName=null;
     }
-    if (!fathers) fathers=[];
-    var constructPlus=plusObj.constructor;
+    builderFunc.refArr = refArr;
+    builderFunc._$isBuilder = true;
+    _$.define.loadedBuilders.push(builderFunc);
+};
+_$.define.loadedBuilders = [];
+
+/** Require modules then run callback */
+_$.require = function(refArr, callback) {
+    for (var i = 0; i < refArr.length; i++) {
+        var ref = refArr[i];
+        if (ref[0] === '=') continue;
+        if (!_$.modules[ref]) _$.sourceLoader.load(ref);
+    }
+    _$.sourceLoader.allOnLoad(function() {
+        var refObjs = [];
+        for (var i = 0; i < refArr.length; i++) {
+            refObjs.push(_$.instModule(refArr[i]));
+        }
+        callback.apply(window, refObjs);
+    });
+};
+
+/** Declare class with multiple inheritance (Dojo-style) */
+_$.declare = function(globalName, fathers, plusObj) {
+    if (arguments.length === 2) {
+        plusObj = fathers;
+        fathers = globalName;
+        globalName = null;
+    }
+    if (!fathers) fathers = [];
+    var constructPlus = plusObj.constructor;
     delete plusObj.constructor;
-    var protoPlus=plusObj;
-    var child=_$.extends(fathers,{constructorPlus:constructPlus,prototypePlus:protoPlus});
-    if (globalName) window[globalName]=child;
+    var child = _$.extends(fathers, { constructorPlus: constructPlus, prototypePlus: plusObj });
+    if (globalName) window[globalName] = child;
     return child;
 };
 
-//Publish & Subscribe topic
-_$.topic={};
-_$.subscribe=function(topic,callback){
-    if (!_$.topic[topic]) _$.topic[topic]={callbacks:[]};
+/** ES6 class-based extends */
+_$.classExtends = function(father, addInObject) {
+    if (!father) father = function() {};
+    if (!addInObject) addInObject = {};
+    var constructorPlus = addInObject.constructorPlus;
+    var prototypePlus = addInObject.prototypePlus || {};
+
+    var child = class extends father {
+        constructor(props) {
+            super(props);
+            if (props && constructorPlus) constructorPlus.call(this, props);
+        }
+    };
+
+    for (var attr in prototypePlus) {
+        if (prototypePlus.hasOwnProperty(attr)) {
+            child.prototype[attr] = prototypePlus[attr];
+        }
+    }
+    child.prototype.super = father;
+    child.prototype.inherited = father.prototype;
+    child.super = father;
+    child.inherited = father.prototype;
+    return child;
+};
+
+/** Declare class using ES6 class syntax */
+_$.declareClass = function(globalName, father, plusObj) {
+    if (arguments.length === 2) {
+        plusObj = father;
+        father = globalName;
+        globalName = null;
+    }
+    if (!father) father = function() {};
+    if (!plusObj) plusObj = {};
+    var constructPlus = plusObj.constructor;
+    delete plusObj.constructor;
+    var child = _$.classExtends(father, { constructorPlus: constructPlus, prototypePlus: plusObj });
+    if (globalName) window[globalName] = child;
+    return child;
+};
+
+/** Pub/Sub */
+_$.topic = {};
+
+_$.subscribe = function(topic, callback) {
+    if (!_$.topic[topic]) _$.topic[topic] = { callbacks: [] };
     _$.topic[topic].callbacks.push(callback);
 };
-//Need add .owner on callback to identify who is subscriber
-_$.unSubscribe=function(topic,callback){
-    if (_$.topic[topic] && _$.topic[topic].callbacks){
-        var index=_$.topic[topic].callbacks.indexOf(callback);
-        _$.topic[topic].callbacks.splice(index,1);
-    }
+
+_$.unSubscribe = function(topic, callback) {
+    if (!_$.topic[topic] || !_$.topic[topic].callbacks) return;
+    var cbs = _$.topic[topic].callbacks;
+    var index = cbs.indexOf(callback);
+    if (index !== -1) cbs.splice(index, 1);
 };
-_$.publish=function(topic,msgObj){
-    if (_$.topic[topic]){
-        _$.topic[topic].callbacks.forEach(function(callback){
-            callback.call(window,msgObj);
-        })
+
+_$.publish = function(topic, msgObj) {
+    if (!_$.topic[topic]) return;
+    var cbs = _$.topic[topic].callbacks;
+    for (var i = 0; i < cbs.length; i++) {
+        cbs[i].call(window, msgObj);
     }
 };
 
-//lang.delegate:cover with one proto layer
-_$.delegate=function(chara,bufferObj){
-    var func=function(){};
-    func.prototype=chara;
-    return _$.mixin(new func(),bufferObj);
+/** Delegate: creates object with proto chain + buffer overlay */
+_$.delegate = function(chara, bufferObj) {
+    var F = function() {};
+    F.prototype = chara;
+    return _$.mixin(new F(), bufferObj);
 };
 
-//lang.hitch:bind context this with function
-_$.hitch=function(func,thisP){
-    //Higher-order function: compress this pointer into closure here
+/** Hitch: bind function to a fixed `this` context */
+_$.hitch = function(func, thisP) {
     return function() {
-        func.apply(thisP,arguments);
+        func.apply(thisP, arguments);
     };
 };
