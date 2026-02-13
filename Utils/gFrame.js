@@ -170,7 +170,9 @@ if (!Audio.prototype.__scAudioPlayPatched){
     var __nativePlay=Audio.prototype.play;
     Audio.prototype.play=function(){
         if (window._$ && _$.registerAudio) _$.registerAudio(this);
-        return __nativePlay.apply(this,arguments);
+        var p=__nativePlay.apply(this,arguments);
+        if (p && typeof(p.catch)==='function') p.catch(function(){});
+        return p;
     };
 }
 

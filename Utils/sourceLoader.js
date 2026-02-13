@@ -18,7 +18,6 @@ var sourceLoader={
         };//Code copy
         if (type=='img'){
             source=new Image();
-            source.src=src;
             source.onload=loaded;
             source.onerror=function(){
                 try{
@@ -34,6 +33,7 @@ var sourceLoader={
                 }catch(e){}
                 loaded();
             };
+            source.src=src;
             sourceLoader.sources[id]=source;
         }
         if (type=='audio'){
