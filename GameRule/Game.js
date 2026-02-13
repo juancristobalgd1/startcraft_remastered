@@ -1223,6 +1223,9 @@ var Game = {
             Game.frontCxt.clearRect(0, 0, Game.HBOUND, Game.VBOUND);
             //Game.backCxt.clearRect(0,0,Game.HBOUND,Game.VBOUND);//Only clear when refresh map
             //Layer0: Refresh map if needed
+            if (window.mouseController && typeof mouseController.edgeScrollTick === 'function') {
+                mouseController.edgeScrollTick();
+            }
             if (GameMap.needRefresh) {
                 GameMap.refresh(GameMap.needRefresh);
                 GameMap.needRefresh = false;

@@ -256,21 +256,22 @@ var GameMap = {
         var edgeX = GameMap.getCurrentMap().width - Game.HBOUND;
         var edgeY = GameMap.getCurrentMap().height - Game.VBOUND + Game.infoBox.height - 5;
         var onlyMap;
+        var step = GameMap._dynamicSpeed || GameMap.speed;
         switch (direction) {
             case "LEFT":
-                GameMap.offsetX -= GameMap.speed;
+                GameMap.offsetX -= step;
                 if (GameMap.offsetX < 0) GameMap.offsetX = 0;
                 break;
             case "RIGHT":
-                GameMap.offsetX += GameMap.speed;
+                GameMap.offsetX += step;
                 if (GameMap.offsetX > edgeX) GameMap.offsetX = edgeX;
                 break;
             case "TOP":
-                GameMap.offsetY -= GameMap.speed;
+                GameMap.offsetY -= step;
                 if (GameMap.offsetY < 0) GameMap.offsetY = 0;
                 break;
             case "BOTTOM":
-                GameMap.offsetY += GameMap.speed;
+                GameMap.offsetY += step;
                 if (GameMap.offsetY > edgeY) GameMap.offsetY = edgeY;
                 break;
             case "MAP":

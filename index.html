@@ -127,6 +127,83 @@
     <div id="GameWin" class="GameLayer"></div>
     <div id="GameLose" class="GameLayer"></div>
 
+    <script>
+        (function () {
+            var g = window;
+            var ok = true;
+            try {
+                if (typeof g.Map !== "function") ok = false;
+                else {
+                    var m = new g.Map();
+                    m.set("a", 1);
+                    if (m.get("a") !== 1) ok = false;
+                }
+            } catch (e) {
+                ok = false;
+            }
+            if (ok) return;
+            function P(it) {
+                this._k = [];
+                this._v = [];
+                if (!it) return;
+                if (typeof it.forEach === "function") {
+                    var self = this;
+                    it.forEach(function (p) {
+                        if (p && p.length >= 2) self.set(p[0], p[1]);
+                    });
+                } else if (it.length) {
+                    for (var i = 0; i < it.length; i++) {
+                        var p = it[i];
+                        if (p && p.length >= 2) this.set(p[0], p[1]);
+                    }
+                }
+            }
+            P.prototype._i = function (k) {
+                for (var i = 0; i < this._k.length; i++) {
+                    if (this._k[i] === k) return i;
+                }
+                return -1;
+            };
+            P.prototype.set = function (k, v) {
+                var i = this._i(k);
+                if (i === -1) {
+                    this._k.push(k);
+                    this._v.push(v);
+                } else {
+                    this._v[i] = v;
+                }
+                return this;
+            };
+            P.prototype.get = function (k) {
+                var i = this._i(k);
+                return i === -1 ? undefined : this._v[i];
+            };
+            P.prototype.has = function (k) {
+                return this._i(k) !== -1;
+            };
+            P.prototype["delete"] = function (k) {
+                var i = this._i(k);
+                if (i === -1) return false;
+                this._k.splice(i, 1);
+                this._v.splice(i, 1);
+                return true;
+            };
+            P.prototype.clear = function () {
+                this._k.length = 0;
+                this._v.length = 0;
+            };
+            P.prototype.forEach = function (cb, thisArg) {
+                for (var i = 0; i < this._k.length; i++) {
+                    cb.call(thisArg, this._v[i], this._k[i], this);
+                }
+            };
+            Object.defineProperty(P.prototype, "size", {
+                get: function () { return this._k.length; }
+            });
+            g.Map = P;
+        })();
+    </script>
+
     <script src="Utils/jquery.min.js"></script>
     <!--<script src="Utils/alloyimage.min.js"></script>-->
     <script src="Utils/gFrame.js"></script>

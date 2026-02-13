@@ -28,6 +28,41 @@ var mouseController = {
     isJoinTeam: function () {
         return keyController.ctrl;
     },
+    _clientPos: null,
+    edgeScrollTick: function () {
+        if (window.Game && Game.isPaused) return;
+        if (mouseController.down || mouseController.drag) return;
+        if (GameMap.needRefresh) return;
+        if (!mouseController._clientPos) return;
+        var canvas = $('#frontCanvas')[0];
+        if (!canvas || !canvas.getBoundingClientRect) return;
+        var rect = canvas.getBoundingClientRect();
+        var x = mouseController._clientPos.x - rect.left;
+        var y = mouseController._clientPos.y - rect.top;
+        var viewH = Game.VBOUND - Game.infoBox.height + 5;
+        if (x < 0 || y < 0 || x > Game.HBOUND || y > viewH) {
+            GameMap._dynamicSpeed = undefined;
+            return;
+        }
+
+        var m = GameMap.triggerMargin;
+        var left = x;
+        var right = Game.HBOUND - x;
+        var top = y;
+        var bottom = viewH - y;
+        var minDist = Math.min(left, right, top, bottom);
+        if (minDist >= m) {
+            GameMap._dynamicSpeed = undefined;
+            return;
+        }
+
+        var ratio = (m - minDist) / m;
+        GameMap._dynamicSpeed = (10 + ratio * 30) >> 0;
+        if (minDist === left) GameMap.needRefresh = "LEFT";
+        else if (minDist === right) GameMap.needRefresh = "RIGHT";
+        else if (minDist === top) GameMap.needRefresh = "TOP";
+        else GameMap.needRefresh = "BOTTOM";
+    },
     leftClick: function (event) {
         if (window.Game && Game.isPaused) return;
         if (window.Game && Game.metrics) Game.metrics._lastInputAt = (window.performance && performance.now) ? performance.now() : Date.now();
@@ -198,16 +233,29 @@ var mouseController = {
             }
         });
     },
-    dblClick: function () {
+    dblClick: function (event) {
         if (window.Game && Game.isPaused) return;
         if (window.Game && Game.metrics) Game.metrics._lastInputAt = (window.performance && performance.now) ? performance.now() : Date.now();
-        //Multi select same type units
-        if (!Game.selectedUnit.isEnemy) {
-            var charas = Unit.allOurUnits().filter(function (chara) {
-                return (chara.insideScreen()) && (chara.name == Game.selectedUnit.name);
-            });
-            Game.addIntoAllSelected(charas);
+        if (Button.callback != null) return;
+        var unit = null;
+        if (event && event.pageX != null && event.pageY != null) {
+            var offset = mouseController._frontOffsetAt();
+            var clickX = event.pageX - offset.left;
+            var clickY = event.pageY - offset.top;
+            unit = Game.getSelectedOne(clickX + GameMap.offsetX, clickY + GameMap.offsetY, false, true);
         }
+        if (!(unit instanceof Unit)) unit = Game.selectedUnit;
+        if (!(unit instanceof Unit) || unit.isEnemy || unit.status === 'dead') return;
+
+        var sameType = Unit.allOurUnits().filter(function (chara) {
+            return chara.status !== 'dead' && chara.name === unit.name && chara.insideScreen();
+        });
+        if (!sameType.length) return;
+
+        if (!mouseController.isMultiSelect()) Game.unselectAll();
+        Game.addIntoAllSelected(sameType);
+        Game.changeSelectedTo(sameType[0]);
+        if (sameType[0].sound && sameType[0].sound.selected) sameType[0].sound.selected.play();
     },
     //Can control all units
     toControlAll: function () {
@@ -238,7 +286,7 @@ var mouseController = {
         //Double click
         $('#frontCanvas').on('dblclick', function (event) {
             if (event && event.cancelable && event.preventDefault) event.preventDefault();
-            mouseController.dblClick();
+            mouseController.dblClick(event);
         });
         //Mouse click start
         $('#frontCanvas')[0].onmousedown = function (event) {
@@ -271,14 +319,7 @@ var mouseController = {
         window.onmousemove = function (event) {
             if (event && event.cancelable && event.preventDefault) event.preventDefault();
             if (window.Game && Game.isPaused) return;
-            //Mouse at (clickX,clickY)
-            var clickX = event.clientX;
-            var clickY = event.clientY;
-            //Refresh
-            if (clickX < GameMap.triggerMargin) GameMap.needRefresh = "LEFT";
-            if (clickX > (Game.HBOUND - GameMap.triggerMargin)) GameMap.needRefresh = "RIGHT";
-            if (clickY < GameMap.triggerMargin) GameMap.needRefresh = "TOP";
-            if (clickY > (Game.VBOUND - GameMap.triggerMargin)) GameMap.needRefresh = "BOTTOM";
+            mouseController._clientPos = { x: event.clientX, y: event.clientY };
         };
         //Mouse click end
         $('#frontCanvas')[0].onmouseup = function (event) {
