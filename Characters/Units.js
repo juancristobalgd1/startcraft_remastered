@@ -399,9 +399,7 @@ var Unit = Gobj.extends({
             this.attackGround(positions, true);
         },
         isMachine: function () {
-            return ["SCV", "Vulture", "Tank", "Goliath", "Wraith", "Dropship", "Vessel", "BattleCruiser", "Valkyrie",
-                "Probe", "Dragoon", "Shuttle", "Reaver", "Observer", "Scout", "Carrier", "Arbiter", "Corsair", "HeroCruiser"]
-                .indexOf(this.name) != -1;
+            return Unit._machineSet.has(this.name);
         },
         //Life status
         lifeStatus: function () {
@@ -550,6 +548,9 @@ var Unit = Gobj.extends({
 });
 //Assign current ID to each newly born unit
 Unit.currentID = 0;
+//Cached machine lookup Set for O(1) isMachine() checks
+Unit._machineSet = new Set(["SCV", "Vulture", "Tank", "Goliath", "Wraith", "Dropship", "Vessel", "BattleCruiser", "Valkyrie",
+    "Probe", "Dragoon", "Shuttle", "Reaver", "Observer", "Scout", "Carrier", "Arbiter", "Corsair", "HeroCruiser"]);
 //Smallest range for move precision
 Unit.moveRange = 20;
 //Range for mouse select
@@ -593,17 +594,40 @@ Unit.ourFlyingUnits = [];
 Unit.ourGroundUnits = [];
 Unit.enemyFlyingUnits = [];
 Unit.enemyGroundUnits = [];
+// Cached array results to avoid per-frame .concat() allocations
+Unit._cachedOur = [];
+Unit._cachedEnemy = [];
+Unit._cachedFlying = [];
+Unit._cachedGround = [];
+Unit._cacheVersion = 0;
+Unit._lastCacheClock = -1;
+Unit._invalidateCache = function () {
+    Unit._cacheVersion++;
+};
+Unit._ensureCache = function () {
+    var clock = (typeof Game !== 'undefined' && Game) ? Game._clock : -1;
+    if (clock === Unit._lastCacheClock) return;
+    Unit._lastCacheClock = clock;
+    Unit._cachedOur = Unit.ourFlyingUnits.concat(Unit.ourGroundUnits);
+    Unit._cachedEnemy = Unit.enemyFlyingUnits.concat(Unit.enemyGroundUnits);
+    Unit._cachedFlying = Unit.ourFlyingUnits.concat(Unit.enemyFlyingUnits);
+    Unit._cachedGround = Unit.ourGroundUnits.concat(Unit.enemyGroundUnits);
+};
 Unit.allOurUnits = function () {
-    return Unit.ourFlyingUnits.concat(Unit.ourGroundUnits);
+    Unit._ensureCache();
+    return Unit._cachedOur;
 };
 Unit.allEnemyUnits = function () {
-    return Unit.enemyFlyingUnits.concat(Unit.enemyGroundUnits);
+    Unit._ensureCache();
+    return Unit._cachedEnemy;
 };
 Unit.allFlyingUnits = function () {
-    return Unit.ourFlyingUnits.concat(Unit.enemyFlyingUnits);
+    Unit._ensureCache();
+    return Unit._cachedFlying;
 };
 Unit.allGroundUnits = function () {
-    return Unit.ourGroundUnits.concat(Unit.enemyGroundUnits);
+    Unit._ensureCache();
+    return Unit._cachedGround;
 };
 //Get all units count
 Unit.count = function () {
