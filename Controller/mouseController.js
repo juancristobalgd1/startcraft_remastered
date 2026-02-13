@@ -121,7 +121,10 @@ var mouseController = {
         if (Game.hapticsEnabled && navigator.vibrate) navigator.vibrate(15);
         //Find selected one or nothing
         var selectedTarget = Game.getSelectedOne(clickX + GameMap.offsetX, clickY + GameMap.offsetY, true);//isEnemy
-        if (!(selectedTarget instanceof Gobj)) {
+        var hasSelectedWorker = Unit.allOurUnits().some(function (u) {
+            return u && u.selected && (u.name == 'SCV' || u.name == 'Drone' || u.name == 'Probe');
+        });
+        if (!(selectedTarget instanceof Gobj) && hasSelectedWorker) {
             var mx = clickX + GameMap.offsetX;
             var my = clickY + GameMap.offsetY;
             var minerals = Game.getInRangeOnes(mx, my, 55, false, true, false, function (chara) {
@@ -177,7 +180,7 @@ var mouseController = {
                     return;
                 }
                 //Unit cannot attack will always choose move mode
-                var attackOrMove = (chara.attack) ? (selectedTarget instanceof Gobj) : false;
+                var attackOrMove = (chara.attack) ? (selectedTarget instanceof Gobj && selectedTarget.isEnemy) : false;
                 //Attack mode
                 if (attackOrMove) {
                     if (isShift && isBusy) {

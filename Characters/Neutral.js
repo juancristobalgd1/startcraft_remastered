@@ -380,6 +380,7 @@ Neutral.Mineral = Unit.extends({
         sight: 350,
         unitType: Unit.SMALL,
         isEnemy: false,
+        isResource: true,
         selected: false,
         dock: function () {
             this.stop();

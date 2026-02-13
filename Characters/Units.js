@@ -733,6 +733,11 @@ var AttackableUnit = Unit.extends({
         },
         attack: function (enemy) {
             //Cannot attack invisible unit or unit who mismatch your attack type
+            if (enemy && enemy.isResource) {
+                Referee.voice.pError.play();
+                this.stopAttack();
+                return;
+            }
             if (enemy.isInvisible || !(this.matchAttackLimit(enemy))) {
                 Referee.voice.pError.play();
                 this.stopAttack();
@@ -939,7 +944,7 @@ var AttackableUnit = Unit.extends({
                 var myX = myself.posX();
                 var myY = myself.posY();
                 charas = charas.filter((chara) => {
-                    return !chara.isInvisible && myself.canSee(chara) && myself.matchAttackLimit(chara);
+                    return !chara.isInvisible && !chara.isResource && myself.canSee(chara) && myself.matchAttackLimit(chara);
                 }).sort((chara1, chara2) => {
                     var X1 = chara1.posX(), Y1 = chara1.posY(), X2 = chara2.posX(), Y2 = chara1.posY();
                     return (X1 - myX) * (X1 - myX) + (Y1 - myY) * (Y1 - myY) - (X2 - myX) * (X2 - myX) - (Y2 - myY) * (Y2 - myY);
