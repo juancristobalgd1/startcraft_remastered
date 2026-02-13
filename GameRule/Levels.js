@@ -6,6 +6,8 @@ var Levels = [
             GameMap.setCurrentMap('Switchback');
             GameMap.offsetX = 50;
             GameMap.offsetY = 50;
+            Resource[0].mine = 1000;
+            Resource[0].gas = 1000;
             //Apply race style
             Game.race.choose('Terran');
             //Load units
