@@ -412,12 +412,21 @@ var Unit = Gobj.extends({
             if (typeof Building === 'undefined') return null;
             var names;
             if (this.name == 'SCV') names = ['CommandCenter'];
-            else if (this.name == 'Drone') names = ['Hatchery', 'Lair', 'Hive'];
+            else if (this.name == 'Drone') names = ['Hatchery', 'Lair', 'Hive', 'OvermindI', 'OvermindII'];
             else if (this.name == 'Probe') names = ['Nexus'];
-            else names = ['CommandCenter', 'Hatchery', 'Lair', 'Hive', 'Nexus'];
+            else names = ['CommandCenter', 'Hatchery', 'Lair', 'Hive', 'OvermindI', 'OvermindII', 'Nexus'];
             var myself = this;
             var centers = Building.ourBuildings.filter(function (b) {
                 return b && b.status != 'dead' && names.indexOf(b.name) != -1;
+            });
+            centers.sort(function (a, b) {
+                var dxA = a.posX() - myself.posX(), dyA = a.posY() - myself.posY();
+                var dxB = b.posX() - myself.posX(), dyB = b.posY() - myself.posY();
+                return (dxA * dxA + dyA * dyA) - (dxB * dxB + dyB * dyB);
+            });
+            if (centers[0]) return centers[0];
+            centers = Building.ourBuildings.filter(function (b) {
+                return b && b.status != 'dead' && b.manPlus >= 10;
             });
             centers.sort(function (a, b) {
                 var dxA = a.posX() - myself.posX(), dyA = a.posY() - myself.posY();
