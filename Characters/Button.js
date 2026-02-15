@@ -1129,9 +1129,31 @@ var Button = {
     gatherHandler: function () {
         if (Button.callback == null) {
             Button.callback = function (location) {
-                var target = Game.getSelectedOne(location.x, location.y, null, null, null, function (chara) {
+                var target;
+                var mx = location.x;
+                var my = location.y;
+                var minerals = Game.getInRangeOnes(mx, my, 55, false, true, false, function (chara) {
                     return (typeof Neutral !== 'undefined' && chara instanceof Neutral.Mineral);
                 });
+                if ((!minerals || !minerals.length) && Game.getInRangeOnes) {
+                    minerals = Game.getInRangeOnes(mx, my, 180, false, true, false, function (chara) {
+                        return (typeof Neutral !== 'undefined' && chara instanceof Neutral.Mineral);
+                    });
+                }
+                if (minerals && minerals.length) {
+                    minerals.sort(function (a, b) {
+                        var dax = mx - a.posX(), day = my - a.posY();
+                        var dbx = mx - b.posX(), dby = my - b.posY();
+                        return dax * dax + day * day - (dbx * dbx + dby * dby);
+                    });
+                    target = minerals[0];
+                }
+                else {
+                    if (GameMap && GameMap._spawnMineralNear) {
+                        var spawned = GameMap._spawnMineralNear(mx, my);
+                        if (spawned) target = spawned;
+                    }
+                }
                 if (!(target instanceof Gobj)) {
                     target = Game.getSelectedOne(location.x, location.y, null, null, null, function (chara) {
                         return (chara instanceof Building) && (['Refinery', 'Extractor', 'Assimilator'].indexOf(chara.name) !== -1);
