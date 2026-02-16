@@ -299,6 +299,21 @@ var GameMap = {
         });
         //Re-draw fog on mini-map
         GameMap.drawMiniFog();
+        var now = (window.performance && performance.now) ? performance.now() : Date.now();
+        if (Game && Game.ui && Game.ui.lastAlerts && Game.ui.lastAlerts.underAttackPing && Game.ui.lastAlerts.underAttackPing.until > now) {
+            var ping = Game.ui.lastAlerts.underAttackPing;
+            var px = (130 * ping.x / mapWidth) >> 0;
+            var py = (130 * ping.y / mapHeight) >> 0;
+            var pulse = ((ping.until - now) / 200) % 1;
+            var radius = 4 + ((1 - pulse) * 6);
+            GameMap.miniCxt.save();
+            GameMap.miniCxt.strokeStyle = 'rgba(255,80,80,0.9)';
+            GameMap.miniCxt.lineWidth = 2;
+            GameMap.miniCxt.beginPath();
+            GameMap.miniCxt.arc(px, py, radius, 0, Math.PI * 2);
+            GameMap.miniCxt.stroke();
+            GameMap.miniCxt.restore();
+        }
         //Re-draw inside stroke
         GameMap.miniCxt.strokeStyle = 'white';
         GameMap.miniCxt.lineWidth = 2;

@@ -25,7 +25,7 @@ var Game = {
         lastSelected: { life: null, shield: null, magic: null, kill: null, lifeColor: null },
         lastProcessing: { name: null, percent: null, visible: null, queueText: null },
         lastMetrics: { fps: null, inputMs: null, visible: false },
-        lastAlerts: { underAttackAt: 0 }
+        lastAlerts: { underAttackAt: 0, underAttackPing: null }
     },
     metrics: {
         enabled: false,
@@ -1428,6 +1428,13 @@ var Game = {
         var lastAt = (Game.ui && Game.ui.lastAlerts) ? Game.ui.lastAlerts.underAttackAt : 0;
         if (now - lastAt < 2500) return;
         if (Game.ui && Game.ui.lastAlerts) Game.ui.lastAlerts.underAttackAt = now;
+        if (Game.ui && Game.ui.lastAlerts) {
+            Game.ui.lastAlerts.underAttackPing = {
+                x: chara.posX(),
+                y: chara.posY(),
+                until: now + 2000
+            };
+        }
         Game.showWarning('Our forces are under attack');
     },
     showMessage: function (msg, interval) {
