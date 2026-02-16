@@ -48,9 +48,8 @@ Building.ProtossBuilding = Building.extends({
         requiresPower: true,
         isPowered: function () {
             if (!this.requiresPower || this.isEnemy) return true;
-            var myself = this;
-            return Building.ourBuildings.some(function (b) {
-                return b.name === 'Pylon' && b.status !== 'dead' && myself.distanceFrom(b) < 350;
+            return Building.ourBuildings.some((b) => {
+                return b.name === 'Pylon' && b.status !== 'dead' && this.distanceFrom(b) < 350;
             });
         },
         recover: function () {

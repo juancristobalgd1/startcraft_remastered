@@ -3,11 +3,11 @@ class Bullets extends Gobj {
         super(props);
         if (!props) return;
         this.owner = props.from;
-        var ownerX = (this.owner instanceof Gobj) ? (this.owner.posX()) : (this.owner.x);
-        var ownerY = (this.owner instanceof Gobj) ? (this.owner.posY()) : (this.owner.y);
+        const ownerX = (this.owner instanceof Gobj) ? (this.owner.posX()) : (this.owner.x);
+        const ownerY = (this.owner instanceof Gobj) ? (this.owner.posY()) : (this.owner.y);
         this.target = props.to;
-        var targetX = (this.target instanceof Gobj) ? (this.target.posX()) : (this.target.x);
-        var targetY = (this.target instanceof Gobj) ? (this.target.posY()) : (this.target.y);
+        const targetX = (this.target instanceof Gobj) ? (this.target.posX()) : (this.target.x);
+        const targetY = (this.target instanceof Gobj) ? (this.target.posY()) : (this.target.y);
         this.x = ownerX - this.width / 2;
         this.y = ownerY - this.height / 2;
         this.speed = {
@@ -29,11 +29,11 @@ class Bullets extends Gobj {
     }
 
     burst() {
-        var owner = this.owner;
-        var target = this.target;
+        const owner = this.owner;
+        const target = this.target;
         this.die();
         if (!(target instanceof Gobj)) return;
-        var targets;
+        let targets;
         if (owner.AOE) {
             if (owner.isEnemy) {
                 targets = (owner.attackLimit) ? ((owner.attackLimit == "flying") ?
@@ -47,18 +47,20 @@ class Bullets extends Gobj {
             }
             switch (owner.AOE.type) {
                 case "LINE":
-                    var N = Math.ceil(owner.distanceFrom(target) / (owner.AOE.radius));
-                    targets = targets.filter((chara) => {
-                        for (var n = 1; n <= N; n++) {
-                            var X = owner.posX() + n * (target.posX() - owner.posX()) / N;
-                            var Y = owner.posY() + n * (target.posY() - owner.posY()) / N;
-                            if (chara.insideCircle({ centerX: X >> 0, centerY: Y >> 0, radius: owner.AOE.radius }) && !chara.isInvisible) {
-                                return true;
+                    {
+                        const N = Math.ceil(owner.distanceFrom(target) / (owner.AOE.radius));
+                        targets = targets.filter((chara) => {
+                            for (let n = 1; n <= N; n++) {
+                                const X = owner.posX() + n * (target.posX() - owner.posX()) / N;
+                                const Y = owner.posY() + n * (target.posY() - owner.posY()) / N;
+                                if (chara.insideCircle({ centerX: X >> 0, centerY: Y >> 0, radius: owner.AOE.radius }) && !chara.isInvisible) {
+                                    return true;
+                                }
                             }
-                        }
-                        return false;
-                    });
-                    break;
+                            return false;
+                        });
+                        break;
+                    }
                 case "CIRCLE":
                 default:
                     targets = targets.filter((chara) => {
@@ -70,7 +72,7 @@ class Bullets extends Gobj {
         }
         if (this.burstEffect) {
             if (owner.AOE && owner.AOE.hasEffect) {
-                var burstEffect = this.burstEffect;
+                const burstEffect = this.burstEffect;
                 targets.forEach((chara) => {
                     new burstEffect({ target: chara, above: true });
                 })

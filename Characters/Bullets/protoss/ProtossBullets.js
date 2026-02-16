@@ -19,12 +19,10 @@ Bullets.DragoonBall=Bullets.extends({
         burstEffect:Burst.DragoonBallBroken,
         //Delay fire for Dragoon and PhotonCannon
         fire:function(){
-            var delay=this.owner.fireDelay;
-            if (!delay) delay=0;
+            const delay=this.owner.fireDelay || 0;
             //Inherit fire function
-            var myself=this;
-            setTimeout(function(){
-                Bullets.prototype.fire.call(myself);
+            setTimeout(() => {
+                Bullets.prototype.fire.call(this);
             },delay);
         }
     }
@@ -145,9 +143,9 @@ Bullets.Interceptor=Bullets.extends({
         noDamage:true,
         fire:function(){
             this.inherited.fire.call(this);
-            var target=this.target;
-            var owner=this.owner;
-            setTimeout(function(){
+            const target=this.target;
+            const owner=this.owner;
+            setTimeout(() => {
                 target.getDamageBy(owner);
                 target.reactionWhenAttackedBy(owner);
             },500);

@@ -19,8 +19,8 @@ Unit.speedMatrix = [
 ];
 //Get speed matrix by unit speed
 Unit.getSpeedMatrixBy = function (speed) {
-    var speedMatrix = _$.clone(Unit.speedMatrix);
-    _$.matrixOperation(speedMatrix, function (N) {
+    const speedMatrix = _$.clone(Unit.speedMatrix);
+    _$.matrixOperation(speedMatrix, (N) => {
         return N * speed;
     });
     return speedMatrix;
@@ -57,7 +57,7 @@ Unit.allGroundUnits = function () {
 };
 //Get all units count
 Unit.count = function () {
-    var count = { ours: 0, enemy: 0 };
+    const count = { ours: 0, enemy: 0 };
     Unit.allUnits.forEach((chara) => {
         if (chara.isEnemy) count.enemy++;
         else count.ours++;
@@ -69,7 +69,7 @@ Unit.sortAllUnits = function () {
 };
 //Sort units
 Unit.sortUnits = function (units) {
-    units.sort(function (unit1, unit2) {
+    units.sort((unit1, unit2) => {
         return (unit1.isFlying ? 1 : 0) - (unit2.isFlying ? 1 : 0);
     });
 };
