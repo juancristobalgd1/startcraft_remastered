@@ -17,8 +17,6 @@
         "Characters/Buildings/protoss/ProtossSpecial.js"
     ];
     for (var i = 0; i < scripts.length; i++) {
-        var s = document.createElement('script');
-        s.src = scripts[i];
-        document.head.appendChild(s);
+        document.write('<script src="' + scripts[i] + '"><\/script>');
     }
 })();

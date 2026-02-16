@@ -1,0 +1,260 @@
+Burst.EggBirth=Burst.extends({
+    constructorPlus:function(props){
+        //Mixin
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"Larva",
+        imgPos:{
+            burst:{
+                left:[2,38,74,110,146,182,218,254],
+                top:[372,372,372,372,372,372,372,372]
+            }
+        },
+        width:36,
+        height:40,
+        frame:{
+            burst:8
+        }
+    }
+});
+Burst.DroneBirth=Burst.extends({
+    constructorPlus:function(props){
+        //Mixin
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"Larva",
+        imgPos:{
+            burst:{
+                left:[1,68,135,202,269,336,403],
+                top:[442,442,442,442,442,442,442]
+            }
+        },
+        width:67,
+        height:44,
+        frame:{
+            burst:7
+        }
+    }
+});
+Burst.OverlordBirth=Burst.extends({
+    constructorPlus:function(props){
+        //Mixin
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"Larva",
+        imgPos:{
+            burst:{
+                left:[0,63,126,189,252,315,378],
+                top:[486,486,486,486,486,486,486]
+            }
+        },
+        width:63,
+        height:95,
+        frame:{
+            burst:7
+        }
+    }
+});
+Burst.ZerglingBirth=Burst.extends({
+    constructorPlus:function(props){
+        //Mixin
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"Larva",
+        imgPos:{
+            burst:{
+                left:[0,59,118,177,236,295,354],
+                top:[582,582,582,582,582,582,582]
+            }
+        },
+        width:59,
+        height:45,
+        frame:{
+            burst:7
+        }
+    }
+});
+Burst.HydraliskBirth=Burst.extends({
+    constructorPlus:function(props){
+        //Mixin
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"Larva",
+        imgPos:{
+            burst:{
+                left:[0,63,126,189,252,315,378],
+                top:[666,666,666,666,666,666,666]
+            }
+        },
+        width:63,
+        height:45,
+        frame:{
+            burst:7
+        }
+    }
+});
+Burst.MutaliskBirth=Burst.extends({
+    constructorPlus:function(props){
+        //Mixin
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"Larva",
+        imgPos:{
+            burst:{
+                left:[0,66,132,198,264,330,396],
+                top:[712,712,712,712,712,712,712]
+            }
+        },
+        width:66,
+        height:88,
+        frame:{
+            burst:7
+        }
+    }
+});
+Burst.ScourgeBirth=Burst.extends({
+    constructorPlus:function(props){
+        //Mixin
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"Larva",
+        imgPos:{
+            burst:{
+                left:[0,62,124,186,248,310,372],
+                top:[798,798,798,798,798,798,798]
+            }
+        },
+        width:62,
+        height:70,
+        frame:{
+            burst:7
+        }
+    }
+});
+Burst.QueenBirth=Burst.extends({
+    constructorPlus:function(props){
+        //Mixin
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"Larva",
+        imgPos:{
+            burst:{
+                left:[0,62,124,186,248,310,372],
+                top:[867,867,867,867,867,867,867]
+            }
+        },
+        width:62,
+        height:84,
+        frame:{
+            burst:7
+        }
+    }
+});
+Burst.UltraliskBirth=Burst.extends({
+    constructorPlus:function(props){
+        //Mixin
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"Larva",
+        imgPos:{
+            burst:{
+                left:[0,72,144,216,288,360,432],
+                top:[950,950,950,950,950,950,950]
+            }
+        },
+        width:72,
+        height:60,
+        frame:{
+            burst:7
+        }
+    }
+});
+Burst.DefilerBirth=Burst.extends({
+    constructorPlus:function(props){
+        //Mixin
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"Larva",
+        imgPos:{
+            burst:{
+                left:[0,64,128,192,256,320,384],
+                top:[1011,1011,1011,1011,1011,1011,1011]
+            }
+        },
+        width:64,
+        height:48,
+        frame:{
+            burst:7
+        }
+    }
+});
+Burst.LurkerBirth=Burst.extends({
+    constructorPlus:function(props){
+        //Mixin
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"Lurker",
+        imgPos:{
+            burst:{
+                left:[650, 722, 794, 866, 938, 1010, 1082],
+                top:[480, 480, 480, 480, 480, 480, 480]
+            }
+        },
+        width:72,
+        height:67,
+        frame:{
+            burst:7
+        }
+    }
+});
+Burst.GuardianBirth=Burst.extends({
+    constructorPlus:function(props){
+        //Mixin
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"Guardian",
+        imgPos:{
+            burst:{
+                left:[656, 737, 818, 899, 980, 1061],
+                top:[538, 538, 538, 538, 538, 538]
+            }
+        },
+        width:81,
+        height:74,
+        frame:{
+            burst:6
+        }
+    }
+});
+Burst.DevourerBirth=Burst.extends({
+    constructorPlus:function(props){
+        //Mixin
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"Devourer",
+        imgPos:{
+            burst:{
+                left:[666,764,862,960,1058,1156],
+                top:[998,998,998,998,998,998]
+            }
+        },
+        width:73,
+        height:86,
+        frame:{
+            burst:6
+        }
+    }
+});

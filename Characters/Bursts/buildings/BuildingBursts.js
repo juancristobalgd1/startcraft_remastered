@@ -1,0 +1,183 @@
+Burst.SmallExplode=Burst.extends({
+    constructorPlus:function(props){
+        //Nothing
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"BuildingBurst",
+        imgPos:{
+            burst:{
+                left:[56,156,256,360],
+                top:[1686,1686,1686,1686]
+            }
+        },
+        width:80,
+        height:60,
+        frame:{
+            burst:4
+        }
+    }
+});
+Burst.MiddleExplode=Burst.extends({
+    constructorPlus:function(props){
+        //Nothing
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"BuildingBurst",
+        imgPos:{
+            burst:{
+                left:[44,192,342,498],
+                top:[1754,1754,1754,1754]
+            }
+        },
+        width:120,
+        height:90,
+        frame:{
+            burst:4
+        }
+    }
+});
+Burst.BigExplode=Burst.extends({
+    constructorPlus:function(props){
+        //Nothing
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"BuildingBurst",
+        imgPos:{
+            burst:{
+                left:[26,226,424,632],
+                top:[1846,1846,1846,1846]
+            }
+        },
+        width:160,
+        height:120,
+        frame:{
+            burst:4
+        }
+    }
+});
+Burst.SmallBlueExplode=Burst.extends({
+    constructorPlus:function(props){
+        //Nothing
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"BuildingBurst",
+        imgPos:{
+            burst:{
+                left:[50,150,250,356],
+                top:[1424,1424,1424,1424]
+            }
+        },
+        width:80,
+        height:60,
+        frame:{
+            burst:4
+        }
+    }
+});
+Burst.MiddleBlueExplode=Burst.extends({
+    constructorPlus:function(props){
+        //Nothing
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"BuildingBurst",
+        imgPos:{
+            burst:{
+                left:[36,184,338,494],
+                top:[1484,1484,1484,1484]
+            }
+        },
+        width:120,
+        height:90,
+        frame:{
+            burst:4
+        }
+    }
+});
+Burst.BigBlueExplode=Burst.extends({
+    constructorPlus:function(props){
+        //Nothing
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"BuildingBurst",
+        imgPos:{
+            burst:{
+                left:[22,222,420,632],
+                top:[1566,1566,1566,1566]
+            }
+        },
+        width:160,
+        height:120,
+        frame:{
+            burst:4
+        }
+    }
+});
+Burst.ZergBuildingBurst=Burst.extends({
+    constructorPlus:function(props){
+        //Need clear mud when ZergBuildingBurst finished
+        this.callback=function(){
+            GameMap.needRefresh="MAP";
+        };
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"BuildingBurst",
+        imgPos:{
+            burst:{
+                left:[0,200,400,600,800,0,200,400,600,800,0,200,400,400,600,600,800,800],
+                top:[0,0,0,0,0,200,200,200,200,200,400,400,400,400,400,400,400,400]
+            }
+        },
+        width:200,
+        height:200,
+        frame:{
+            burst:18
+        }
+    }
+});
+Burst.TerranBuildingBurst=Burst.extends({
+    constructorPlus:function(props){
+        //Nothing
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"BuildingBurst",
+        imgPos:{
+            burst:{
+                left:[0,0,200,200,400,400,600,600,800,800,0,0,200,200,400,400,600,600],
+                top:[600,600,600,600,600,600,600,600,600,600,800,800,800,800,800,800,800,800]
+            }
+        },
+        width:200,
+        height:200,
+        frame:{
+            burst:18
+        }
+    }
+});
+Burst.ProtossBuildingBurst=Burst.extends({
+    constructorPlus:function(props){
+        //Nothing
+    },
+    prototypePlus:{
+        //Add basic unit info
+        name:"BuildingBurst",
+        imgPos:{
+            burst:{
+                left:[0,0,200,200,400,400,600,600,800,800,0,0,200,200,400,400,600,600],
+                top:[1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1200,1200,1200,1200,1200,1200,1200,1200]
+            }
+        },
+        width:200,
+        height:200,
+        frame:{
+            burst:18
+        }
+    }
+});
