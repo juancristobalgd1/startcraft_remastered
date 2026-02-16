@@ -181,21 +181,23 @@ var Game = {
     },
     selectedUnit: {},
     allSelected: [],
+    selectionCap: 12,
     _oldAllSelected: [],
     addIntoAllSelected: function (chara, override) {
         if (chara instanceof Gobj) {
             if (Game.allSelected.indexOf(chara) == -1) {
                 if (override) Game.allSelected = [chara];
-                else Game.allSelected.push(chara);
+                else if (Game.allSelected.length < Game.selectionCap) Game.allSelected.push(chara);
                 chara.selected = true;
             }
         }
         if (chara instanceof Array) {
-            if (override) Game.allSelected = chara;
+            if (override) Game.allSelected = chara.slice(0, Game.selectionCap);
             else chara.forEach(function (char) {
+                if (Game.allSelected.length >= Game.selectionCap) return;
                 if (Game.allSelected.indexOf(char) == -1) Game.allSelected.push(char);
             });
-            chara.forEach((char) => {
+            Game.allSelected.forEach((char) => {
                 char.selected = true;
             });
         }
