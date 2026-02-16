@@ -1,6 +1,8 @@
 AttackableUnit.prototype.findNearbyTargets = function () {
     //Initial
-    var units, buildings, results = [];
+    let units;
+    let buildings;
+    let results = [];
     //Only ours
     if (this.isEnemy) {
         units = Unit.allOurUnits();
@@ -11,46 +13,45 @@ AttackableUnit.prototype.findNearbyTargets = function () {
         units = Unit.allEnemyUnits();
         buildings = Building.enemyBuildings;
     }
-    var myself = this;
     [units, buildings].forEach((charas) => {
-        var myX = myself.posX();
-        var myY = myself.posY();
+        const myX = this.posX();
+        const myY = this.posY();
         charas = charas.filter((chara) => {
-            return !chara.isInvisible && !chara.isResource && myself.canSee(chara) && myself.matchAttackLimit(chara);
+            return !chara.isInvisible && !chara.isResource && this.canSee(chara) && this.matchAttackLimit(chara);
         }).sort((chara1, chara2) => {
-            var X1 = chara1.posX(), Y1 = chara1.posY(), X2 = chara2.posX(), Y2 = chara1.posY();
+            const X1 = chara1.posX(), Y1 = chara1.posY(), X2 = chara2.posX(), Y2 = chara1.posY();
             return (X1 - myX) * (X1 - myX) + (Y1 - myY) * (Y1 - myY) - (X2 - myX) * (X2 - myX) - (Y2 - myY) * (Y2 - myY);
         });
         results = results.concat(charas);
     });
     //Calculate order delay, reverse to priority
-    var _getDelay = function (chara) {
-        var delay = 0;
+    const _getDelay = (chara) => {
+        let delay = 0;
         if (chara.attack) {
             //Measure delay by attack times needed to kill enemy
-            if (chara.matchAttackLimit(myself))
-                delay += ((chara.life + (chara.SP ? chara.shield : 0)) / chara.calculateDamageBy(myself));
+            if (chara.matchAttackLimit(this))
+                delay += ((chara.life + (chara.SP ? chara.shield : 0)) / chara.calculateDamageBy(this));
             else delay += 32;
         }
         else delay += 64;
         return delay;
     };
-    var _priority = function (chara) {
-        var p = 0;
+    const _priority = (chara) => {
+        let p = 0;
         if (chara instanceof Unit) p += 20;
         if (['SCV', 'Drone', 'Probe'].indexOf(chara.name) != -1) p += 50;
-        if (chara.attack && chara.target === myself) p += 30;
+        if (chara.attack && chara.target === this) p += 30;
         return p;
     };
-    results.sort(function (chara1, chara2) {
-        var p1 = _priority(chara1);
-        var p2 = _priority(chara2);
+    results.sort((chara1, chara2) => {
+        const p1 = _priority(chara1);
+        const p2 = _priority(chara2);
         if (p1 != p2) return p2 - p1;
-        var d1 = _getDelay(chara1);
-        var d2 = _getDelay(chara2);
+        const d1 = _getDelay(chara1);
+        const d2 = _getDelay(chara2);
         if (d1 != d2) return d1 - d2;
-        var X1 = chara1.posX() - myself.posX(), Y1 = chara1.posY() - myself.posY();
-        var X2 = chara2.posX() - myself.posX(), Y2 = chara2.posY() - myself.posY();
+        const X1 = chara1.posX() - this.posX(), Y1 = chara1.posY() - this.posY();
+        const X2 = chara2.posX() - this.posX(), Y2 = chara2.posY() - this.posY();
         return X1 * X1 + Y1 * Y1 - (X2 * X2 + Y2 * Y2);
     });
     //Take near>>unit>>attackable>>killtimes as priority, will attracted if be attacked
@@ -75,7 +76,7 @@ AttackableUnit.prototype.AI = function () {
     //If not lock target
     else {
         //Find in-range enemy by attack priority
-        var enemy = this.highestPriorityTarget();
+        const enemy = this.highestPriorityTarget();
         //If not attacking but find in-range enemy
         if (!this.isAttacking() && enemy) {
             this.attack(enemy);

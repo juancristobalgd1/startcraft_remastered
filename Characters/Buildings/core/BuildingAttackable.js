@@ -21,112 +21,113 @@ Building.Attackable = {
                 this.stopAttack();
                 this.dock();
                 this.target = enemy;
-                var myself = this;
-                var attackFrame = function () {
-                    if (enemy.status == "dead" || enemy.isInvisible || myself.isMissingTarget()) {
-                        myself.stopAttack();
-                        myself.dock();
+                const attackFrame = () => {
+                    if (enemy.status == "dead" || enemy.isInvisible || this.isMissingTarget()) {
+                        this.stopAttack();
+                        this.dock();
                     }
                     else {
-                        if (myself.isReloaded()) {
-                            myself.coolDown = false;
-                            setTimeout(function () {
-                                myself.coolDown = true;
-                            }, myself.get('attackInterval'));
-                            var enemies;
-                            if (myself.AOE) {
-                                if (myself.isEnemy) {
-                                    enemies = (myself.attackLimit) ? ((myself.attackLimit == "flying") ?
+                        if (this.isReloaded()) {
+                            this.coolDown = false;
+                            setTimeout(() => {
+                                this.coolDown = true;
+                            }, this.get('attackInterval'));
+                            let enemies;
+                            if (this.AOE) {
+                                if (this.isEnemy) {
+                                    enemies = (this.attackLimit) ? ((this.attackLimit == "flying") ?
                                         Unit.ourFlyingUnits : Unit.ourGroundUnits.concat(Building.ourBuildings))
                                         : (Unit.allOurUnits().concat(Building.ourBuildings));
                                 }
                                 else {
-                                    enemies = (myself.attackLimit) ? ((myself.attackLimit == "flying") ?
+                                    enemies = (this.attackLimit) ? ((this.attackLimit == "flying") ?
                                         Unit.enemyFlyingUnits : Unit.enemyGroundUnits.concat(Building.enemyBuildings))
                                         : (Unit.allEnemyUnits().concat(Building.enemyBuildings));
                                 }
-                                switch (myself.AOE.type) {
+                                switch (this.AOE.type) {
                                     case "LINE":
-                                        var N = Math.ceil(myself.distanceFrom(enemy) / (myself.AOE.radius));
-                                        enemies = enemies.filter(function (chara) {
-                                            for (var n = 1; n <= N; n++) {
-                                                var X = myself.posX() + n * (enemy.posX() - myself.posX()) / N;
-                                                var Y = myself.posY() + n * (enemy.posY() - myself.posY()) / N;
-                                                if (chara.insideCircle({ centerX: X >> 0, centerY: Y >> 0, radius: myself.AOE.radius }) && !chara.isInvisible) {
-                                                    return true;
+                                        {
+                                            const N = Math.ceil(this.distanceFrom(enemy) / (this.AOE.radius));
+                                            enemies = enemies.filter((chara) => {
+                                                for (let n = 1; n <= N; n++) {
+                                                    const X = this.posX() + n * (enemy.posX() - this.posX()) / N;
+                                                    const Y = this.posY() + n * (enemy.posY() - this.posY()) / N;
+                                                    if (chara.insideCircle({ centerX: X >> 0, centerY: Y >> 0, radius: this.AOE.radius }) && !chara.isInvisible) {
+                                                        return true;
+                                                    }
                                                 }
-                                            }
-                                            return false;
-                                        });
-                                        break;
+                                                return false;
+                                            });
+                                            break;
+                                        }
                                     case "CIRCLE":
                                     default:
-                                        enemies = enemies.filter(function (chara) {
+                                        enemies = enemies.filter((chara) => {
                                             return chara.insideCircle(
-                                                { centerX: enemy.posX(), centerY: enemy.posY(), radius: myself.AOE.radius })
+                                                { centerX: enemy.posX(), centerY: enemy.posY(), radius: this.AOE.radius })
                                                 && !chara.isInvisible;
-                                        })
+                                        });
                                 }
                             }
-                            if (myself.imgPos.attack) {
-                                myself.action = 0;
-                                myself.status = "attack";
-                                setTimeout(function () {
-                                    if (myself.status == "attack") {
-                                        myself.status = "dock";
-                                        myself.action = 0;
+                            if (this.imgPos.attack) {
+                                this.action = 0;
+                                this.status = "attack";
+                                setTimeout(() => {
+                                    if (this.status == "attack") {
+                                        this.status = "dock";
+                                        this.action = 0;
                                     }
-                                }, myself.frame.attack * 100);
+                                }, this.frame.attack * 100);
                             }
-                            if (myself.Bullet) {
-                                if (myself.continuousAttack) {
-                                    myself.bullet = new Array();
-                                    for (var N = 0; N < myself.continuousAttack.count; N++) {
-                                        var bullet = new myself.Bullet({
-                                            from: myself,
+                            if (this.Bullet) {
+                                if (this.continuousAttack) {
+                                    this.bullet = new Array();
+                                    for (let N = 0; N < this.continuousAttack.count; N++) {
+                                        const bullet = new this.Bullet({
+                                            from: this,
                                             to: enemy
                                         });
-                                        if (myself.continuousAttack.layout) myself.continuousAttack.layout(bullet, N);
-                                        if (myself.continuousAttack.onlyOnce && N != 0) {
+                                        if (this.continuousAttack.layout) this.continuousAttack.layout(bullet, N);
+                                        if (this.continuousAttack.onlyOnce && N != 0) {
                                             bullet.noDamage = true;
                                         }
                                         bullet.fire();
-                                        myself.bullet.push(bullet);
+                                        this.bullet.push(bullet);
                                     }
                                 }
                                 else {
-                                    myself.bullet = new myself.Bullet({
-                                        from: myself,
+                                    this.bullet = new this.Bullet({
+                                        from: this,
                                         to: enemy
                                     });
-                                    myself.bullet.fire();
+                                    this.bullet.fire();
                                 }
                             }
                             else {
-                                if (myself.AOE) {
+                                if (this.AOE) {
                                     enemies.forEach((chara) => {
-                                        chara.getDamageBy(myself);
-                                        chara.reactionWhenAttackedBy(myself);
+                                        chara.getDamageBy(this);
+                                        chara.reactionWhenAttackedBy(this);
                                     })
                                 }
                                 else {
                                     setTimeout(() => {
-                                        enemy.getDamageBy(myself);
-                                        enemy.reactionWhenAttackedBy(myself);
-                                    }, myself.frame.attack * 100);
+                                        enemy.getDamageBy(this);
+                                        enemy.reactionWhenAttackedBy(this);
+                                    }, this.frame.attack * 100);
                                 }
                             }
-                            if (myself.attackEffect) {
-                                if (myself.AOE && myself.AOE.hasEffect) {
+                            if (this.attackEffect) {
+                                if (this.AOE && this.AOE.hasEffect) {
                                     enemies.forEach((chara) => {
-                                        new myself.attackEffect({ x: chara.posX(), y: chara.posY() });
+                                        new this.attackEffect({ x: chara.posX(), y: chara.posY() });
                                     })
                                 }
                                 else {
-                                    new myself.attackEffect({ x: enemy.posX(), y: enemy.posY() });
+                                    new this.attackEffect({ x: enemy.posX(), y: enemy.posY() });
                                 }
                             }
-                            if (!myself.Bullet && myself.insideScreen()) myself.sound.attack.play();
+                            if (!this.Bullet && this.insideScreen()) this.sound.attack.play();
                         }
                     }
                 };
@@ -136,7 +137,9 @@ Building.Attackable = {
         },
         stopAttack: AttackableUnit.prototype.stopAttack,
         findNearbyTargets: function () {
-            var units, buildings, results = [];
+            let units;
+            let buildings;
+            let results = [];
             if (this.isEnemy) {
                 units = Unit.allOurUnits();
                 buildings = Building.ourBuildings;
@@ -145,31 +148,30 @@ Building.Attackable = {
                 units = Unit.allEnemyUnits();
                 buildings = Building.enemyBuildings;
             }
-            var myself = this;
             [units, buildings].forEach((charas) => {
-                var myX = myself.posX();
-                var myY = myself.posY();
+                const myX = this.posX();
+                const myY = this.posY();
                 charas = charas.filter((chara) => {
-                    return !chara.isInvisible && !chara.isResource && myself.isInAttackRange(chara) && myself.matchAttackLimit(chara);
+                    return !chara.isInvisible && !chara.isResource && this.isInAttackRange(chara) && this.matchAttackLimit(chara);
                 }).sort((chara1, chara2) => {
-                    var X1 = chara1.posX(), Y1 = chara1.posY(), X2 = chara2.posX(), Y2 = chara1.posY();
+                    const X1 = chara1.posX(), Y1 = chara1.posY(), X2 = chara2.posX(), Y2 = chara1.posY();
                     return (X1 - myX) * (X1 - myX) + (Y1 - myY) * (Y1 - myY) - (X2 - myX) * (X2 - myX) - (Y2 - myY) * (Y2 - myY);
                 });
                 results = results.concat(charas);
             });
-            var _priority = function (chara) {
-                var p = 0;
+            const _priority = (chara) => {
+                let p = 0;
                 if (chara instanceof Unit) p += 20;
                 if (['SCV', 'Drone', 'Probe'].indexOf(chara.name) != -1) p += 50;
-                if (chara.attack && chara.target === myself) p += 30;
+                if (chara.attack && chara.target === this) p += 30;
                 return p;
             };
-            results.sort(function (chara1, chara2) {
-                var p1 = _priority(chara1);
-                var p2 = _priority(chara2);
+            results.sort((chara1, chara2) => {
+                const p1 = _priority(chara1);
+                const p2 = _priority(chara2);
                 if (p1 != p2) return p2 - p1;
-                var X1 = chara1.posX() - myself.posX(), Y1 = chara1.posY() - myself.posY();
-                var X2 = chara2.posX() - myself.posX(), Y2 = chara2.posY() - myself.posY();
+                const X1 = chara1.posX() - this.posX(), Y1 = chara1.posY() - this.posY();
+                const X2 = chara2.posX() - this.posX(), Y2 = chara2.posY() - this.posY();
                 return X1 * X1 + Y1 * Y1 - (X2 * X2 + Y2 * Y2);
             });
             return results;
@@ -188,7 +190,7 @@ Building.Attackable = {
                 }
             }
             else {
-                var enemy = this.highestPriorityTarget();
+                const enemy = this.highestPriorityTarget();
                 if (enemy) this.attack(enemy);
             }
         },
