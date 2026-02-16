@@ -7,7 +7,7 @@ Magic.Burrow={
         this.status="burrow";
         this.action=2;
         //Effect:Freeze target
-        var bufferObj={
+        const bufferObj={
             moveTo:function(){},
             moveToward:function(){},
             dock:function(){}
@@ -15,7 +15,7 @@ Magic.Burrow={
         if (this.attack) bufferObj.attack=function(){};
         //Lurker has same behavior as attackable building
         if (this.name=="Lurker") {
-            var mixin=$.extend({},Building.Attackable.prototypePlus);
+            const mixin=$.extend({},Building.Attackable.prototypePlus);
             delete mixin.name;
             delete mixin.die;
             $.extend(bufferObj,mixin);
@@ -26,24 +26,23 @@ Magic.Burrow={
         //Sound effect
         if (this.insideScreen()) this.sound.burrow.play();
         //Forbid actions
-        var itemsBackup=this.items;
+        const itemsBackup=this.items;
         this.items={'1':undefined,'2':undefined,'3':undefined,'4':undefined,'5':undefined,
             '6':undefined,'7':undefined,'8':undefined,'9':undefined};
         Button.reset();
         //Finish burrow
-        var myself=this;
-        setTimeout(function(){
+        setTimeout(() => {
             //Invisible when finish burrow
-            var bufferObjII={isInvisible:true};
-            myself.addBuffer(bufferObjII);
-            myself.burrowBuffer.push(bufferObjII);
-            myself.buffer.Burrow=true;
+            const bufferObjII={isInvisible:true};
+            this.addBuffer(bufferObjII);
+            this.burrowBuffer.push(bufferObjII);
+            this.buffer.Burrow=true;
             //Change icon when finish burrow
-            var items=_$.clone(itemsBackup);
-            for (var N in items){
+            const items=_$.clone(itemsBackup);
+            for (const N in items){
                 if (items[N] && items[N].name=="Burrow") items[N].name="Unburrow";
             }
-            myself.items=items;
+            this.items=items;
             //Apply callback
             Button.reset();
         },this.imgPos.burrow.left[0].length*100-200);
@@ -64,20 +63,19 @@ Magic.Unburrow={
             '6':undefined,'7':undefined,'8':undefined,'9':undefined};
         Button.reset();
         //Finish unburrow
-        var myself=this;
-        delete myself.buffer.Burrow;//Restore shadow immediately
-        setTimeout(function(){
-            if (myself.burrowBuffer) {
+        delete this.buffer.Burrow;
+        setTimeout(() => {
+            if (this.burrowBuffer) {
                 //Release freeze
-                if (myself.removeBuffer(myself.burrowBuffer.pop())) {
-                    delete myself.burrowBuffer;
+                if (this.removeBuffer(this.burrowBuffer.pop())) {
+                    delete this.burrowBuffer;
                 }
             }
             //Recover icons and apply callbacks
-            delete myself.items;
+            delete this.items;
             Button.reset();
-            myself.dock();
-            myself.direction=(myself.name=="Hydralisk" || myself.name=="Lurker")?2:3;
+            this.dock();
+            this.direction=(this.name=="Hydralisk" || this.name=="Lurker")?2:3;
         },this.frame.unburrow*100-200);//margin
     }
 };
@@ -116,21 +114,20 @@ Magic.Parasite={
         //Has location callback info or nothing
         if (location){
             //Target enemy unit
-            var target=Game.getSelectedOne(location.x,location.y,true,true);
+            const target=Game.getSelectedOne(location.x,location.y,true,true);
             if (target instanceof Gobj){
-                var myself=this;
                 this.targetLock=true;
                 //Move toward target to fire parasite
-                this.moveToward(target,this.get('sight'),function(){
-                    if (Resource.payCreditBill.call(myself)){
+                this.moveToward(target,this.get('sight'),() => {
+                    if (Resource.payCreditBill.call(this)){
                         //Fire parasite
-                        var bullet=new Bullets.Parasite({
-                            from:myself,
+                        const bullet=new Bullets.Parasite({
+                            from:this,
                             to:target,
                             damage:0
                         });
-                        myself.bullet=bullet;
-                        bullet.fire(function(){
+                        this.bullet=bullet;
+                        bullet.fire(() => {
                             //Effect:should steal target sight
                             target.buffer.Parasite=true;
                         });
@@ -155,23 +152,22 @@ Magic.SpawnBroodlings={
         //Has location callback info or nothing
         if (location){
             //Kill enemy unit ground
-            var target=Game.getSelectedOne(location.x,location.y,true,true,false);
+            const target=Game.getSelectedOne(location.x,location.y,true,true,false);
             if (target instanceof Gobj){
-                var myself=this;
                 this.targetLock=true;
                 //Move toward target to fire SpawnBroodlings
-                this.moveToward(target,this.get('sight'),function(){
-                    if (Resource.payCreditBill.call(myself)){
+                this.moveToward(target,this.get('sight'),() => {
+                    if (Resource.payCreditBill.call(this)){
                         //Fire SpawnBroodlings to kill that enemy immediately
-                        var bullet=new Bullets.Parasite({
-                            from:myself,
+                        const bullet=new Bullets.Parasite({
+                            from:this,
                             to:target,
                             damage:99999
                         });
-                        myself.bullet=bullet;
+                        this.bullet=bullet;
                         //Effect
-                        bullet.fire(function(){
-                            for (var n=0;n<2;n++){
+                        bullet.fire(() => {
+                            for (let n=0;n<2;n++){
                                 new Zerg.Broodling({x:target.posX(),y:target.posY()});
                             }
                         });
@@ -198,22 +194,21 @@ Magic.Ensnare={
         if (location){
             //Move toward target to fire Ensnare
             this.targetLock=true;
-            var myself=this;
-            this.moveTo(location.x,location.y,this.get('sight'),function(){
-                if (Resource.payCreditBill.call(myself)){
+            this.moveTo(location.x,location.y,this.get('sight'),() => {
+                if (Resource.payCreditBill.call(this)){
                     //Fire Ensnare
-                    var bullet=new Bullets.Parasite({
-                        from:myself,
+                    const bullet=new Bullets.Parasite({
+                        from:this,
                         to:{x:location.x,y:location.y}
                     });
-                    myself.bullet=bullet;
+                    this.bullet=bullet;
                     //Fire Ensnare bullet with callback
-                    bullet.fire(function(){
+                    bullet.fire(() => {
                         //Ensnare animation and sound
-                        var anime=new Animation.Ensnare({x:location.x,y:location.y});
+                        const anime=new Animation.Ensnare({x:location.x,y:location.y});
                         if (anime.insideScreen()) new Audio('bgm/Magic.Ensnare.wav').play();
                         //Get in range enemy units
-                        var targets=Game.getInRangeOnes(location.x,location.y,[76*1.2>>0,62*1.2>>0],true,true);
+                        const targets=Game.getInRangeOnes(location.x,location.y,[76*1.2>>0,62*1.2>>0],true,true);
                         //Slow moving speed
                         const bufferObj = {
                             speed: Unit.getSpeedMatrixBy(2)
@@ -246,20 +241,19 @@ Magic.Consume={
         //Has location callback info or nothing
         if (location){
             //Kill our unit ground
-            var target=Game.getSelectedOne(location.x,location.y,false,true,false);
+            const target=Game.getSelectedOne(location.x,location.y,false,true,false);
             if (target instanceof Gobj){
-                var myself=this;
                 this.targetLock=true;
                 //Move toward target to consume
-                this.moveToward(target,70,function(){
+                this.moveToward(target,70,() => {
                     //Effect
-                    var anime=new Animation.Consume({target:target,callback:function(){
+                    const anime=new Animation.Consume({target:target,callback:() => {
                         //Consume sound
                         if (anime.insideScreen()) new Audio('bgm/Magic.Consume.wav').play();
                         //Consume animation missing
                         target.die();
-                        myself.magic+=50;
-                        if (myself.magic>myself.get('MP')) myself.magic=myself.get('MP');
+                        this.magic+=50;
+                        if (this.magic>this.get('MP')) this.magic=this.get('MP');
                     }});
                 });
             }
@@ -282,19 +276,18 @@ Magic.DarkSwarm={
         if (location){
             //Move toward target to fire DarkSwarm
             this.targetLock=true;
-            var myself=this;
-            this.moveTo(location.x,location.y,this.get('sight'),function(){
-                if (Resource.payCreditBill.call(myself)){
+            this.moveTo(location.x,location.y,this.get('sight'),() => {
+                if (Resource.payCreditBill.call(this)){
                     //DarkSwarm animation, play hidden frames at first
                     new Animation.DarkSwarm({x:location.x,y:location.y}).action=6;
                     //Dynamic update targets every 1 second
-                    var targets=[];
+                    let targets=[];
                     //Full guard from distance
-                    var bufferObj={
+                    const bufferObj={
                         //Full guard from distance
                         calculateDamageBy:function(enemyObj,percent){
                             if (enemyObj.meleeAttack){
-                                var enemyAttackType=enemyObj.attackType;
+                                let enemyAttackType=enemyObj.attackType;
                                 if (!enemyAttackType && enemyObj.attackMode){
                                     enemyAttackType=(this.isFlying)?enemyObj.attackMode.flying.attackType:enemyObj.attackMode.ground.attackType;
                                 }
@@ -305,7 +298,7 @@ Magic.DarkSwarm={
                         }
                     };
                     //Dark swarm wave
-                    var darkSwarm=function(){
+                    const darkSwarm=() => {
                         targets.forEach((chara) => {
                             chara.removeBuffer(bufferObj);
                         });
@@ -344,29 +337,28 @@ Magic.Plague={
         if (location){
             //Move toward target to fire Plague
             this.targetLock=true;
-            var myself=this;
-            this.moveTo(location.x,location.y,this.get('sight'),function(){
-                if (Resource.payCreditBill.call(myself)){
+            this.moveTo(location.x,location.y,this.get('sight'),() => {
+                if (Resource.payCreditBill.call(this)){
                     //Plague animation and sound
-                    var anime=new Animation.Plague({x:location.x,y:location.y});
+                    const anime=new Animation.Plague({x:location.x,y:location.y});
                     if (anime.insideScreen()) new Audio('bgm/Magic.Ensnare.wav').play();
                     //Get in range enemy units
-                    var targets=Game.getInRangeOnes(location.x,location.y,[64*1.2>>0,64*1.2>>0],true,true);
+                    const targets=Game.getInRangeOnes(location.x,location.y,[64*1.2>>0,64*1.2>>0],true,true);
                     //Effect:HP losing every seconds
-                    var bufferObj={
+                    const bufferObj={
                         recover:function(){
                             if (this.life>0) this.life-=25;//Refresh every 1 seconds
                             if (this.life<=0) this.life=1;
                         }
                     };
-                    targets.forEach(function(chara){
+                    targets.forEach((chara) => {
                         //Buffer flag
                         if (chara.buffer.Plague) return;//Not again
                         chara.buffer.Plague=true;
                         //HP losing every seconds
                         chara.addBuffer(bufferObj);
                         //Green effect
-                        new Animation.RedEffect({target:chara,callback:function(){
+                        new Animation.RedEffect({target:chara,callback:() => {
                             if (chara.status!='dead' && chara.buffer.Plague){
                                 //Restore
                                 if (chara.removeBuffer(bufferObj)) delete chara.buffer.Plague;

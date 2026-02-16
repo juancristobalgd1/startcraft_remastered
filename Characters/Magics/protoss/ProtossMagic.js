@@ -10,32 +10,29 @@ Magic.PsionicStorm={
         if (location){
             //Move toward target to fire PsionicStorm
             this.targetLock=true;
-            var myself=this;
-            this.moveTo(location.x,location.y,this.get('sight'),function(){
-                if (Resource.payCreditBill.call(myself)){
+            this.moveTo(location.x,location.y,this.get('sight'),() => {
+                if (Resource.payCreditBill.call(this)){
                     //PsionicStorm animation
-                    var anime=new Animation.PsionicStorm({x:location.x,y:location.y});
+                    const anime=new Animation.PsionicStorm({x:location.x,y:location.y});
                     //PsionicStorm sound
                     if (anime.insideScreen()) new Audio('bgm/Magic.PsionicStorm.wav').play();
                     //PsionicStorm effect
-                    var targets=[];
+                    let targets=[];
                     Magic.PsionicStorm.speller=this;
                     //Psionic storm wave
-                    var stormWave=function(){
+                    const stormWave=() => {
                         targets=[];
                         //Check if any psionic storm exist
-                        var psionicStorms=Burst.allEffects.filter(function(effect){
-                            return effect instanceof Animation.PsionicStorm;
-                        });
+                        const psionicStorms=Burst.allEffects.filter((effect) => effect instanceof Animation.PsionicStorm);
                         if (psionicStorms.length) {
                             //Get targets inside all of swarms
-                            psionicStorms.forEach(function(storm){
+                            psionicStorms.forEach((storm) => {
                                 //Update buffer on enemy units inside storm
                                 targets=targets.concat(Game.getInRangeOnes(storm.posX(),storm.posY(),[94*1.2>>0,76*1.2>>0],null,true));
                             });
                             targets = [...new Set(targets)];
                             //Effect
-                            targets.forEach(function(chara){
+                            targets.forEach((chara) => {
                                 //Deal damage
                                 chara.getDamageBy(16);
                                 //Don't move, but will die if no life
@@ -66,19 +63,20 @@ Magic.Hallucination={
         //Has location callback info or nothing
         if (location){
             //Target all units
-            var target=Game.getSelectedOne(location.x,location.y,null,true);
+            const target=Game.getSelectedOne(location.x,location.y,null,true);
             if (target instanceof Gobj){
-                var myself=this;
                 this.targetLock=true;
                 //Move toward target to create 2 hallucinations
-                this.moveToward(target,245,function(){
-                    if (Resource.payCreditBill.call(myself)){
+                this.moveToward(target,245,() => {
+                    if (Resource.payCreditBill.call(this)){
                         //Hallucination effect
-                        var anime=new Animation.Hallucination({target:target});
+                        const anime=new Animation.Hallucination({target:target});
                         //Hallucination sound
                         if (anime.insideScreen()) new Audio('bgm/Magic.Hallucination.wav').play();
                         //Initial
-                        var halluDamage, halluAttackMode, Hallucinations=[];
+                        let halluDamage;
+                        let halluAttackMode;
+                        const Hallucinations=[];
                         if (target.attack!=null) {
                             if (target.attackMode){
                                 halluAttackMode=_$.clone(target.attackMode);
@@ -88,7 +86,7 @@ Magic.Hallucination={
                             else halluDamage=0;
                         }
                         //Combine temp constructor for hallucination
-                        var halluConstructor=target.constructor.extends({
+                        const halluConstructor=target.constructor.extends({
                             constructorPlus:function(props){},
                             prototypePlus:{
                                 //Override
@@ -99,13 +97,13 @@ Magic.Hallucination={
                                 dieEffect:Burst.HallucinationDeath
                             }
                         });
-                        for (var n=0;n<2;n++){
-                            var hallucination=new halluConstructor({x:target.posX(),y:target.posY()});
+                        for (let n=0;n<2;n++){
+                            const hallucination=new halluConstructor({x:target.posX(),y:target.posY()});
                             Hallucinations.push(hallucination);
                         }
                         //Will disappear after 180 seconds
-                        setTimeout(function(){
-                            Hallucinations.forEach(function(chara){
+                        setTimeout(() => {
+                            Hallucinations.forEach((chara) => {
                                 chara.die();
                             });
                         },180000);
@@ -131,22 +129,21 @@ Magic.Feedback={
         //Has location callback info or nothing
         if (location){
             //Target enemy unit, magician
-            var target=Game.getSelectedOne(location.x,location.y,true,true,null,function(chara){
+            const target=Game.getSelectedOne(location.x,location.y,true,true,null,(chara) => {
                 return chara.MP;
             });
             if (target instanceof Gobj){
-                var myself=this;
                 this.targetLock=true;
                 //Move toward target to spell Feedback
-                this.moveToward(target,300,function(){
-                    if (Resource.payCreditBill.call(myself)){
+                this.moveToward(target,300,() => {
+                    if (Resource.payCreditBill.call(this)){
                         //Feedback effect
-                        var anime=new Animation.Feedback({target:target});
+                        const anime=new Animation.Feedback({target:target});
                         //Feedback sound
                         if (anime.insideScreen()) new Audio('bgm/Magic.Feedback.wav').play();
                         //Deal damage same as its magic, lose all magic
                         target.getDamageBy(target.magic);
-                        target.reactionWhenAttackedBy(myself);
+                        target.reactionWhenAttackedBy(this);
                         target.magic=0;
                     }
                 });
@@ -170,21 +167,20 @@ Magic.MindControl={
         //Has location callback info or nothing
         if (location){
             //Can control all enemy
-            var target=Game.getSelectedOne(location.x,location.y,true);
+            const target=Game.getSelectedOne(location.x,location.y,true);
             if (target instanceof Gobj){
-                var myself=this;
                 this.targetLock=true;
                 //Move toward target to mind control it
-                this.moveToward(target,280,function(){
-                    if (Resource.payCreditBill.call(myself)){
+                this.moveToward(target,280,() => {
+                    if (Resource.payCreditBill.call(this)){
                         //Mind control animation
-                        var anime=new Animation.MindControl({target:target});
+                        const anime=new Animation.MindControl({target:target});
                         //MindControl sound
                         if (anime.insideScreen()) new Audio('bgm/Magic.MindControl.wav').play();
                         //Control and tame enemy
                         target.isEnemy=false;
                         //Order ours not to attack it anymore
-                        Unit.allOurUnits().concat(Building.ourBuildings).forEach(function(chara){
+                        Unit.allOurUnits().concat(Building.ourBuildings).forEach((chara) => {
                             if (chara.target==target) chara.stopAttack();
                         });
                         //Rearrange side: code piece from unit constructor
@@ -222,30 +218,29 @@ Magic.MaelStorm={
         if (location){
             //Move toward target to fire MaelStorm
             this.targetLock=true;
-            var myself=this;
-            this.moveTo(location.x,location.y,this.get('sight'),function(){
-                if (Resource.payCreditBill.call(myself)){
+            this.moveTo(location.x,location.y,this.get('sight'),() => {
+                if (Resource.payCreditBill.call(this)){
                     //MaelStorm spell animation
-                    var anime=new Animation.MaelStormSpell({x:location.x,y:location.y,callback:function(){
+                    const anime=new Animation.MaelStormSpell({x:location.x,y:location.y,callback:() => {
                         //Get in range enemy units, animal
-                        var targets=Game.getInRangeOnes(location.x,location.y,[64*1.2>>0,64*1.2>>0],true,true,null,function(chara){
+                        const targets=Game.getInRangeOnes(location.x,location.y,[64*1.2>>0,64*1.2>>0],true,true,null,(chara) => {
                             return !(chara.isMachine()) && !chara.buffer.MaelStorm;
                         });
                         //Freeze target
-                        var bufferObj={
+                        const bufferObj={
                             moveTo:function(){},
                             moveToward:function(){},
                             attack:function(){}
                         };
                         //Effect
-                        targets.forEach(function(target){
+                        targets.forEach((target) => {
                             target.dock();
                             if (target.stopAttack) target.stopAttack();
                             target.addBuffer(bufferObj);
                             //Buffer flag
                             target.buffer.MaelStorm=true;
                             //Mael storm effect
-                            new Animation.MaelStorm({target:target,callback:function(){
+                            new Animation.MaelStorm({target:target,callback:() => {
                                 //Restore in 18 seconds
                                 if (target.status!='dead' && target.buffer.MaelStorm){
                                     if (target.removeBuffer(bufferObj)) delete target.buffer.MaelStorm;
@@ -302,21 +297,20 @@ Magic.Recall={
     spell:function(location){
         //Has location callback info or nothing
         if (location){
-            var myself=this;
-            if (Resource.payCreditBill.call(myself)){
+            if (Resource.payCreditBill.call(this)){
                 //Recall animation
-                var anime=new Animation.Recall({x:location.x,y:location.y,callback:function(){
+                const anime=new Animation.Recall({x:location.x,y:location.y,callback:() => {
                     //Get in range our units
-                    var targets=Game.getInRangeOnes(location.x,location.y,50*1.2>>0,false,true);
+                    const targets=Game.getInRangeOnes(location.x,location.y,50*1.2>>0,false,true);
                     //Recall animation again
-                    var animeII=new Animation.Recall({x:myself.posX(),y:myself.posY()});
+                    const animeII=new Animation.Recall({x:this.posX(),y:this.posY()});
                     //Recall sound
                     if (animeII.insideScreen()) new Audio('bgm/Magic.Recall.wav').play();
                     //Effect
-                    targets.forEach(function(chara){
+                    targets.forEach((chara) => {
                         //Relocate targets
-                        chara.x=myself.x;
-                        chara.y=myself.y;
+                        chara.x=this.x;
+                        chara.y=this.y;
                     });
                 }});
                 //Recall sound
@@ -340,21 +334,20 @@ Magic.StasisField={
         if (location){
             //Move toward target to fire StasisField
             this.targetLock=true;
-            var myself=this;
-            this.moveTo(location.x,location.y,this.get('sight'),function(){
-                if (Resource.payCreditBill.call(myself)){
+            this.moveTo(location.x,location.y,this.get('sight'),() => {
+                if (Resource.payCreditBill.call(this)){
                     //Spell StasisField animation
-                    var anime=new Animation.StasisFieldSpell({x:location.x,y:location.y,callback:function(){
+                    const anime=new Animation.StasisFieldSpell({x:location.x,y:location.y,callback:() => {
                         //Get in range units
-                        var targets=Game.getInRangeOnes(location.x,location.y,64*1.2>>0,null,true);
+                        const targets=Game.getInRangeOnes(location.x,location.y,64*1.2>>0,null,true);
                         //Effect:Freeze target
-                        var bufferObj={
+                        const bufferObj={
                             moveTo:function(){},
                             moveToward:function(){},
                             attack:function(){},
                             getDamageBy:function(){}
                         };
-                        targets.forEach(function(target){
+                        targets.forEach((target) => {
                             if (target.status!='dead'){
                                 //Buffer flag
                                 if (target.buffer.StasisField) return;//Not again
@@ -368,7 +361,7 @@ Magic.StasisField={
                                 target.stop();
                                 clearInterval(target.dockTimer);
                                 //Stasis field animation
-                                new Animation.StasisField({target:target,callback:function(){
+                                new Animation.StasisField({target:target,callback:() => {
                                     //Restore in 30 seconds
                                     if (target.status!='dead' && target.buffer.StasisField){
                                         if (target.removeBuffer(bufferObj)) {
@@ -403,39 +396,36 @@ Magic.DisruptionWeb={
         if (location){
             //Move toward target to fire DisruptionWeb
             this.targetLock=true;
-            var myself=this;
-            this.moveTo(location.x,location.y,this.get('sight'),function(){
-                if (Resource.payCreditBill.call(myself)){
+            this.moveTo(location.x,location.y,this.get('sight'),() => {
+                if (Resource.payCreditBill.call(this)){
                     //DisruptionWeb animation
-                    var anime=new Animation.DisruptionWeb({x:location.x,y:location.y});
+                    const anime=new Animation.DisruptionWeb({x:location.x,y:location.y});
                     //DisruptionWeb sound
                     if (anime.insideScreen()) new Audio('bgm/Magic.DisruptionWeb.wav').play();
                     //Dynamic update targets every 1 second
-                    var targets=[];
+                    let targets=[];
                     //Effect:Disable target attack
-                    var bufferObj={
+                    const bufferObj={
                         attack:function(){}
                     };
                     //Disruption web wave
-                    var disruptionWeb=function(){
+                    const disruptionWeb=() => {
                         //Clear old units buffer
-                        targets.forEach(function(chara){
+                        targets.forEach((chara) => {
                             chara.removeBuffer(bufferObj);
                         });
                         targets=[];
-                        var disruptionWebs=Burst.allEffects.filter(function(effect){
-                            return effect instanceof Animation.DisruptionWeb;
-                        });
+                        const disruptionWebs=Burst.allEffects.filter((effect) => effect instanceof Animation.DisruptionWeb);
                         //Check if any disruption web exist
                         if (disruptionWebs.length) {
                             //Get targets inside all of webs
-                            disruptionWebs.forEach(function(web){
+                            disruptionWebs.forEach((web) => {
                                 //Update buffer on enemy ground units inside web
                                 targets=targets.concat(Game.getInRangeOnes(web.posX(),web.posY(),[76*1.2>>0,56*1.2>>0],true,true,false));
                             });
                             targets = [...new Set(targets)];
                             //Effect
-                            targets.forEach(function(chara){
+                            targets.forEach((chara) => {
                                 //Cannot attack
                                 if (chara.attack) {
                                     chara.stopAttack();
@@ -464,18 +454,17 @@ Magic.RechargeShields={
     spell:function(location){
         //Has location callback info or nothing
         if (location){
-            var myself=this;
             //Restore our units, have shield and in sight
-            var target=Game.getSelectedOne(location.x,location.y,false,true,null,function(chara){
-                return chara.SP && myself.canSee(chara);
+            const target=Game.getSelectedOne(location.x,location.y,false,true,null,(chara) => {
+                return chara.SP && this.canSee(chara);
             });
             if (target instanceof Gobj){
                 //Recharge shield animation
-                var anime=new Animation.RechargeShields({target:target});
+                const anime=new Animation.RechargeShields({target:target});
                 //Recharge shield sound
                 if (anime.insideScreen()) new Audio('bgm/Magic.RechargeShields.wav').play();
-                var hurt=target.get('SP')-target.shield;
-                var needMagic=(hurt/2+0.5)>>0;
+                const hurt=target.get('SP')-target.shield;
+                const needMagic=(hurt/2+0.5)>>0;
                 //Remaining magic is sufficient
                 if (this.magic>needMagic) {
                     //Full recover
