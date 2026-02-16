@@ -1,0 +1,218 @@
+Bullets.Flame=Bullets.extends({
+    constructorPlus:function(props){},
+    prototypePlus:{
+        //Add basic unit info
+        name:"Burst",
+        duration:300,
+        imgPos:{
+            moving:{
+                left:[15,15,80,80,170,170],
+                top:[86,86,86,86,86,86]
+            }
+        },
+        width:76,
+        height:40,
+        frame:{
+            moving:6
+        }
+    }
+});
+Bullets.VultureBall=Bullets.extends({
+    constructorPlus:function(props){},
+    prototypePlus:{
+        //Add basic unit info
+        name:"Burst",
+        duration:600,
+        imgPos:{
+            moving:{
+                left:152,
+                top:0
+            }
+        },
+        width:10,
+        height:34,
+        frame:{
+            moving:1
+        },
+        burstEffect:Burst.VultureSpark
+    }
+});
+Bullets.Missile=Bullets.extends({
+    constructorPlus:function(props){},
+    prototypePlus:{
+        //Add basic unit info
+        name:"Wraith",
+        duration:1000,//Match attack sound
+        imgPos:{
+            moving:{
+                left:8,
+                top:90
+            }
+        },
+        width:16,
+        height:32,
+        frame:{
+            moving:1
+        },
+        burstEffect:Burst.FireSparkSound
+    }
+});
+Bullets.LongMissile=Bullets.extends({
+    constructorPlus:function(props){},
+    prototypePlus:{
+        //Add basic unit info
+        name:"Burst",
+        duration:600,//Match unit
+        imgPos:{
+            moving:{
+                left:0,
+                top:0
+            }
+        },
+        width:35,
+        height:30,
+        frame:{
+            moving:1
+        },
+        burstEffect:Burst.FireSparkSound
+    }
+});
+Bullets.SingleMissile=Bullets.extends({
+    constructorPlus:function(props){},
+    prototypePlus:{
+        //Add basic unit info
+        name:"Burst",
+        duration:600,//Match unit
+        imgPos:{
+            moving:{
+                left:0,
+                top:0
+            }
+        },
+        width:35,
+        height:15,
+        frame:{
+            moving:1
+        },
+        burstEffect:Burst.FireSparkSound
+    }
+});
+Bullets.MultipleMissile=Bullets.extends({
+    constructorPlus:function(props){},
+    prototypePlus:{
+        //Add basic unit info
+        name:"Burst",
+        duration:600,//Match unit
+        imgPos:{
+            moving:{
+                left:304,
+                top:56
+            }
+        },
+        width:94,
+        height:50,
+        frame:{
+            moving:1
+        },
+        burstEffect:Burst.FireSparkSound
+    }
+});
+Bullets.Laser=Bullets.extends({
+    constructorPlus:function(props){},
+    prototypePlus:{
+        //Add basic unit info
+        name:"BattleCruiser",
+        duration:300,//Match attack sound
+        imgPos:{
+            moving:{
+                left:16,
+                top:170
+            }
+        },
+        width:68,
+        height:12,
+        frame:{
+            moving:1
+        },
+        burstEffect:Burst.LaserSpark
+    }
+});
+Bullets.SmallLaser=Bullets.extends({
+    constructorPlus:function(props){},
+    prototypePlus:{
+        //Add basic unit info
+        name:"BattleCruiser",
+        duration:300,//Match attack sound
+        imgPos:{
+            moving:{
+                left:20,
+                top:170
+            }
+        },
+        width:22,
+        height:12,
+        frame:{
+            moving:1
+        },
+        burstEffect:Burst.LaserSpark
+    }
+});
+Bullets.HeatLaser=Bullets.extends({
+    constructorPlus:function(props){},
+    prototypePlus:{
+        //Add basic unit info
+        name:"HeroCruiser",
+        duration:300,//Match attack sound
+        imgPos:{
+            moving:{
+                left:16,
+                top:170
+            }
+        },
+        width:68,
+        height:12,
+        frame:{
+            moving:1
+        },
+        burstEffect:Burst.SmallExplode
+    }
+});
+Bullets.Yamato=Bullets.extends({
+    constructorPlus:function(props){},
+    prototypePlus:{
+        //Add basic unit info
+        name:"Burst",
+        duration:500,//Match attack sound
+        imgPos:{
+            moving:{
+                left:[288, 192, 96, 0],
+                top:[1195,1195,1195,1195]
+            }
+        },
+        width:96,
+        height:96,
+        frame:{
+            moving:4
+        },
+        burstEffect:Burst.MiddleExplode
+    }
+});
+Bullets.NuclearBomb=Bullets.extends({
+    constructorPlus:function(props){},
+    prototypePlus:{
+        //Add basic unit info
+        name:"Burst",
+        duration:1000,
+        imgPos:{
+            moving:{
+                left:428,
+                top:66
+            }
+        },
+        width:74,
+        height:32,
+        frame:{
+            moving:1
+        }
+    }
+});
