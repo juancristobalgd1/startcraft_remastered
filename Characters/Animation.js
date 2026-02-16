@@ -8,8 +8,6 @@
         "Characters/Animations/damage/Damage.js"
     ];
     for (var i = 0; i < scripts.length; i++) {
-        var scr = document.createElement('script');
-        scr.src = scripts[i];
-        document.head.appendChild(scr);
+        document.write('<script src="' + scripts[i] + '"><\/script>');
     }
 })();

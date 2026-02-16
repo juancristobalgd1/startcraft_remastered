@@ -7,8 +7,6 @@
         "Characters/Bullets/mappings/Assignments.js"
     ];
     for (var i = 0; i < scripts.length; i++) {
-        var script = document.createElement('script');
-        script.src = scripts[i];
-        document.head.appendChild(script);
+        document.write('<script src="' + scripts[i] + '"><\/script>');
     }
 })();
