@@ -1213,6 +1213,14 @@ var Game = {
         //Only refresh border color on current multiSelect box
         for (var n = 0; n < divs.length; n++) {
             divs[n].style.borderColor = Game.allSelected[n].lifeStatus();
+            var hp = divs[n].querySelector('span.hp');
+            if (!hp) continue;
+            var unit = Game.allSelected[n];
+            var ratio = unit.get && unit.get('HP') ? (unit.life / unit.get('HP')) : 1;
+            if (ratio < 0) ratio = 0;
+            if (ratio > 1) ratio = 1;
+            hp.style.width = ((ratio * 100) >> 0) + '%';
+            hp.style.backgroundColor = (ratio > 0.7) ? '#00d12f' : (ratio > 0.3) ? '#f0d000' : '#d01818';
         }
     },
     drawMultiSelectBox: function () {
@@ -1227,6 +1235,14 @@ var Game = {
             else node.className = (chara instanceof Building) ? (chara.attack ? chara.inherited.inherited.name : chara.inherited.name) : chara.name;
             node.title = chara.name;
             node.style.borderColor = chara.lifeStatus();
+            var hp = document.createElement('span');
+            hp.className = 'hp';
+            var ratio = chara.get && chara.get('HP') ? (chara.life / chara.get('HP')) : 1;
+            if (ratio < 0) ratio = 0;
+            if (ratio > 1) ratio = 1;
+            hp.style.width = ((ratio * 100) >> 0) + '%';
+            hp.style.backgroundColor = (ratio > 0.7) ? '#00d12f' : (ratio > 0.3) ? '#f0d000' : '#d01818';
+            node.appendChild(hp);
             node.onclick = function () {
                 //Selection execute
                 Game.unselectAll();

@@ -312,6 +312,15 @@ div#GamePlay div.panel_Info div.override div.multiSelection div{
     border:3px solid white;
     border-radius:6px;
     margin:2px;
+    overflow:hidden;
+}
+div#GamePlay div.panel_Info div.override div.multiSelection div span.hp{
+    position:absolute;
+    left:0;
+    bottom:0;
+    height:4px;
+    background:#0bd000;
+    width:100%;
 }
 div#GamePlay div.warning_Box {
     width:400px;
