@@ -1,0 +1,343 @@
+Upgrade.UpgradeInfantryWeapons={
+    name:"UpgradeInfantryWeapons",
+    cost:{
+        mine:[100,175,250],
+        gas:[100,175,250],
+        time:[2660,2980,3300]
+    },
+    level:[0,0],
+    effect:function(isEnemy){
+        Terran.Marine.prototype.damage[Number(Boolean(isEnemy))]+=1;
+        Terran.Firebat.prototype.damage[Number(Boolean(isEnemy))]+=2;
+        Terran.Ghost.prototype.damage[Number(Boolean(isEnemy))]+=1;
+        this.level[Number(Boolean(isEnemy))]++;
+        if (this.level[0]>=3) delete Building.TerranBuilding.EngineeringBay.prototype.items[1];
+    }
+};
+Upgrade.UpgradeInfantryArmors={
+    name:"UpgradeInfantryArmors",
+    cost:{
+        mine:[100,175,250],
+        gas:[100,175,250],
+        time:[2660,2980,3300]
+    },
+    level:[0,0],
+    effect:function(isEnemy){
+        Terran.SCV.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Terran.Marine.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Terran.Firebat.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Terran.Ghost.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Terran.Medic.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Terran.Civilian.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        this.level[Number(Boolean(isEnemy))]++;
+        if (this.level[0]>=3) delete Building.TerranBuilding.EngineeringBay.prototype.items[2];
+    }
+};
+Upgrade.ResearchU238Shells={
+    name:"ResearchU238Shells",
+    cost:{
+        mine:150,
+        gas:150,
+        time:1000
+    },
+    effect:function(isEnemy){
+        Terran.Marine.prototype.attackRange[Number(Boolean(isEnemy))]=175;
+        delete Building.TerranBuilding.Academy.prototype.items[1];
+    }
+};
+Upgrade.ResearchStimPackTech={
+    name:"ResearchStimPackTech",
+    cost:{
+        mine:100,
+        gas:100,
+        time:800
+    },
+    effect:function(){
+        Magic.StimPacks.enabled=true;
+        delete Building.TerranBuilding.Academy.prototype.items[2];
+    }
+};
+Upgrade.ResearchRestoration={
+    name:"ResearchRestoration",
+    cost:{
+        mine:100,
+        gas:100,
+        time:800
+    },
+    effect:function(){
+        Magic.Restoration.enabled=true;
+        delete Building.TerranBuilding.Academy.prototype.items[4];
+    }
+};
+Upgrade.ResearchOpticalFlare={
+    name:"ResearchOpticalFlare",
+    cost:{
+        mine:100,
+        gas:100,
+        time:1200
+    },
+    effect:function(){
+        Magic.OpticalFlare.enabled=true;
+        delete Building.TerranBuilding.Academy.prototype.items[5];
+    }
+};
+Upgrade.ResearchCaduceusReactor={
+    name:"ResearchCaduceusReactor",
+    cost:{
+        mine:150,
+        gas:150,
+        time:1660
+    },
+    effect:function(isEnemy){
+        Terran.Medic.prototype.MP[Number(Boolean(isEnemy))]=250;
+        delete Building.TerranBuilding.Academy.prototype.items[6];
+    }
+};
+Upgrade.ResearchIonThrusters={
+    name:"ResearchIonThrusters",
+    cost:{
+        mine:100,
+        gas:100,
+        time:1000
+    },
+    effect:function(isEnemy){
+        Terran.Vulture.prototype.speed[Number(Boolean(isEnemy))]=Unit.getSpeedMatrixBy(20);
+        delete Building.TerranBuilding.MachineShop.prototype.items[1];
+    }
+};
+Upgrade.ResearchSpiderMines={
+    name:"ResearchSpiderMines",
+    cost:{
+        mine:100,
+        gas:100,
+        time:800
+    },
+    effect:function(){
+        Magic.SpiderMines.enabled=true;
+        delete Building.TerranBuilding.MachineShop.prototype.items[2];
+    }
+};
+Upgrade.ResearchSiegeTech={
+    name:"ResearchSiegeTech",
+    cost:{
+        mine:150,
+        gas:150,
+        time:800
+    },
+    effect:function(){
+        Magic.SeigeMode.enabled=true;
+        delete Building.TerranBuilding.MachineShop.prototype.items[3];
+    }
+};
+Upgrade.ResearchCharonBoosters={
+    name:"ResearchCharonBoosters",
+    cost:{
+        mine:150,
+        gas:150,
+        time:1330
+    },
+    effect:function(isEnemy){
+        Terran.Goliath.prototype.attackMode.flying.attackRange[Number(Boolean(isEnemy))]=300;
+        delete Building.TerranBuilding.MachineShop.prototype.items[4];
+    }
+};
+Upgrade.ResearchCloakingField={
+    name:"ResearchCloakingField",
+    cost:{
+        mine:150,
+        gas:150,
+        time:1000
+    },
+    effect:function(){
+        Magic.Cloak.enabled=true;
+        delete Building.TerranBuilding.ControlTower.prototype.items[1];
+    }
+};
+Upgrade.ResearchApolloReactor={
+    name:"ResearchApolloReactor",
+    cost:{
+        mine:200,
+        gas:200,
+        time:1660
+    },
+    effect:function(isEnemy){
+        Terran.Wraith.prototype.MP[Number(Boolean(isEnemy))]=250;
+        delete Building.TerranBuilding.ControlTower.prototype.items[2];
+    }
+};
+Upgrade.ResearchEMPShockwaves={
+    name:"ResearchEMPShockwaves",
+    cost:{
+        mine:200,
+        gas:200,
+        time:1200
+    },
+    effect:function(){
+        Magic.EMPShockwave.enabled=true;
+        delete Building.TerranBuilding.ScienceFacility.prototype.items[1];
+    }
+};
+Upgrade.ResearchIrradiate={
+    name:"ResearchIrradiate",
+    cost:{
+        mine:150,
+        gas:150,
+        time:800
+    },
+    effect:function(){
+        Magic.Irradiate.enabled=true;
+        delete Building.TerranBuilding.ScienceFacility.prototype.items[2];
+    }
+};
+Upgrade.ResearchTitanReactor={
+    name:"ResearchTitanReactor",
+    cost:{
+        mine:150,
+        gas:150,
+        time:1660
+    },
+    effect:function(isEnemy){
+        Terran.Vessel.prototype.MP[Number(Boolean(isEnemy))]=250;
+        delete Building.TerranBuilding.ScienceFacility.prototype.items[3];
+    }
+};
+Upgrade.ResearchLockdown={
+    name:"ResearchLockdown",
+    cost:{
+        mine:200,
+        gas:200,
+        time:1000
+    },
+    effect:function(){
+        Magic.Lockdown.enabled=true;
+        delete Building.TerranBuilding.ConvertOps.prototype.items[1];
+    }
+};
+Upgrade.ResearchPersonalCloaking={
+    name:"ResearchPersonalCloaking",
+    cost:{
+        mine:100,
+        gas:100,
+        time:800
+    },
+    effect:function(){
+        Magic.PersonalCloak.enabled=true;
+        delete Building.TerranBuilding.ConvertOps.prototype.items[2];
+    }
+};
+Upgrade.ResearchOcularImplants={
+    name:"ResearchOcularImplants",
+    cost:{
+        mine:100,
+        gas:100,
+        time:1660
+    },
+    effect:function(isEnemy){
+        Terran.Ghost.prototype.sight[Number(Boolean(isEnemy))]=385;
+        delete Building.TerranBuilding.ConvertOps.prototype.items[4];
+    }
+};
+Upgrade.ResearchMoebiusReactor={
+    name:"ResearchMoebiusReactor",
+    cost:{
+        mine:150,
+        gas:150,
+        time:1660
+    },
+    effect:function(isEnemy){
+        Terran.Ghost.prototype.MP[Number(Boolean(isEnemy))]=250;
+        delete Building.TerranBuilding.ConvertOps.prototype.items[5];
+    }
+};
+Upgrade.ResearchYamatoGun={
+    name:"ResearchYamatoGun",
+    cost:{
+        mine:200,
+        gas:200,
+        time:1200
+    },
+    effect:function(){
+        Magic.Yamato.enabled=true;
+        delete Building.TerranBuilding.PhysicsLab.prototype.items[1];
+    }
+};
+Upgrade.ResearchColossusReactor={
+    name:"ResearchColossusReactor",
+    cost:{
+        mine:150,
+        gas:150,
+        time:1600
+    },
+    effect:function(isEnemy){
+        Terran.BattleCruiser.prototype.MP[Number(Boolean(isEnemy))]=250;
+        delete Building.TerranBuilding.PhysicsLab.prototype.items[2];
+    }
+};
+Upgrade.UpgradeVehicleWeapons={
+    name:"UpgradeVehicleWeapons",
+    cost:{
+        mine:[100,175,250],
+        gas:[100,175,250],
+        time:[2660,2980,3300]
+    },
+    level:[0,0],
+    effect:function(isEnemy){
+        Terran.Vulture.prototype.damage[Number(Boolean(isEnemy))]+=2;
+        Terran.Tank.prototype.damage[Number(Boolean(isEnemy))]+=3;
+        Terran.Goliath.prototype.attackMode.ground.damage[Number(Boolean(isEnemy))]+=2;
+        Terran.Goliath.prototype.attackMode.flying.damage[Number(Boolean(isEnemy))]+=4;
+        this.level[Number(Boolean(isEnemy))]++;
+        if (this.level[0]>=3) delete Building.TerranBuilding.Armory.prototype.items[1];
+    }
+};
+Upgrade.UpgradeShipWeapons={
+    name:"UpgradeShipWeapons",
+    cost:{
+        mine:[100,150,200],
+        gas:[100,150,200],
+        time:[2660,2980,3300]
+    },
+    level:[0,0],
+    effect:function(isEnemy){
+        Terran.Wraith.prototype.attackMode.ground.damage[Number(Boolean(isEnemy))]+=1;
+        Terran.Wraith.prototype.attackMode.flying.damage[Number(Boolean(isEnemy))]+=2;
+        Terran.BattleCruiser.prototype.damage[Number(Boolean(isEnemy))]+=3;
+        Terran.Valkyrie.prototype.damage[Number(Boolean(isEnemy))]+=1;
+        this.level[Number(Boolean(isEnemy))]++;
+        if (this.level[0]>=3) delete Building.TerranBuilding.Armory.prototype.items[2];
+    }
+};
+Upgrade.UpgradeVehicleArmors={
+    name:"UpgradeVehicleArmors",
+    cost:{
+        mine:[100,175,250],
+        gas:[100,175,250],
+        time:[2660,2980,3300]
+    },
+    level:[0,0],
+    effect:function(isEnemy){
+        Terran.Vulture.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Terran.Tank.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Terran.Goliath.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        this.level[Number(Boolean(isEnemy))]++;
+        if (this.level[0]>=3) delete Building.TerranBuilding.Armory.prototype.items[4];
+    }
+};
+Upgrade.UpgradeShipArmors={
+    name:"UpgradeShipArmors",
+    cost:{
+        mine:[150,225,300],
+        gas:[150,225,300],
+        time:[2660,2980,3300]
+    },
+    level:[0,0],
+    effect:function(isEnemy){
+        Terran.Wraith.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Terran.Dropship.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Terran.BattleCruiser.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Terran.Vessel.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Terran.Valkyrie.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        this.level[Number(Boolean(isEnemy))]++;
+        if (this.level[0]>=3) delete Building.TerranBuilding.Armory.prototype.items[5];
+    }
+};

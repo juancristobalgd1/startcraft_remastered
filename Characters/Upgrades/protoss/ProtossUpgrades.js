@@ -1,0 +1,342 @@
+Upgrade.UpgradeGroundWeapons={
+    name:"UpgradeGroundWeapons",
+    cost:{
+        mine:[100,150,200],
+        gas:[100,150,200],
+        time:[2660,2980,3300]
+    },
+    level:[0,0],
+    effect:function(isEnemy){
+        Protoss.Zealot.prototype.damage[Number(Boolean(isEnemy))]+=2;
+        Protoss.Dragoon.prototype.damage[Number(Boolean(isEnemy))]+=2;
+        Protoss.Templar.prototype.damage[Number(Boolean(isEnemy))]+=1;
+        Protoss.DarkTemplar.prototype.damage[Number(Boolean(isEnemy))]+=3;
+        Protoss.Archon.prototype.damage[Number(Boolean(isEnemy))]+=3;
+        this.level[Number(Boolean(isEnemy))]++;
+        if (this.level[0]>=3) delete Building.ProtossBuilding.Forge.prototype.items[1];
+    }
+};
+Upgrade.UpgradeGroundArmor={
+    name:"UpgradeGroundArmor",
+    cost:{
+        mine:[100,175,250],
+        gas:[100,175,250],
+        time:[2660,2980,3300]
+    },
+    level:[0,0],
+    effect:function(isEnemy){
+        Protoss.Probe.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Protoss.Zealot.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Protoss.Dragoon.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Protoss.Templar.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Protoss.DarkTemplar.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Protoss.Archon.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Protoss.DarkArchon.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Protoss.Reaver.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        this.level[Number(Boolean(isEnemy))]++;
+        if (this.level[0]>=3) delete Building.ProtossBuilding.Forge.prototype.items[2];
+    }
+};
+Upgrade.UpgradePlasmaShields={
+    name:"UpgradePlasmaShields",
+    cost:{
+        mine:[200,300,400],
+        gas:[200,300,400],
+        time:[2660,2980,3300]
+    },
+    level:[0,0],
+    effect:function(isEnemy){
+        for (var unitType in Protoss){
+            Protoss[unitType].prototype.plasma[Number(Boolean(isEnemy))]+=1;
+        }
+        this.level[Number(Boolean(isEnemy))]++;
+        if (this.level[0]>=3) delete Building.ProtossBuilding.Forge.prototype.items[3];
+    }
+};
+Upgrade.UpgradeAirWeapons={
+    name:"UpgradeAirWeapons",
+    cost:{
+        mine:[100,175,250],
+        gas:[100,175,250],
+        time:[2660,2980,3300]
+    },
+    level:[0,0],
+    effect:function(isEnemy){
+        Protoss.Scout.prototype.attackMode.ground.damage[Number(Boolean(isEnemy))]+=1;
+        Protoss.Scout.prototype.attackMode.flying.damage[Number(Boolean(isEnemy))]+=2;
+        Protoss.Carrier.prototype.damage[Number(Boolean(isEnemy))]+=1;
+        Protoss.Arbiter.prototype.damage[Number(Boolean(isEnemy))]+=1;
+        Protoss.Corsair.prototype.damage[Number(Boolean(isEnemy))]+=1;
+        this.level[Number(Boolean(isEnemy))]++;
+        if (this.level[0]>=3) delete Building.ProtossBuilding.CyberneticsCore.prototype.items[1];
+    }
+};
+Upgrade.UpgradeAirArmor={
+    name:"UpgradeAirArmor",
+    cost:{
+        mine:[150,225,300],
+        gas:[150,225,300],
+        time:[2660,2980,3300]
+    },
+    level:[0,0],
+    effect:function(isEnemy){
+        Protoss.Scout.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Protoss.Carrier.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Protoss.Arbiter.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        Protoss.Corsair.prototype.armor[Number(Boolean(isEnemy))]+=1;
+        this.level[Number(Boolean(isEnemy))]++;
+        if (this.level[0]>=3) delete Building.ProtossBuilding.CyberneticsCore.prototype.items[2];
+    }
+};
+Upgrade.DevelopSingularityCharge={
+    name:"DevelopSingularityCharge",
+    cost:{
+        mine:150,
+        gas:150,
+        time:1660
+    },
+    effect:function(isEnemy){
+        Protoss.Dragoon.prototype.attackRange[Number(Boolean(isEnemy))]=210;
+        delete Building.ProtossBuilding.CyberneticsCore.prototype.items[3];
+    }
+};
+Upgrade.DevelopLegEnhancements={
+    name:"DevelopLegEnhancements",
+    cost:{
+        mine:150,
+        gas:150,
+        time:1330
+    },
+    effect:function(isEnemy){
+        Protoss.Zealot.prototype.speed[Number(Boolean(isEnemy))]=Unit.getSpeedMatrixBy(14);
+        delete Building.ProtossBuilding.CitadelOfAdun.prototype.items[1];
+    }
+};
+Upgrade.UpgradeScarabDamage={
+    name:"UpgradeScarabDamage",
+    cost:{
+        mine:200,
+        gas:200,
+        time:1660
+    },
+    effect:function(isEnemy){
+        Protoss.Reaver.prototype.damage[Number(Boolean(isEnemy))]=125;
+        delete Building.ProtossBuilding.RoboticsSupportBay.prototype.items[1];
+    }
+};
+Upgrade.IncreaseReaverCapacity={
+    name:"IncreaseReaverCapacity",
+    cost:{
+        mine:200,
+        gas:200,
+        time:1660
+    },
+    effect:function(isEnemy){
+        Protoss.Reaver.prototype.scarabCapacity[Number(Boolean(isEnemy))]=10;
+        delete Building.ProtossBuilding.RoboticsSupportBay.prototype.items[2];
+    }
+};
+Upgrade.DevelopGraviticDrive={
+    name:"DevelopGraviticDrive",
+    cost:{
+        mine:200,
+        gas:200,
+        time:1660
+    },
+    effect:function(isEnemy){
+        Protoss.Shuttle.prototype.speed[Number(Boolean(isEnemy))]=Unit.getSpeedMatrixBy(16);
+        delete Building.ProtossBuilding.RoboticsSupportBay.prototype.items[3];
+    }
+};
+Upgrade.DevelopApialSensors={
+    name:"DevelopApialSensors",
+    cost:{
+        mine:100,
+        gas:100,
+        time:1660
+    },
+    effect:function(isEnemy){
+        Protoss.Scout.prototype.sight[Number(Boolean(isEnemy))]=350;
+        delete Building.ProtossBuilding.FleetBeacon.prototype.items[1];
+    }
+};
+Upgrade.DevelopGraviticThrusters={
+    name:"DevelopGraviticThrusters",
+    cost:{
+        mine:200,
+        gas:200,
+        time:1660
+    },
+    effect:function(isEnemy){
+        Protoss.Scout.prototype.speed[Number(Boolean(isEnemy))]=Unit.getSpeedMatrixBy(16);
+        delete Building.ProtossBuilding.FleetBeacon.prototype.items[2];
+    }
+};
+Upgrade.IncreaseCarrierCapacity={
+    name:"IncreaseCarrierCapacity",
+    cost:{
+        mine:100,
+        gas:100,
+        time:1000
+    },
+    effect:function(isEnemy){
+        Protoss.Carrier.prototype.interceptorCapacity[Number(Boolean(isEnemy))]=8;
+        delete Building.ProtossBuilding.FleetBeacon.prototype.items[3];
+    }
+};
+Upgrade.DevelopDistruptionWeb={
+    name:"DevelopDistruptionWeb",
+    cost:{
+        mine:200,
+        gas:200,
+        time:800
+    },
+    effect:function(){
+        Magic.DisruptionWeb.enabled=true;
+        delete Building.ProtossBuilding.FleetBeacon.prototype.items[4];
+    }
+};
+Upgrade.DevelopArgusJewel={
+    name:"DevelopArgusJewel",
+    cost:{
+        mine:100,
+        gas:100,
+        time:1660
+    },
+    effect:function(isEnemy){
+        Protoss.Corsair.prototype.MP[Number(Boolean(isEnemy))]=250;
+        delete Building.ProtossBuilding.FleetBeacon.prototype.items[5];
+    }
+};
+Upgrade.DevelopPsionicStorm={
+    name:"DevelopPsionicStorm",
+    cost:{
+        mine:200,
+        gas:200,
+        time:1200
+    },
+    effect:function(){
+        Magic.PsionicStorm.enabled=true;
+        delete Building.ProtossBuilding.TemplarArchives.prototype.items[1];
+    }
+};
+Upgrade.DevelopHallucination={
+    name:"DevelopHallucination",
+    cost:{
+        mine:150,
+        gas:150,
+        time:800
+    },
+    effect:function(){
+        Magic.Hallucination.enabled=true;
+        delete Building.ProtossBuilding.TemplarArchives.prototype.items[2];
+    }
+};
+Upgrade.DevelopKhaydarinAmulet={
+    name:"DevelopKhaydarinAmulet",
+    cost:{
+        mine:150,
+        gas:150,
+        time:1660
+    },
+    effect:function(isEnemy){
+        Protoss.Templar.prototype.MP[Number(Boolean(isEnemy))]=250;
+        delete Building.ProtossBuilding.TemplarArchives.prototype.items[3];
+    }
+};
+Upgrade.DevelopMindControl={
+    name:"DevelopMindControl",
+    cost:{
+        mine:200,
+        gas:200,
+        time:1200
+    },
+    effect:function(){
+        Magic.MindControl.enabled=true;
+        delete Building.ProtossBuilding.TemplarArchives.prototype.items[4];
+    }
+};
+Upgrade.DevelopMaelStorm={
+    name:"DevelopMaelStorm",
+    cost:{
+        mine:100,
+        gas:100,
+        time:1000
+    },
+    effect:function(){
+        Magic.MaelStorm.enabled=true;
+        delete Building.ProtossBuilding.TemplarArchives.prototype.items[5];
+    }
+};
+Upgrade.DevelopArgusTalisman={
+    name:"DevelopArgusTalisman",
+    cost:{
+        mine:150,
+        gas:150,
+        time:1660
+    },
+    effect:function(isEnemy){
+        Protoss.DarkArchon.prototype.MP[Number(Boolean(isEnemy))]=250;
+        delete Building.ProtossBuilding.TemplarArchives.prototype.items[6];
+    }
+};
+Upgrade.DevelopGraviticBooster={
+    name:"DevelopGraviticBooster",
+    cost:{
+        mine:150,
+        gas:150,
+        time:1330
+    },
+    effect:function(isEnemy){
+        Protoss.Observer.prototype.speed[Number(Boolean(isEnemy))]=Unit.getSpeedMatrixBy(12);
+        delete Building.ProtossBuilding.Observatory.prototype.items[1];
+    }
+};
+Upgrade.DevelopSensorArray={
+    name:"DevelopSensorArray",
+    cost:{
+        mine:150,
+        gas:150,
+        time:1330
+    },
+    effect:function(isEnemy){
+        Protoss.Observer.prototype.sight[Number(Boolean(isEnemy))]=385;
+        delete Building.ProtossBuilding.Observatory.prototype.items[2];
+    }
+};
+Upgrade.DevelopRecall={
+    name:"DevelopRecall",
+    cost:{
+        mine:150,
+        gas:150,
+        time:1200
+    },
+    effect:function(){
+        Magic.Recall.enabled=true;
+        delete Building.ProtossBuilding.ArbiterTribunal.prototype.items[1];
+    }
+};
+Upgrade.DevelopStasisField={
+    name:"DevelopStasisField",
+    cost:{
+        mine:150,
+        gas:150,
+        time:1000
+    },
+    effect:function(){
+        Magic.StasisField.enabled=true;
+        delete Building.ProtossBuilding.ArbiterTribunal.prototype.items[2];
+    }
+};
+Upgrade.DevelopKhaydarinCore={
+    name:"DevelopKhaydarinCore",
+    cost:{
+        mine:150,
+        gas:150,
+        time:1660
+    },
+    effect:function(isEnemy){
+        Protoss.Arbiter.prototype.MP[Number(Boolean(isEnemy))]=250;
+        delete Building.ProtossBuilding.ArbiterTribunal.prototype.items[3];
+    }
+};
