@@ -1,5 +1,5 @@
 (function () {
-    var scripts = [
+    const scripts = [
         "Characters/Buildings/core/BuildingBase.js",
         "Characters/Buildings/core/BuildingRaces.js",
         "Characters/Buildings/core/BuildingAttackable.js",
@@ -16,7 +16,7 @@
         "Characters/Buildings/protoss/ProtossTech2.js",
         "Characters/Buildings/protoss/ProtossSpecial.js"
     ];
-    for (var i = 0; i < scripts.length; i++) {
+    for (let i = 0; i < scripts.length; i++) {
         document.write('<script src="' + scripts[i] + '"><\/script>');
     }
 })();

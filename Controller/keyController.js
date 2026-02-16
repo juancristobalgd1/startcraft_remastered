@@ -19,18 +19,18 @@ var keyController={
     },
     keymap:{},
     _applyHotkeys:function(){
-        var map={};
+        const map={};
         Object.keys(keyController.hotkeys).forEach(function(action){
-            var code=keyController.hotkeys[action];
+            const code=keyController.hotkeys[action];
             if (typeof code=='number') map[code]=action;
         });
         keyController.keymap=map;
     },
     loadHotkeys:function(){
         try{
-            var raw=localStorage.getItem('sc_hotkeys');
+            const raw=localStorage.getItem('sc_hotkeys');
             if (raw){
-                var obj=JSON.parse(raw);
+                const obj=JSON.parse(raw);
                 if (obj && typeof obj=='object'){
                     Object.keys(keyController.hotkeys).forEach(function(k){
                         if (typeof obj[k]=='number') keyController.hotkeys[k]=obj[k];
@@ -69,22 +69,22 @@ var keyController={
                 return;
             }
             if (event.keyCode>=48 && event.keyCode<=57){
-                var teamNum=String.fromCharCode(event.keyCode);
+                const teamNum=String.fromCharCode(event.keyCode);
                 if (keyController.ctrl || keyController.shift) {
                     Game.addSelectedIntoTeam(teamNum, keyController.shift);
                     keyController._lastTeamNum=null;
                     keyController._lastTeamAt=0;
                 }
                 else {
-                    var now=(window.performance && performance.now)?performance.now():Date.now();
-                    var isDouble=(keyController._lastTeamNum===teamNum) && ((now-keyController._lastTeamAt)<=350);
+                    const now=(window.performance && performance.now)?performance.now():Date.now();
+                    const isDouble=(keyController._lastTeamNum===teamNum) && ((now-keyController._lastTeamAt)<=350);
                     Game.callTeam(teamNum,isDouble);
                     keyController._lastTeamNum=teamNum;
                     keyController._lastTeamAt=now;
                 }
                 return;
             }
-            var action=keyController.keymap[event.keyCode];
+            const action=keyController.keymap[event.keyCode];
             if (!action) return;
             switch(action){
                 case 'mapLeft':

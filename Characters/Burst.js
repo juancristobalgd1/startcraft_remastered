@@ -1,5 +1,5 @@
 (function () {
-    var scripts = [
+    const scripts = [
         "Characters/Bursts/core/BurstBase.js",
         "Characters/Bursts/zerg/ZergEffects1.js",
         "Characters/Bursts/terran/TerranEffects.js",
@@ -10,7 +10,7 @@
         "Characters/Bursts/zerg/ZergBirths.js",
         "Characters/Bursts/neutral/NeutralBursts.js"
     ];
-    for (var i = 0; i < scripts.length; i++) {
+    for (let i = 0; i < scripts.length; i++) {
         document.write('<script src="' + scripts[i] + '"><\/script>');
     }
 })();

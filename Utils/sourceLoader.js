@@ -6,9 +6,9 @@ var sourceLoader={
     load:function(type,src,id){
         sourceLoader.sourceNum++;
         sourceLoader.allLoaded=false;
-        var source;
-        var done=false;
-        var loaded=function(){
+        let source;
+        let done=false;
+        const loaded=function(){
             if (done) return;
             done=true;
             sourceLoader.loadedNum++;
@@ -21,9 +21,9 @@ var sourceLoader={
             source.onload=loaded;
             source.onerror=function(){
                 try{
-                    var c=document.createElement('canvas');
+                    const c=document.createElement('canvas');
                     c.width=c.height=8;
-                    var ctx=c.getContext('2d');
+                    const ctx=c.getContext('2d');
                     ctx.fillStyle='#ff00ff';
                     ctx.fillRect(0,0,8,8);
                     ctx.fillStyle='#000000';
@@ -46,7 +46,7 @@ var sourceLoader={
         }
         //For my Dojo: src==pathName
         if (type=='js'){
-            var node=document.createElement('script');
+            const node=document.createElement('script');
             node.onload=function(){
                 //Load builder
                 _$.modules[src]=_$.define.loadedBuilders.shift();
@@ -62,7 +62,7 @@ var sourceLoader={
             callback();
         }
         else {
-            var LoadedBlock=document.getElementsByClassName('LoadedBlock')[0];
+            const LoadedBlock=document.getElementsByClassName('LoadedBlock')[0];
             if (LoadedBlock) LoadedBlock.style.width=(100*this.loadedNum/this.sourceNum)+"%";
             setTimeout(() => {
                 sourceLoader.allOnLoad(callback);
