@@ -1,29 +1,31 @@
 // Gobj - Optimized game object base class
-var Gobj = function (props) {
-    this.x = props.x;
-    this.y = props.y;
+class Gobj {
+    constructor(props) {
+        if (!props) return;
+        this.x = props.x;
+        this.y = props.y;
 
-    if (props.target instanceof Gobj) {
-        this.x = (props.target.posX() - this.width / 2) | 0;
-        this.y = (props.target.posY() - this.height / 2) | 0;
+        if (props.target instanceof Gobj) {
+            this.x = (props.target.posX() - this.width / 2) | 0;
+            this.y = (props.target.posY() - this.height / 2) | 0;
+        }
+
+        this.action = 0;
+        this.status = "";
+        this.buffer = {};
+        this.override = {};
+        this.bufferObjs = [];
+        this._timer = -1;
+
+        var _private = { _timer: -1 };
+        this.getP = function (attr) {
+            return attr ? _private[attr] : _private;
+        };
+        this.setP = function (attr, value) {
+            _private[attr] = value;
+        };
     }
-
-    this.action = 0;
-    this.status = "";
-    this.buffer = {};
-    this.override = {};
-    this.bufferObjs = [];
-    this._timer = -1;
-
-    // Closure optimizada
-    var _private = { _timer: -1 };
-    this.getP = function (attr) {
-        return attr ? _private[attr] : _private;
-    };
-    this.setP = function (attr, value) {
-        _private[attr] = value;
-    };
-};
+}
 
 var proto = Gobj.prototype;
 
@@ -160,9 +162,21 @@ proto.canSee = function (enemy) {
 
 // Reemplazo de eval() - acceso seguro a propiedades anidadas
 proto.get = function (prop) {
-    var result = prop.indexOf('.') === -1
-        ? this[prop]
-        : prop.split('.').reduce(function (o, k) { return o && o[k]; }, this);
+    var result;
+    if (prop.indexOf('.') === -1) {
+        result = this[prop];
+        if (result === undefined && this.constructor) result = this.constructor[prop];
+    }
+    else {
+        var parts = prop.split('.');
+        result = parts.reduce(function (o, k) { return o && o[k]; }, this);
+        if (result === undefined && this.constructor) {
+            var root = this.constructor[parts[0]];
+            if (root !== undefined) {
+                result = parts.slice(1).reduce(function (o, k) { return o && o[k]; }, root);
+            }
+        }
+    }
 
     return (Array.isArray(result) && result.shareFlag)
         ? result[Number(this.isEnemy)]

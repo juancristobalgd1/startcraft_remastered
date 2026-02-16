@@ -1,94 +1,72 @@
 //One animation period which only play for a while and die
-var Burst=Gobj.extends({
-    constructorPlus:function(props){
-        //Behavior like effect on target
+class Burst extends Gobj {
+    constructor(props) {
+        super(props);
+        if (!props) return;
         if (props.target) {
-            this.target=props.target;
-            //Ahead of owner
-            if (props.above) this.above=true;
-            //Animation duration
-            //Match owner size
-            if (props.autoSize) this.autoSize=true;
-            //Resize drawing by scale
-            var times=this.scale?(this.scale):1;
-            if (this.autoSize!=null) {
-                //Can mix autoSize with scale
-                switch(this.autoSize){
+            this.target = props.target;
+            if (props.above) this.above = true;
+            if (props.autoSize) this.autoSize = true;
+            var times = this.scale ? (this.scale) : 1;
+            if (this.autoSize != null) {
+                switch (this.autoSize) {
                     case 'MAX':
-                        this.scale=Math.max(this.target.width,this.target.height)*2*times/(this.width+this.height);
+                        this.scale = Math.max(this.target.width, this.target.height) * 2 * times / (this.width + this.height);
                         break;
                     case 'MIN':
-                        this.scale=Math.min(this.target.width,this.target.height)*2*times/(this.width+this.height);
+                        this.scale = Math.min(this.target.width, this.target.height) * 2 * times / (this.width + this.height);
                         break;
                     default:
-                        this.scale=(this.target.width+this.target.height)*times/(this.width+this.height);
+                        this.scale = (this.target.width + this.target.height) * times / (this.width + this.height);
                 }
-                times=this.scale;
+                times = this.scale;
             }
-            //Location
-            this.x=(this.target.posX()-this.width*times/2)>>0;
-            this.y=(this.target.posY()-this.height*times/2)>>0;
+            this.x = (this.target.posX() - this.width * times / 2) >> 0;
+            this.y = (this.target.posY() - this.height * times / 2) >> 0;
         }
-        //Independent burst
         else {
-            //Target location, from centerP to top-left
-            var times=this.scale?(this.scale):1;
-            this.x=props.x-this.width*times/2;
-            this.y=props.y-this.height*times/2;
+            var times = this.scale ? (this.scale) : 1;
+            this.x = props.x - this.width * times / 2;
+            this.y = props.y - this.height * times / 2;
         }
-        //Play duration
-        if (this.forever) this.duration=-1;//Keep playing until killed
-        if (props.duration!=null) this.duration=props.duration;//Override duration
-        //Resize if set scale
-        if (props.scale) this.scale=props.scale;
-        //Restore callback after burst finish
-        if (props.callback) this.callback=props.callback;
-        //By default it will burst
+        if (this.forever) this.duration = -1;
+        if (props.duration != null) this.duration = props.duration;
+        if (props.scale) this.scale = props.scale;
+        if (props.callback) this.callback = props.callback;
         this.burst();
-        //Will show after constructed
         Burst.allEffects.push(this);
-    },
-    prototypePlus:{
-        //Override Gobj method
-        animeFrame:function(){
-            //Animation play
-            this.action++;
-            //Override Gobj here, can have hidden frames
-            var arrLimit=(this.imgPos[this.status].left instanceof Array)?(this.imgPos[this.status].left.length):1;
-            if (this.action==this.frame[this.status] || this.action==arrLimit) {
-                this.action=0;
-            }
-            //Update location here
-            if (this.above && this.target) {
-                //Update location: copied from constructor
-                var times=this.scale?(this.scale):1;
-                this.x=(this.target.posX()-this.width*times/2)>>0;
-                this.y=(this.target.posY()-this.height*times/2)>>0;
-            }
-        },
-        burst:function(){
-            this.status="burst";
-            //Start play burst animation
-            var myself=this;
-            this._timer=setInterval(function(){
-                //Only play animation, will not move
-                myself.animeFrame();
-            },100);
-            //Will die(stop playing) after time limit arrive
-            var duration=this.duration?this.duration:(this.frame['burst']*100);
-            //Last forever if duration<0 (-1)
-            if (duration>0){
-                setTimeout(function(){
-                    myself.die();
-                },duration);
-            }
-        },
-        die:function(){
-            //Run callback when burst die
-            if (this.callback) this.callback();
-            Gobj.prototype.die.call(this);
+    }
+
+    animeFrame() {
+        this.action++;
+        var arrLimit = (this.imgPos[this.status].left instanceof Array) ? (this.imgPos[this.status].left.length) : 1;
+        if (this.action == this.frame[this.status] || this.action == arrLimit) {
+            this.action = 0;
+        }
+        if (this.above && this.target) {
+            var times = this.scale ? (this.scale) : 1;
+            this.x = (this.target.posX() - this.width * times / 2) >> 0;
+            this.y = (this.target.posY() - this.height * times / 2) >> 0;
         }
     }
-});
-//All burst effects here for show
-Burst.allEffects=[];
+
+    burst() {
+        this.status = "burst";
+        this._timer = setInterval(() => {
+            this.animeFrame();
+        }, 100);
+        var duration = this.duration ? this.duration : (this.frame['burst'] * 100);
+        if (duration > 0) {
+            setTimeout(() => {
+                this.die();
+            }, duration);
+        }
+    }
+
+    die() {
+        if (this.callback) this.callback();
+        Gobj.prototype.die.call(this);
+    }
+}
+
+Burst.allEffects = [];

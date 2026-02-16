@@ -113,27 +113,23 @@ window.requestAnimationFrame = window.requestAnimationFrame ||
  */
 Function.prototype.extends = function(addInObject) {
     var father = this;
-    var child = function(props) {
-        if (props) {
-            father.call(this, props);
-            addInObject.constructorPlus.call(this, props);
+    addInObject = addInObject || {};
+    var constructorPlus = addInObject.constructorPlus;
+    var prototypePlus = addInObject.prototypePlus || {};
+
+    var child = class extends father {
+        constructor(props) {
+            super(props);
+            if (props && constructorPlus) constructorPlus.call(this, props);
         }
     };
-    // Clean prototype chain (no father constructor side-effects)
-    var F = function() {};
-    F.prototype = father.prototype;
-    child.prototype = new F();
-    child.prototype.constructor = child;
 
-    // Merge prototype additions
-    var prototypePlus = addInObject.prototypePlus;
     for (var attr in prototypePlus) {
         if (prototypePlus.hasOwnProperty(attr)) {
             child.prototype[attr] = prototypePlus[attr];
         }
     }
 
-    // Super/inherited references
     child.prototype.super = father;
     child.prototype.inherited = father.prototype;
     child.super = father;
