@@ -116,10 +116,16 @@ var Unit = Gobj.extends({
                     if (myself.status === 'dock') myself.executeNextCommand();
                 }, 0);
             }
+            else {
+                if (this._patrolRoute && !this.destination) {
+                    this.destination = this._patrolRoute;
+                }
+            }
         },
         executeNextCommand: function () {
             if (!this.commandQueue || this.commandQueue.length === 0) return;
             var cmd = this.commandQueue.shift();
+            if (cmd.type != 'patrol') delete this._patrolRoute;
             switch (cmd.type) {
                 case 'move':
                     this.moveTo(cmd.x, cmd.y);
@@ -402,6 +408,7 @@ var Unit = Gobj.extends({
             var positions = new Array().concat(position);
             if (addHere) positions.push({ x: this.posX(), y: this.posY() });
             this.attackGround(positions, true);
+            this._patrolRoute = this.destination;
         },
         isMachine: function () {
             return ["SCV", "Vulture", "Tank", "Goliath", "Wraith", "Dropship", "Vessel", "BattleCruiser", "Valkyrie",
@@ -449,6 +456,7 @@ var Unit = Gobj.extends({
             if (this.gatherTimer) clearInterval(this.gatherTimer);
             this.gatherTimer = 0;
             if (this._gather) delete this._gather;
+            delete this._patrolRoute;
             if (this.stopAttack) this.stopAttack();
             if (this.destination) {
                 if (this.destination.next) this.destination.next = null;

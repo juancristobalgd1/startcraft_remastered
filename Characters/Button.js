@@ -1093,6 +1093,7 @@ var Button = {
         }).forEach(function (chara) {
             if (chara.attack) chara.stopAttack();
             chara.dock();
+            delete chara._patrolRoute;
             //Interrupt old destination routing
             if (chara.destination) {
                 //Break possible dead lock

@@ -201,6 +201,7 @@ var mouseController = {
                 if ((selectedTarget instanceof Neutral.Mineral ||
                     ((selectedTarget instanceof Building) && (['Refinery', 'Extractor', 'Assimilator'].indexOf(selectedTarget.name) !== -1)))
                     && (chara.name == 'SCV' || chara.name == 'Drone' || chara.name == 'Probe')) {
+                    delete chara._patrolRoute;
                     if (isShift && isBusy) {
                         chara.commandQueue.push({ type: 'gather', target: selectedTarget });
                     }
@@ -213,6 +214,7 @@ var mouseController = {
                 var attackOrMove = (chara.attack) ? (selectedTarget instanceof Gobj && selectedTarget.isEnemy) : false;
                 //Attack mode
                 if (attackOrMove) {
+                    delete chara._patrolRoute;
                     if (isShift && isBusy) {
                         chara.commandQueue.push({ type: 'attack', target: selectedTarget });
                     }
@@ -238,6 +240,7 @@ var mouseController = {
                     var mx = clickX + GameMap.offsetX;
                     var my = clickY + GameMap.offsetY;
                     if (isShift && isBusy) {
+                        if (Button.callback != 'patrol') delete chara._patrolRoute;
                         var type = (Button.callback == 'patrol') ? 'patrol' : 'move';
                         chara.commandQueue.push({ type: type, x: mx, y: my });
                     }
@@ -256,13 +259,17 @@ var mouseController = {
                         chara.moveTo(mx, my);
                         //Record destination
                         if (Button.callback == 'attack') {
+                            delete chara._patrolRoute;
                             chara.destination = { x: mx, y: my };
                         }
                         if (Button.callback == 'patrol') {
                             //Patrol dead lock
-                            chara.destination = { x: mx, y: my };
-                            chara.destination.next = { x: chara.posX(), y: chara.posY(), next: chara.destination };
+                            var loop = { x: mx, y: my };
+                            loop.next = { x: chara.posX(), y: chara.posY(), next: loop };
+                            chara.destination = loop;
+                            chara._patrolRoute = loop;
                         }
+                        if (Button.callback != 'patrol' && Button.callback != 'attack') delete chara._patrolRoute;
                     }
                 }
             }
