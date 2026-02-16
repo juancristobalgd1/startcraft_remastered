@@ -1,5 +1,7 @@
 // Gobj - Optimized game object base class
 class Gobj {
+    #privateData = { _timer: -1 };
+
     constructor(props) {
         if (!props) return;
         this.x = props.x;
@@ -17,12 +19,13 @@ class Gobj {
         this.bufferObjs = [];
         this._timer = -1;
 
-        var _private = { _timer: -1 };
+        this.#privateData = { _timer: -1 };
+        
         this.getP = function (attr) {
-            return attr ? _private[attr] : _private;
+            return attr ? this.#privateData[attr] : this.#privateData;
         };
         this.setP = function (attr, value) {
-            _private[attr] = value;
+            this.#privateData[attr] = value;
         };
     }
 }
