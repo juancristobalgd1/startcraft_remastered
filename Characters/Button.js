@@ -1154,6 +1154,20 @@ var Button = {
                         if (spawned) target = spawned;
                     }
                 }
+                if (!(target instanceof Gobj) && Game.getInRangeOnes) {
+                    var gasBuildings = Game.getInRangeOnes(mx, my, 120, false, false, null, function (chara) {
+                        return (chara instanceof Building) && !chara.isEnemy &&
+                            (['Refinery', 'Extractor', 'Assimilator'].indexOf(chara.name) !== -1);
+                    });
+                    if (gasBuildings && gasBuildings.length) {
+                        gasBuildings.sort(function (a, b) {
+                            var dax = mx - a.posX(), day = my - a.posY();
+                            var dbx = mx - b.posX(), dby = my - b.posY();
+                            return dax * dax + day * day - (dbx * dbx + dby * dby);
+                        });
+                        target = gasBuildings[0];
+                    }
+                }
                 if (!(target instanceof Gobj)) {
                     target = Game.getSelectedOne(location.x, location.y, null, null, null, function (chara) {
                         return (chara instanceof Building) && (['Refinery', 'Extractor', 'Assimilator'].indexOf(chara.name) !== -1);
