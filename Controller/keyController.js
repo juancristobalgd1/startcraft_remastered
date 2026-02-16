@@ -25,8 +25,8 @@ var keyController={
                 case 53:case 54:case 55:case 56:case 57:
                     var teamNum=String.fromCharCode(event.keyCode);
                     //Building team
-                    if (keyController.ctrl) {
-                        Game.addSelectedIntoTeam(teamNum);
+                    if (keyController.ctrl || keyController.shift) {
+                        Game.addSelectedIntoTeam(teamNum, keyController.shift);
                         keyController._lastTeamNum=null;
                         keyController._lastTeamAt=0;
                     }

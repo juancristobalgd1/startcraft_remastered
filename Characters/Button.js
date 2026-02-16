@@ -1180,7 +1180,14 @@ var Button = {
                 Unit.allOurUnits().filter(function (chara) {
                     return chara.selected && (chara.name == 'SCV' || chara.name == 'Drone' || chara.name == 'Probe');
                 }).forEach(function (worker) {
-                    if (worker.gather) worker.gather(target);
+                    var isShift = keyController && keyController.shift;
+                    var isBusy = (worker.status !== 'dock' || worker.routingTimer || (worker.attack && worker.target && worker.target.status !== 'dead') || worker.gatherTimer);
+                    if (isShift && isBusy && worker.commandQueue) {
+                        worker.commandQueue.push({ type: 'gather', target: target });
+                    }
+                    else {
+                        if (worker.gather) worker.gather(target);
+                    }
                 });
             };
             $('div.GameLayer').attr('status', 'button');

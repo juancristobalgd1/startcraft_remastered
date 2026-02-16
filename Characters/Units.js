@@ -375,6 +375,11 @@ var Unit = Gobj.extends({
                 if (damage < 1) damage = 0.5;
                 this.life -= damage;
             }
+            if (typeof Game !== 'undefined' && Game.raiseUnderAttack && enemy && enemy.isEnemy !== this.isEnemy) {
+                Game.raiseUnderAttack(this);
+            }
+            var now = (window.performance && performance.now) ? performance.now() : Date.now();
+            this._hitFlashUntil = now + 120;
         },
         //Attack ground action
         attackGround: function (position, loop) {
@@ -454,6 +459,43 @@ var Unit = Gobj.extends({
             if ((target instanceof Building) && (['Refinery', 'Extractor', 'Assimilator'].indexOf(target.name) != -1)) type = 'gas';
             if (!type) return;
             var myself = this;
+            if (type == 'mine' && typeof Game !== 'undefined' && Game.getInRangeOnes) {
+                var minerals = Game.getInRangeOnes(this.posX(), this.posY(), 180, false, true, false, function (chara) {
+                    return (typeof Neutral !== 'undefined' && chara instanceof Neutral.Mineral);
+                });
+                if (minerals && minerals.length) {
+                    minerals.sort(function (a, b) {
+                        var ga = (a._gatherers && a._gatherers.length) ? a._gatherers.length : 0;
+                        var gb = (b._gatherers && b._gatherers.length) ? b._gatherers.length : 0;
+                        if (ga !== gb) return ga - gb;
+                        var dax = a.posX() - myself.posX(), day = a.posY() - myself.posY();
+                        var dbx = b.posX() - myself.posX(), dby = b.posY() - myself.posY();
+                        return dax * dax + day * day - (dbx * dbx + dby * dby);
+                    });
+                    target = minerals[0];
+                }
+            }
+            if (this._gather && this._gather.target && this._gather.target._gatherers) {
+                var prev = this._gather.target._gatherers;
+                var pidx = prev.indexOf(this);
+                if (pidx !== -1) prev.splice(pidx, 1);
+                if (prev.length === 0) delete this._gather.target._gatherers;
+            }
+            if (target._gatherers && target._gatherers.length) {
+                target._gatherers = target._gatherers.filter(function (w) {
+                    return w && w.status != 'dead' && w._gather && w._gather.target === target;
+                });
+                if (!target._gatherers.length) delete target._gatherers;
+            }
+            var gatherers = target._gatherers || (target._gatherers = []);
+            if (gatherers.indexOf(this) === -1) gatherers.push(this);
+            var detachGatherer = function () {
+                var list = target._gatherers;
+                if (!list) return;
+                var idx = list.indexOf(myself);
+                if (idx !== -1) list.splice(idx, 1);
+                if (list.length === 0) delete target._gatherers;
+            };
             var state = {
                 target: target,
                 type: type,
@@ -463,6 +505,9 @@ var Unit = Gobj.extends({
             this._gather = state;
             var takeAmount = (type == 'mine') ? 8 : 4;
             var harvestMs = (type == 'mine') ? 2000 : 2400;
+            var saturation = (target && target._gatherers && target._gatherers.length) ? target._gatherers.length : 1;
+            var penalty = Math.max(1, saturation / 3);
+            harvestMs = Math.max(400, (harvestMs * penalty) >> 0);
             var baseTargetRadius = (type == 'mine') ? 45 : 80;
             var workerRadius = (typeof this.radius == 'function') ? this.radius() : (Math.min(this.width, this.height) * 0.5);
             var targetObjRadius = (target && typeof target.radius == 'function') ? target.radius() : (Math.min(target.width || 0, target.height || 0) * 0.5);
@@ -472,11 +517,13 @@ var Unit = Gobj.extends({
                     clearInterval(myself.gatherTimer);
                     myself.gatherTimer = 0;
                     if (myself._gather) delete myself._gather;
+                    detachGatherer();
                     return;
                 }
                 if (!myself._gather || myself._gather !== state) {
                     clearInterval(myself.gatherTimer);
                     myself.gatherTimer = 0;
+                    detachGatherer();
                     return;
                 }
                 var t = state.target;
@@ -485,6 +532,7 @@ var Unit = Gobj.extends({
                     myself.gatherTimer = 0;
                     delete myself._gather;
                     myself.dock();
+                    detachGatherer();
                     return;
                 }
                 if (!state.carrying) {
@@ -501,6 +549,7 @@ var Unit = Gobj.extends({
                                     if (t.value <= 0) {
                                         t.die();
                                         state.harvesting = false;
+                                        detachGatherer();
                                         return;
                                     }
                                     var got = Math.min(takeAmount, t.value);
@@ -517,6 +566,7 @@ var Unit = Gobj.extends({
                                         myself.gatherTimer = 0;
                                         delete myself._gather;
                                         myself.dock();
+                                        detachGatherer();
                                         return;
                                     }
                                     var got = Math.min(takeAmount, t.gas);
@@ -538,6 +588,7 @@ var Unit = Gobj.extends({
                         myself.gatherTimer = 0;
                         delete myself._gather;
                         myself.dock();
+                        detachGatherer();
                         return;
                     }
                     var centerRadius = Math.max(110, workerRadius + ((typeof center.radius == 'function') ? center.radius() : (Math.min(center.width || 0, center.height || 0) * 0.5)) + 10);
@@ -801,6 +852,16 @@ var AttackableUnit = Unit.extends({
                         myself.dock();
                     }
                     else {
+                        if (!myself.meleeAttack && enemy.meleeAttack && !myself.isReloaded() && !myself.hold) {
+                            var now = (window.performance && performance.now) ? performance.now() : Date.now();
+                            if (!myself._lastKiteAt || now - myself._lastKiteAt > 200) {
+                                var kiteRadius = Math.max(myself.get('attackRange') * 0.7, enemy.radius() + myself.radius());
+                                if (myself.insideCircle({ centerX: enemy.posX(), centerY: enemy.posY(), radius: kiteRadius })) {
+                                    myself._lastKiteAt = now;
+                                    myself.escapeFrom(enemy);
+                                }
+                            }
+                        }
                         //Cannot come in until reload cool down, only dock down can finish attack animation
                         if (myself.isReloaded() && myself.isInAttackRange(enemy) && myself.status == "dock") {
                             //Load bullet
@@ -966,14 +1027,29 @@ var AttackableUnit = Unit.extends({
                 if (chara.attack) {
                     //Measure delay by attack times needed to kill enemy
                     if (chara.matchAttackLimit(myself))
-                        delay += ((chara.life + chara.SP ? chara.shield : 0) / chara.calculateDamageBy(myself));
+                        delay += ((chara.life + (chara.SP ? chara.shield : 0)) / chara.calculateDamageBy(myself));
                     else delay += 32;
                 }
                 else delay += 64;
                 return delay;
             };
+            var _priority = function (chara) {
+                var p = 0;
+                if (chara instanceof Unit) p += 20;
+                if (['SCV', 'Drone', 'Probe'].indexOf(chara.name) != -1) p += 50;
+                if (chara.attack && chara.target === myself) p += 30;
+                return p;
+            };
             results.sort(function (chara1, chara2) {
-                return _getDelay(chara1) - _getDelay(chara2);
+                var p1 = _priority(chara1);
+                var p2 = _priority(chara2);
+                if (p1 != p2) return p2 - p1;
+                var d1 = _getDelay(chara1);
+                var d2 = _getDelay(chara2);
+                if (d1 != d2) return d1 - d2;
+                var X1 = chara1.posX() - myself.posX(), Y1 = chara1.posY() - myself.posY();
+                var X2 = chara2.posX() - myself.posX(), Y2 = chara2.posY() - myself.posY();
+                return X1 * X1 + Y1 * Y1 - (X2 * X2 + Y2 * Y2);
             });
             //Take near>>unit>>attackable>>killtimes as priority, will attracted if be attacked
             return results;

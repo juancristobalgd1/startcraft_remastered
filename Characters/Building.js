@@ -193,6 +193,11 @@ var Building = Gobj.extends({
                 if (damage < 1) damage = 1;
                 this.life -= damage;
             }
+            if (typeof Game !== 'undefined' && Game.raiseUnderAttack && enemy && enemy.isEnemy !== this.isEnemy) {
+                Game.raiseUnderAttack(this);
+            }
+            var now = (window.performance && performance.now) ? performance.now() : Date.now();
+            this._hitFlashUntil = now + 120;
         },
         //Life status
         lifeStatus: function () {
@@ -461,7 +466,21 @@ Building.Attackable = {
                 });
                 results = results.concat(charas);
             });
-            //Only attack nearest one, unit prior to building
+            var _priority = function (chara) {
+                var p = 0;
+                if (chara instanceof Unit) p += 20;
+                if (['SCV', 'Drone', 'Probe'].indexOf(chara.name) != -1) p += 50;
+                if (chara.attack && chara.target === myself) p += 30;
+                return p;
+            };
+            results.sort(function (chara1, chara2) {
+                var p1 = _priority(chara1);
+                var p2 = _priority(chara2);
+                if (p1 != p2) return p2 - p1;
+                var X1 = chara1.posX() - myself.posX(), Y1 = chara1.posY() - myself.posY();
+                var X2 = chara2.posX() - myself.posX(), Y2 = chara2.posY() - myself.posY();
+                return X1 * X1 + Y1 * Y1 - (X2 * X2 + Y2 * Y2);
+            });
             return results;
         },
         highestPriorityTarget: AttackableUnit.prototype.highestPriorityTarget,

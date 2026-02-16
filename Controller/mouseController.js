@@ -160,6 +160,14 @@ var mouseController = {
                 var isShift = keyController.shift;
                 if (!isShift && chara.commandQueue) chara.commandQueue = [];
                 var isBusy = (chara.status !== 'dock' || chara.routingTimer || (chara.attack && chara.target && chara.target.status !== 'dead') || chara.gatherTimer);
+                var detachGather = function () {
+                    if (chara._gather && chara._gather.target && chara._gather.target._gatherers) {
+                        var list = chara._gather.target._gatherers;
+                        var idx = list.indexOf(chara);
+                        if (idx !== -1) list.splice(idx, 1);
+                        if (list.length === 0) delete chara._gather.target._gatherers;
+                    }
+                };
                 //Cancel possible hold
                 if (chara.hold) {
                     delete chara.AI;
@@ -190,6 +198,7 @@ var mouseController = {
                         if (chara.gatherTimer) {
                             clearInterval(chara.gatherTimer);
                             chara.gatherTimer = 0;
+                            detachGather();
                             if (chara._gather) delete chara._gather;
                         }
                         if (chara.cannotMove() && !(chara.isInAttackRange(selectedTarget))) return;
@@ -214,6 +223,7 @@ var mouseController = {
                         if (chara.gatherTimer) {
                             clearInterval(chara.gatherTimer);
                             chara.gatherTimer = 0;
+                            detachGather();
                             if (chara._gather) delete chara._gather;
                         }
                         if (chara.cannotMove()) return;

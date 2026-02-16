@@ -293,7 +293,7 @@ var GameMap = {
         Building.allBuildings.concat(Unit.allUnits).forEach(function (chara) {
             miniX = (130 * chara.x / mapWidth) >> 0;
             miniY = (130 * chara.y / mapHeight) >> 0;
-            GameMap.miniCxt.fillStyle = (chara.isEnemy) ? 'red' : 'lime';
+            GameMap.miniCxt.fillStyle = (chara.selected && !chara.isEnemy) ? 'yellow' : ((chara.isEnemy) ? 'red' : 'lime');
             rectSize = (chara instanceof Building) ? 4 : 3;
             GameMap.miniCxt.fillRect(miniX, miniY, rectSize, rectSize);
         });

@@ -24,7 +24,8 @@ var Game = {
         lastResource: { mine: null, gas: null, curMan: null, totalMan: null, manColor: null, supplyBlocked: null, supplyWarnAt: 0 },
         lastSelected: { life: null, shield: null, magic: null, kill: null, lifeColor: null },
         lastProcessing: { name: null, percent: null, visible: null, queueText: null },
-        lastMetrics: { fps: null, inputMs: null, visible: false }
+        lastMetrics: { fps: null, inputMs: null, visible: false },
+        lastAlerts: { underAttackAt: 0 }
     },
     metrics: {
         enabled: false,
@@ -562,9 +563,18 @@ var Game = {
         });
         sourceLoader.allOnLoad(callback);
     },
-    addSelectedIntoTeam: function (teamNum) {
-        //Build a new team
-        Game.teams[teamNum] = _$.mixin([], Game.allSelected);
+    addSelectedIntoTeam: function (teamNum, append) {
+        if (!append || !(Game.teams[teamNum] instanceof Array)) {
+            Game.teams[teamNum] = _$.mixin([], Game.allSelected);
+            return;
+        }
+        var combined = _$.mixin([], Game.teams[teamNum]).concat(Game.allSelected);
+        var team = [];
+        combined.forEach(function (chara) {
+            if (!chara || chara.status == 'dead') return;
+            if (team.indexOf(chara) === -1) team.push(chara);
+        });
+        Game.teams[teamNum] = team;
     },
     callTeam: function (teamNum, centerOnGroup) {
         var team = _$.mixin([], Game.teams[teamNum]);
@@ -889,6 +899,30 @@ var Game = {
         }
         //Remove shadow
         cxt.restore();
+        if (chara.isResource || (chara instanceof Building && ['Refinery', 'Extractor', 'Assimilator'].indexOf(chara.name) != -1)) {
+            var amount = null;
+            if (chara.isResource && chara.value != null) amount = chara.value;
+            if (!chara.isResource && chara.gas != null) amount = chara.gas;
+            if (amount != null) {
+                var rcxt = Game.frontCxt;
+                rcxt.save();
+                rcxt.globalAlpha = 0.9;
+                rcxt.font = '10px Arial';
+                rcxt.fillStyle = '#bde7ff';
+                rcxt.textAlign = 'center';
+                rcxt.fillText((amount >> 0), chara.posX() - GameMap.offsetX, chara.y - GameMap.offsetY - 8);
+                rcxt.restore();
+            }
+        }
+        var now = (window.performance && performance.now) ? performance.now() : Date.now();
+        if (chara._hitFlashUntil && now < chara._hitFlashUntil) {
+            var fx = Game.frontCxt;
+            fx.save();
+            fx.strokeStyle = 'rgba(255,60,60,0.8)';
+            fx.lineWidth = 2;
+            fx.strokeRect(charaX, charaY, chara.width, chara.height);
+            fx.restore();
+        }
         //Draw HP if has selected and is true
         if (chara.selected == true) {
             cxt = Game.frontCxt;
@@ -1385,6 +1419,14 @@ var Game = {
         setTimeout(function () {
             $('div.warning_Box').html('').hide();
         }, interval);
+    },
+    raiseUnderAttack: function (chara) {
+        if (!chara || chara.isEnemy) return;
+        var now = (window.performance && performance.now) ? performance.now() : Date.now();
+        var lastAt = (Game.ui && Game.ui.lastAlerts) ? Game.ui.lastAlerts.underAttackAt : 0;
+        if (now - lastAt < 2500) return;
+        if (Game.ui && Game.ui.lastAlerts) Game.ui.lastAlerts.underAttackAt = now;
+        Game.showWarning('Our forces are under attack');
     },
     showMessage: function (msg, interval) {
         //Default interval
