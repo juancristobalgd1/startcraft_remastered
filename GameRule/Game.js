@@ -616,9 +616,14 @@ var Game = {
         var inRectUnits = Unit.allOurUnits().filter((chara) => {
             return chara.insideRect({ start: (startPoint), end: (endPoint) })
         });
+        var inRectBuildings = Building.ourBuildings.filter((chara) => {
+            return chara.status != 'dead' && chara.insideRect({ start: (startPoint), end: (endPoint) })
+        });
+        var inRectAll = inRectUnits.concat(inRectBuildings);
         if (inRectUnits.length > 0) Game.changeSelectedTo(inRectUnits[0]);
+        else if (inRectBuildings.length > 0) Game.changeSelectedTo(inRectBuildings[0]);
         else Game.changeSelectedTo({});
-        Game.addIntoAllSelected(inRectUnits, true);
+        Game.addIntoAllSelected(inRectAll, true);
     },
     getSelectedOne: function (clickX, clickY, isEnemyFilter, unitBuildingFilter, isFlyingFilter, customFilter) {
         const distance = (chara) => {
