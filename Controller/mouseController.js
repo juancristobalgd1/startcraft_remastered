@@ -175,6 +175,28 @@ var mouseController = {
                     delete chara.hold;
                     Button.reset();
                 }
+                if (chara instanceof Building && !chara.isEnemy && chara.items) {
+                    var canRally = Object.keys(chara.items).some(function (k) {
+                        return chara.items[k] && chara.items[k].name == 'SetRallyPoint';
+                    });
+                    if (canRally && !(selectedTarget && selectedTarget.isEnemy)) {
+                        var rx = clickX + GameMap.offsetX;
+                        var ry = clickY + GameMap.offsetY;
+                        if (selectedTarget instanceof Gobj && !selectedTarget.isEnemy) {
+                            rx = selectedTarget.posX();
+                            ry = selectedTarget.posY();
+                        }
+                        if (isShift && chara.rallyPoint) {
+                            var tail = chara.rallyPoint;
+                            while (tail.next) tail = tail.next;
+                            tail.next = { x: rx, y: ry };
+                        }
+                        else {
+                            chara.rallyPoint = { x: rx, y: ry };
+                        }
+                        return;
+                    }
+                }
                 //Gather mode (priority over attack)
                 if ((selectedTarget instanceof Neutral.Mineral ||
                     ((selectedTarget instanceof Building) && (['Refinery', 'Extractor', 'Assimilator'].indexOf(selectedTarget.name) !== -1)))
