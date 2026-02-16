@@ -76,8 +76,7 @@ Bullets.Darts=Bullets.extends({
             target.reactionWhenAttackedBy(owner);
             //Bullet reduce
             this.life--;
-            var myself=this;
-            var traceEnemies;
+            let traceEnemies;
             //Get all possible enemies
             if (owner.isEnemy) {
                 traceEnemies=(owner.attackLimit)?((owner.attackLimit=="flying")?
@@ -88,9 +87,9 @@ Bullets.Darts=Bullets.extends({
                     Unit.enemyFlyingUnits:Unit.enemyGroundUnits):Unit.allEnemyUnits();
             }
             //Filter out trace-able enemies
-            traceEnemies=traceEnemies.filter(function(chara) {
-                return (chara!=myself.target) &&
-                    chara.insideCircle({centerX:myself.posX(),centerY:myself.posY(),radius:myself.traceRadius});
+            traceEnemies=traceEnemies.filter((chara) => {
+                return (chara!=this.target) &&
+                    chara.insideCircle({centerX:this.posX(),centerY:this.posY(),radius:this.traceRadius});
             });
             //Attack trace enemy
             if (traceEnemies.length>0 && this.life>0){
@@ -98,10 +97,10 @@ Bullets.Darts=Bullets.extends({
                 this.x=target.posX()-this.width/2;
                 this.y=target.posY()-this.height/2;
                 this.target=traceEnemies[0];
-                var targetX=this.target.posX();
-                var targetY=this.target.posY();
-                var myX=this.posX();
-                var myY=this.posY();
+                const targetX=this.target.posX();
+                const targetY=this.target.posY();
+                const myX=this.posX();
+                const myY=this.posY();
                 //Update bullet speed
                 this.speed={
                     x:(targetX-myX)/(this.duration/100),
@@ -115,8 +114,8 @@ Bullets.Darts=Bullets.extends({
                     if (targetX<myX) this.angle+=Math.PI;
                 }
                 //Fire bullet
-                setTimeout(function(){
-                    myself.burst();
+                setTimeout(() => {
+                    this.burst();
                 },this.duration);
             }
             else {

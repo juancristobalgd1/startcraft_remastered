@@ -112,15 +112,14 @@ Unit.prototype.moveTo = function (clickX, clickY, range, callback) {
         Game.pathfinding.schedulePoint(this, clickX, clickY, range, callback);
     }
     else {
-        var myself = this;
-        var routingFrame = function () {
-            if (myself.navigateTo(clickX, clickY, range)) {
+        const routingFrame = () => {
+            if (this.navigateTo(clickX, clickY, range)) {
                 if (typeof (callback) == 'function') callback();
                 return true;
             }
         };
         if (routingFrame()) callback = null;
-        var interval = (this.insideScreen && this.insideScreen()) ? 100 : 200;
+        const interval = (this.insideScreen && this.insideScreen()) ? 100 : 200;
         this.routingTimer = setInterval(routingFrame, interval);
     }
     //Start moving
@@ -145,21 +144,20 @@ Unit.prototype.moveToward = function (target, range, callback) {
         }
     }
     else {
-        var myself = this;
-        var routingFrame = function () {
+        const routingFrame = () => {
             if (target.status != 'dead') {
-                if (myself.navigateTo(target.posX(), target.posY(), range)) {
+                if (this.navigateTo(target.posX(), target.posY(), range)) {
                     if (typeof (callback) == 'function') callback();
                     return true;
                 }
             }
             else {
-                clearInterval(myself.routingTimer);
-                myself.dock();
+                clearInterval(this.routingTimer);
+                this.dock();
             }
         };
         if (routingFrame()) callback = null;
-        var interval = (this.insideScreen && this.insideScreen()) ? 100 : 200;
+        const interval = (this.insideScreen && this.insideScreen()) ? 100 : 200;
         this.routingTimer = setInterval(routingFrame, interval);
     }
     //Start moving
