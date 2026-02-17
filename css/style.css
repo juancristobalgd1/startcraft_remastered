@@ -133,7 +133,7 @@ div#GamePlay div.panel_Info div.infoLeft div[name="portrait"] {
     width:60px;
     height:56px;
     margin-top:12px;
-    background-image:url('../img/Charas/Portrait.png');
+    background-image:url('../img/Charas/UI/Portrait.png');
 }
 div.infoLeft div#HP_SP,div.infoLeft div#MP {
     width:100%;
@@ -307,7 +307,7 @@ div#GamePlay div.panel_Info div.override div.multiSelection div{
     float:left;
     width:45px;
     height:42px;
-    background-image:url('../img/Charas/Portrait.png');
+    background-image:url('../img/Charas/UI/Portrait.png');
     background-size:720px 210px;
     border:3px solid white;
     border-radius:6px;

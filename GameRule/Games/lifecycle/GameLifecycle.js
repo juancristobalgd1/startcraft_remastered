@@ -20,11 +20,40 @@ Game.init = function () {
         Map_Turbo: "img/Maps/(8)Turbo.jpg",
         Map_Grass: "img/Maps/Map_Grass.jpg"
     };
+    Game._charaFolderById = (function () {
+        var map = {};
+        var add = function (folder, names) {
+            names.forEach(function (name) {
+                map[name] = folder;
+            });
+        };
+        add("Terran", [
+            "Marine", "Firebat", "Ghost", "Medic", "SCV", "Vulture", "Tank", "Goliath", "Wraith", "Valkyrie",
+            "BattleCruiser", "Dropship", "Vessel", "Civilian", "Sarah", "HeroCruiser", "Kerrigan", "TerranBuilding"
+        ]);
+        add("Protoss", [
+            "Zealot", "Dragoon", "DragoonB", "Templar", "DarkTemplar", "Archon", "DarkArchon", "Reaver", "Scout",
+            "Carrier", "Arbiter", "Corsair", "CorsairB", "Shuttle", "Observer", "Probe", "ProtossBuilding"
+        ]);
+        add("Zerg", [
+            "Zergling", "Hydralisk", "Hydralisk_legacy", "Lurker", "Ultralisk", "Defiler", "Drone", "Overlord",
+            "Queen", "Mutalisk", "Guardian", "Devourer", "Scourge", "Broodling", "Larva", "InfestedTerran",
+            "ZergBuilding"
+        ]);
+        add("Neutral", ["Bengalaas", "Kakaru", "Ragnasaur", "Rhynsdon", "Scantid", "Ursadon"]);
+        add("Effects", ["Burst", "BuildingBurst", "Magic", "Mud"]);
+        add("UI", ["Portrait"]);
+        return map;
+    })();
+    Game._resolveCharaSrc = function (id) {
+        var folder = Game._charaFolderById[id];
+        return folder ? ("img/Charas/" + folder + "/" + id + ".png") : ("img/Charas/" + id + ".png");
+    };
     Game.ensureAsset = function (id) {
         if (!id || sourceLoader.sources[id]) return true;
         var src = Game._assetSrc[id];
         if (!src && id.indexOf('Map_') === 0) return false;
-        if (!src) src = "img/Charas/" + id + ".png";
+        if (!src) src = Game._resolveCharaSrc(id);
         Game._loadAsset("img", src, id);
         return false;
     };
@@ -145,9 +174,9 @@ Game.loadGameplayAssets = function (callback) {
         return;
     }
     [
-        ["img", "img/Charas/ZergBuilding.png", "ZergBuilding"],
-        ["img", "img/Charas/TerranBuilding.png", "TerranBuilding"],
-        ["img", "img/Charas/ProtossBuilding.png", "ProtossBuilding"],
+        ["img", Game._resolveCharaSrc("ZergBuilding"), "ZergBuilding"],
+        ["img", Game._resolveCharaSrc("TerranBuilding"), "TerranBuilding"],
+        ["img", Game._resolveCharaSrc("ProtossBuilding"), "ProtossBuilding"],
         ["img", Game._assetSrc.Map_Switchback, "Map_Switchback"],
         ["img", Game._assetSrc.Map_Volcanis, "Map_Volcanis"],
         ["img", Game._assetSrc.Map_TrenchWars, "Map_TrenchWars"],
@@ -158,12 +187,12 @@ Game.loadGameplayAssets = function (callback) {
         ["img", Game._assetSrc.Map_TheHunters, "Map_TheHunters"],
         ["img", Game._assetSrc.Map_Turbo, "Map_Turbo"],
         ["img", Game._assetSrc.Map_Grass, "Map_Grass"],
-        ["img", "img/Charas/Mud.png", "Mud"],
-        ["img", "img/Charas/Burst.png", "Burst"],
-        ["img", "img/Charas/Mutalisk.png", "Mutalisk"],
-        ["img", "img/Charas/BuildingBurst.png", "BuildingBurst"],
-        ["img", "img/Charas/Portrait.png", "Portrait"],
-        ["img", "img/Charas/Magic.png", "Magic"]
+        ["img", Game._resolveCharaSrc("Mud"), "Mud"],
+        ["img", Game._resolveCharaSrc("Burst"), "Burst"],
+        ["img", Game._resolveCharaSrc("Mutalisk"), "Mutalisk"],
+        ["img", Game._resolveCharaSrc("BuildingBurst"), "BuildingBurst"],
+        ["img", Game._resolveCharaSrc("Portrait"), "Portrait"],
+        ["img", Game._resolveCharaSrc("Magic"), "Magic"]
     ].forEach(function (asset) {
         Game._loadAsset(asset[0], asset[1], asset[2]);
     });
