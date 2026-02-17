@@ -110,21 +110,30 @@ var GameMap = {
 
             ourUnits.concat(addInObjs).forEach(function (chara) {
                 if (chara.status != 'dead') {
+                    var sight = chara.get('sight');
+                    // Mark explored for all units (even off-screen)
+                    GameMap.markExplored(chara.posX(), chara.posY(), sight);
+
                     if (chara.insideScreen && chara.insideScreen()) {
-                        ctx.beginPath();
-                        ctx.arc(chara.posX() - GameMap.offsetX, chara.posY() - GameMap.offsetY, chara.get('sight'), 0, 2 * Math.PI);
-                        ctx.fill();
-                        GameMap.markExplored(chara.posX(), chara.posY(), chara.get('sight'));
+                        var cx = chara.posX() - GameMap.offsetX;
+                        var cy = chara.posY() - GameMap.offsetY;
+                        if (GameMap.fogType) {
+                            ctx.drawImage(GameMap.shadowCanvas, 0, 0, 100, 100, cx - (sight << 1), cy - (sight << 1), sight << 2, sight << 2);
+                        } else {
+                            ctx.beginPath();
+                            ctx.arc(cx, cy, sight, 0, 2 * Math.PI);
+                            ctx.fill();
+                        }
                     }
 
                     var mx = (chara.posX() * 130 / GameMap.getCurrentMap().width) >> 0;
                     var my = (chara.posY() * 130 / GameMap.getCurrentMap().height) >> 0;
-                    var sight = (chara.get('sight') * 130 / GameMap.getCurrentMap().height) >> 0;
+                    var miniSight = (sight * 130 / GameMap.getCurrentMap().height) >> 0;
                     mCtx.beginPath();
                     if (GameMap.fogType) {
-                        mCtx.drawImage(GameMap.shadowCanvas, 0, 0, 100, 100, mx - (sight << 1), my - (sight << 1), sight << 2, sight << 2);
+                        mCtx.drawImage(GameMap.shadowCanvas, 0, 0, 100, 100, mx - (miniSight << 1), my - (miniSight << 1), miniSight << 2, miniSight << 2);
                     } else {
-                        mCtx.arc(mx, my, sight, 0, 2 * Math.PI);
+                        mCtx.arc(mx, my, miniSight, 0, 2 * Math.PI);
                         mCtx.fill();
                     }
                 }
