@@ -389,3 +389,61 @@ Neutral.Mineral = Unit.extends({
         }
     }
 });
+
+Neutral.GasGeyser = Unit.extends({
+    constructorPlus: function (props) {
+        this.value = 5000;
+        this.isFlying = false;
+        this.direction = undefined;
+        if (typeof sourceLoader !== 'undefined' && sourceLoader && sourceLoader.sources && !sourceLoader.sources['GasGeyser']) {
+            var c = document.createElement('canvas');
+            c.width = 96;
+            c.height = 96;
+            var ctx = c.getContext('2d');
+            ctx.clearRect(0, 0, 96, 96);
+            ctx.fillStyle = 'rgba(0,0,0,0.25)';
+            ctx.beginPath();
+            ctx.ellipse(48, 70, 28, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#4ddc7a';
+            ctx.strokeStyle = '#9bffb8';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(48, 50, 26, 20, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#2f9b5b';
+            ctx.beginPath();
+            ctx.ellipse(48, 48, 14, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+            sourceLoader.sources['GasGeyser'] = c;
+        }
+        this.gasSmoke = new Burst.GasSmoke({ target: this, above: true, scale: 1.6, duration: -1 });
+    },
+    prototypePlus: {
+        name: "GasGeyser",
+        source: "GasGeyser",
+        imgPos: {
+            dock: { left: 0, top: 0 }
+        },
+        width: 96,
+        height: 96,
+        frame: {
+            dock: 1
+        },
+        HP: 5000,
+        armor: 0,
+        sight: 350,
+        unitType: Unit.MEDIUM,
+        isEnemy: false,
+        isResource: true,
+        selected: false,
+        dock: function () {
+            this.stop();
+            this.status = 'dock';
+            this.action = 0;
+        },
+        includePoint: function () { return false; },
+        include: function () { return false; }
+    }
+});

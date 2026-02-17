@@ -160,6 +160,7 @@ Game.loadGameplayAssets = function (callback) {
         ["img", Game._assetSrc.Map_Grass, "Map_Grass"],
         ["img", "img/Charas/Mud.png", "Mud"],
         ["img", "img/Charas/Burst.png", "Burst"],
+        ["img", "img/Charas/Mutalisk.png", "Mutalisk"],
         ["img", "img/Charas/BuildingBurst.png", "BuildingBurst"],
         ["img", "img/Charas/Portrait.png", "Portrait"],
         ["img", "img/Charas/Magic.png", "Magic"]

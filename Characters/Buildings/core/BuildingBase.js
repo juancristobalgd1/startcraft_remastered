@@ -10,6 +10,9 @@ class Building extends Gobj {
         this.selected = false;
         this.isFlying = false;
         this.commandQueue = [];
+        if (['Refinery', 'Extractor', 'Assimilator'].indexOf(this.name) !== -1) {
+            this.gasSmoke = new Burst.GasSmoke({ target: this, above: true, scale: 1.4, duration: -1 });
+        }
         GameMap.markExplored(this.posX(), this.posY(), this.get('sight'));
         setTimeout(() => {
             Building.allBuildings.push(this);
@@ -131,6 +134,9 @@ class Building extends Gobj {
     die() {
         Gobj.prototype.die.call(this);
         this.life = 0;
+        if (this.gasSmoke && this.gasSmoke.status != "dead") {
+            this.gasSmoke.die();
+        }
         if (this.sound.death && this.insideScreen()) {
             this.sound.death.play();
         }

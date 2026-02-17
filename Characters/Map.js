@@ -390,14 +390,15 @@ GameMap._clearMapResources = function () {
     }
 };
 
-GameMap._getMapScan = function () {
+GameMap._getMapScan = function (maxDimOverride) {
     var map = GameMap.getCurrentMap();
     if (!map || !map.width || !map.height) return null;
     var mapName = GameMap.currentMap;
-    var cached = GameMap._mapScanCache[mapName];
+    var cacheKey = mapName + ':' + (maxDimOverride || 'auto');
+    var cached = GameMap._mapScanCache[cacheKey];
     if (cached && cached.mapW === map.width && cached.mapH === map.height && cached.factor) return cached;
 
-    var maxDim = Math.max(map.width, map.height);
+    var maxDim = maxDimOverride || Math.max(map.width, map.height);
     var factor = Math.max(1, Math.ceil(maxDim / 512));
     var w = (map.width / factor) >> 0;
     var h = (map.height / factor) >> 0;
@@ -419,7 +420,7 @@ GameMap._getMapScan = function () {
         return null;
     }
     cached = { factor: factor, w: w, h: h, data: data, mapW: map.width, mapH: map.height };
-    GameMap._mapScanCache[mapName] = cached;
+    GameMap._mapScanCache[cacheKey] = cached;
     return cached;
 };
 
@@ -428,6 +429,13 @@ GameMap._isMineralPixel = function (r, g, b) {
     if (b < g + 5) return false;
     if (b < r + 35) return false;
     if (g < 50) return false;
+    return true;
+};
+
+GameMap._isGasPixel = function (r, g, b) {
+    if (g < 120) return false;
+    if (g < r + 15) return false;
+    if (g < b + 15) return false;
     return true;
 };
 
@@ -446,6 +454,23 @@ GameMap._spawnMineralAt = function (cx, cy, bw, bh) {
     mineral.stop();
     mineral.dock();
     return mineral;
+};
+
+GameMap._spawnGasAt = function (cx, cy, bw, bh) {
+    if (typeof Neutral === 'undefined' || !Neutral || !Neutral.GasGeyser) return null;
+    var w = Math.max(60, Math.min(120, bw || 96));
+    var h = Math.max(60, Math.min(120, bh || 96));
+    var geyser = new Neutral.GasGeyser({ x: (cx - w / 2) >> 0, y: (cy - h / 2) >> 0 });
+    geyser.width = w;
+    geyser.height = h;
+    geyser.noRender = true;
+    geyser._isMapResource = true;
+    geyser.selected = false;
+    geyser.includePoint = function () { return false; };
+    geyser.include = function () { return false; };
+    geyser.stop();
+    geyser.dock();
+    return geyser;
 };
 
 GameMap._findMineralClusterNear = function (worldX, worldY) {
@@ -523,78 +548,101 @@ GameMap._spawnMapResources = function () {
     if (!cached) {
         var scan = GameMap._getMapScan();
         if (!scan) return;
-        var factor = scan.factor, w = scan.w, h = scan.h, data = scan.data;
-        var size = w * h;
-        var mask = new Uint8Array(size);
-        for (var p = 0, i = 0; p < size; p++, i += 4) {
-            if (GameMap._isMineralPixel(data[i], data[i + 1], data[i + 2])) mask[p] = 1;
-        }
-        var visited = new Uint8Array(size);
-        var queue = new Int32Array(size);
-        var nodes = [];
-        for (var start = 0; start < size; start++) {
-            if (!mask[start] || visited[start]) continue;
-            var qh = 0, qt = 0;
-            queue[qt++] = start;
-            visited[start] = 1;
-            var count = 0, sumX = 0, sumY = 0;
-            var minX = w, maxX = 0, minY = h, maxY = 0;
-            while (qh < qt) {
-                var cur = queue[qh++];
-                var cx = cur % w;
-                var cy = (cur / w) >> 0;
-                count++;
-                sumX += cx;
-                sumY += cy;
-                if (cx < minX) minX = cx;
-                if (cx > maxX) maxX = cx;
-                if (cy < minY) minY = cy;
-                if (cy > maxY) maxY = cy;
-                var left = cur - 1;
-                if (cx > 0 && mask[left] && !visited[left]) { visited[left] = 1; queue[qt++] = left; }
-                var right = cur + 1;
-                if (cx < w - 1 && mask[right] && !visited[right]) { visited[right] = 1; queue[qt++] = right; }
-                var up = cur - w;
-                if (cy > 0 && mask[up] && !visited[up]) { visited[up] = 1; queue[qt++] = up; }
-                var down = cur + w;
-                if (cy < h - 1 && mask[down] && !visited[down]) { visited[down] = 1; queue[qt++] = down; }
+        var buildNodes = function (isPixel, scanData) {
+            if (!scanData) return [];
+            var factor = scanData.factor, w = scanData.w, h = scanData.h, data = scanData.data;
+            var size = w * h;
+            var queue = new Int32Array(size);
+            var mask = new Uint8Array(size);
+            for (var p = 0, i = 0; p < size; p++, i += 4) {
+                if (isPixel(data[i], data[i + 1], data[i + 2])) mask[p] = 1;
             }
-            var bw = maxX - minX + 1;
-            var bh = maxY - minY + 1;
-            if (count < 14) continue;
-            if (bw > 120 || bh > 120) continue;
-            var density = count / (bw * bh);
-            if (density < 0.06) continue;
-            var centerX = ((sumX / count) + 0.5) * factor;
-            var centerY = ((sumY / count) + 0.5) * factor;
-            var ow = Math.max(30, Math.min(80, bw * factor));
-            var oh = Math.max(30, Math.min(80, bh * factor));
-            nodes.push({ x: centerX, y: centerY, w: ow, h: oh });
-        }
-        nodes.sort(function (a, b) {
-            return a.x - b.x;
-        });
-        var pruned = [];
-        var minDist = 50;
-        var minDist2 = minDist * minDist;
-        for (var k = 0; k < nodes.length; k++) {
-            var n = nodes[k];
-            var ok = true;
-            for (var j = pruned.length - 1; j >= 0 && j > pruned.length - 16; j--) {
-                var p = pruned[j];
-                var dx = n.x - p.x, dy = n.y - p.y;
-                if (dx * dx + dy * dy < minDist2) { ok = false; break; }
+            var visited = new Uint8Array(size);
+            var nodes = [];
+            for (var start = 0; start < size; start++) {
+                if (!mask[start] || visited[start]) continue;
+                var qh = 0, qt = 0;
+                queue[qt++] = start;
+                visited[start] = 1;
+                var count = 0, sumX = 0, sumY = 0;
+                var minX = w, maxX = 0, minY = h, maxY = 0;
+                while (qh < qt) {
+                    var cur = queue[qh++];
+                    var cx = cur % w;
+                    var cy = (cur / w) >> 0;
+                    count++;
+                    sumX += cx;
+                    sumY += cy;
+                    if (cx < minX) minX = cx;
+                    if (cx > maxX) maxX = cx;
+                    if (cy < minY) minY = cy;
+                    if (cy > maxY) maxY = cy;
+                    var left = cur - 1;
+                    if (cx > 0 && mask[left] && !visited[left]) { visited[left] = 1; queue[qt++] = left; }
+                    var right = cur + 1;
+                    if (cx < w - 1 && mask[right] && !visited[right]) { visited[right] = 1; queue[qt++] = right; }
+                    var up = cur - w;
+                    if (cy > 0 && mask[up] && !visited[up]) { visited[up] = 1; queue[qt++] = up; }
+                    var down = cur + w;
+                    if (cy < h - 1 && mask[down] && !visited[down]) { visited[down] = 1; queue[qt++] = down; }
+                }
+                var bw = maxX - minX + 1;
+                var bh = maxY - minY + 1;
+                if (count < 14) continue;
+                if (bw > 120 || bh > 120) continue;
+                var density = count / (bw * bh);
+                if (density < 0.06) continue;
+                var centerX = ((sumX / count) + 0.5) * factor;
+                var centerY = ((sumY / count) + 0.5) * factor;
+                var ow = Math.max(30, Math.min(80, bw * factor));
+                var oh = Math.max(30, Math.min(80, bh * factor));
+                nodes.push({ x: centerX, y: centerY, w: ow, h: oh });
             }
-            if (ok) pruned.push(n);
+            nodes.sort(function (a, b) {
+                return a.x - b.x;
+            });
+            var pruned = [];
+            var minDist = 50;
+            var minDist2 = minDist * minDist;
+            for (var k = 0; k < nodes.length; k++) {
+                var n = nodes[k];
+                var ok = true;
+                for (var j = pruned.length - 1; j >= 0 && j > pruned.length - 16; j--) {
+                    var p = pruned[j];
+                    var dx = n.x - p.x, dy = n.y - p.y;
+                    if (dx * dx + dy * dy < minDist2) { ok = false; break; }
+                }
+                if (ok) pruned.push(n);
+            }
+            return pruned;
+        };
+        var minerals = buildNodes(GameMap._isMineralPixel, scan);
+        var gas = buildNodes(GameMap._isGasPixel, scan);
+        var maxDim = Math.max(map.width, map.height);
+        var gasTarget = Math.min(maxDim, 1024);
+        if (gasTarget < maxDim) {
+            var gasScan = GameMap._getMapScan(gasTarget);
+            if (gasScan && gasScan !== scan) {
+                var gasHi = buildNodes(GameMap._isGasPixel, gasScan);
+                if (gasHi.length > gas.length) gas = gasHi;
+            }
         }
-        cached = pruned;
+        cached = { minerals: minerals, gas: gas };
+        GameMap._resourceCache[mapName] = cached;
+    }
+    if (cached.length) {
+        cached = { minerals: cached, gas: [] };
         GameMap._resourceCache[mapName] = cached;
     }
     GameMap._spawnedResourceIndex[mapName] = {};
-    for (var i = 0; i < cached.length; i++) {
-        var n = cached[i];
+    for (var i = 0; i < cached.minerals.length; i++) {
+        var n = cached.minerals[i];
         var key = ((n.x / 8) >> 0) + ',' + ((n.y / 8) >> 0);
         GameMap._spawnedResourceIndex[mapName][key] = true;
         GameMap._spawnMineralAt(n.x, n.y, n.w, n.h);
+    }
+    for (var g = 0; g < cached.gas.length; g++) {
+        var gn = cached.gas[g];
+        GameMap._spawnGasAt(gn.x, gn.y, gn.w * 1.4, gn.h * 1.4);
     }
 };

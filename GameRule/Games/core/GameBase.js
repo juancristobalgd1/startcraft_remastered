@@ -250,6 +250,37 @@ var Game = {
         if (document && document.body) document.body.setAttribute('data-reduced-motion', Game.reducedMotion ? 'true' : 'false');
         Game._syncPauseMenuOptions();
     },
+    ensureGasSmoke: function () {
+        if (typeof Burst === 'undefined' || !Burst || !Burst.GasSmoke) return;
+        var ensure = function (chara, scale) {
+            if (!chara || chara.status === 'dead') return;
+            if (!chara.gasSmoke || chara.gasSmoke.status === 'dead') {
+                chara.gasSmoke = new Burst.GasSmoke({ target: chara, above: true, scale: scale, duration: -1 });
+            }
+        };
+        var isGasBuilding = function (b) {
+            if (!b || !b.name) return false;
+            return b.name === 'Refinery' || b.name === 'Extractor' || b.name === 'Assimilator' || /Geyser/i.test(b.name);
+        };
+        var isGasResourceUnit = function (u) {
+            if (!u || !u.name) return false;
+            if (/Geyser/i.test(u.name)) return true;
+            if (u.isResource && u.value != null && u.value >= 3000) return true;
+            return false;
+        };
+        if (typeof Building !== 'undefined' && Building && Building.allBuildings) {
+            Building.allBuildings.forEach(function (b) {
+                if (!b) return;
+                if (isGasBuilding(b)) ensure(b, 1.4);
+            });
+        }
+        if (typeof Unit !== 'undefined' && Unit && Unit.allUnits) {
+            Unit.allUnits.forEach(function (u) {
+                if (!u) return;
+                if (isGasResourceUnit(u)) ensure(u, 1.6);
+            });
+        }
+    },
     _syncPauseMenuOptions: function () {
         var metricsBtn = document.getElementById('PauseToggleMetrics');
         if (metricsBtn) metricsBtn.textContent = 'FPS/Input: ' + (Game.metrics.enabled ? 'On' : 'Off');

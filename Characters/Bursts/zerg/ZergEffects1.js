@@ -20,6 +20,25 @@ Burst.GreenFog=Burst.extends({
         }
     }
 });
+Burst.GasSmoke=Burst.extends({
+    constructorPlus:function(props){},
+    prototypePlus:{
+        name:"Mutalisk",
+        duration:-1,
+        useGameClock:true,
+        imgPos:{
+            burst:{
+                left:[8,68,134,198,263,8,68,134,198,263],
+                top:[468,468,468,468,468,532,532,532,532,532]
+            }
+        },
+        width:52,
+        height:57,
+        frame:{
+            burst:10
+        }
+    }
+});
 Burst.Parasite=Burst.extends({
     constructorPlus:function(props){
         //Has burst sound effect

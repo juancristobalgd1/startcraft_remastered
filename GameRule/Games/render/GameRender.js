@@ -138,6 +138,9 @@ Game.drawEffect = function (chara) {
         cxt.restore();
         return;
     }
+    if (chara.useGameClock && chara.frame && chara.frame[chara.status]) {
+        chara.action = Game._clock % chara.frame[chara.status];
+    }
     var charaX = (chara.x - GameMap.offsetX) >> 0;
     var charaY = (chara.y - GameMap.offsetY) >> 0;
     var _left = chara.imgPos[chara.status].left;
@@ -198,6 +201,7 @@ Game.animation = function () {
         var aiMargin = Game.perf.aiNearMargin;
         Game.cxt.clearRect(0, 0, Game.HBOUND, Game.VBOUND);
         Game.frontCxt.clearRect(0, 0, Game.HBOUND, Game.VBOUND);
+        if (typeof Game.ensureGasSmoke === 'function') Game.ensureGasSmoke();
         if (window.mouseController && typeof mouseController.edgeScrollTick === 'function') {
             mouseController.edgeScrollTick();
         }
