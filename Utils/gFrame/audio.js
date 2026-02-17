@@ -38,6 +38,52 @@ _$.resumeAllAudio = function () {
   }
 };
 
+_$.bgmFolderByPrefix = (function () {
+  var map = {};
+  var add = function (folder, names) {
+    for (var i = 0; i < names.length; i++) {
+      map[names[i]] = folder;
+    }
+  };
+  add("Terran", [
+    "Marine", "Firebat", "Ghost", "Medic", "SCV", "Vulture", "Tank", "Goliath", "Wraith", "Valkyrie",
+    "BattleCruiser", "Dropship", "Vessel", "Civilian", "Sarah", "HeroCruiser", "Kerrigan", "TerranBuilding"
+  ]);
+  add("Protoss", [
+    "Zealot", "Dragoon", "Templar", "DarkTemplar", "Archon", "DarkArchon", "Reaver", "Scout",
+    "Carrier", "Arbiter", "Corsair", "Shuttle", "Observer", "Probe", "ProtossBuilding"
+  ]);
+  add("Zerg", [
+    "Zergling", "Hydralisk", "Lurker", "Ultralisk", "Defiler", "Drone", "Overlord", "Queen", "Mutalisk",
+    "Guardian", "Devourer", "Scourge", "Broodling", "Larva", "InfestedTerran", "ZergBuilding", "Egg",
+    "Cocoon", "Colony", "Zerg"
+  ]);
+  add("Neutral", ["Bengalaas", "Kakaru", "Ragnasaur", "Rhynsdon", "Scantid", "Ursadon"]);
+  add("Effects", ["FireSpark", "VultureSpark", "GreenFog", "Greenball", "PurpleCloud", "DragoonBall", "ReaverBomb", "Sunken", "Missle", "Overload", "Building"]);
+  add("Magic", ["Magic"]);
+  add("UI", ["GameWin", "GameLose", "YouWin", "YouLose", "LevelSelect", "Button", "PointError", "gas", "mine", "man", "magic", "upgrade"]);
+  return map;
+})();
+_$.resolveBgmSrc = function (src) {
+  if (!src || src.indexOf('bgm/') !== 0) return src;
+  var file = src.slice(4);
+  var prefix = file.split('.')[0];
+  var folder = _$.bgmFolderByPrefix[prefix];
+  if (!folder && file.endsWith('.burst.wav')) folder = "Effects";
+  return folder ? ("bgm/" + folder + "/" + file) : src;
+};
+
+if (!Audio.__scWrappedBgm) {
+  Audio.__scWrappedBgm = true;
+  var __nativeAudio = Audio;
+  var WrappedAudio = function (src) {
+    if (typeof src === 'string') src = _$.resolveBgmSrc(src);
+    return new __nativeAudio(src);
+  };
+  WrappedAudio.prototype = __nativeAudio.prototype;
+  window.Audio = WrappedAudio;
+}
+
 if (!Audio.prototype.__scAudioPlayPatched) {
   Audio.prototype.__scAudioPlayPatched = true;
   var __nativePlay = Audio.prototype.play;
