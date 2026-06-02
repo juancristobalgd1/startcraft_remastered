@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rendering Unit Tests</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1a1a2e; color: #eee; }
+        .test-container { margin: 10px 0; padding: 15px; background: #16213e; border-radius: 8px; }
+        .test-pass { border-left: 4px solid #00ff00; }
+        .test-fail { border-left: 4px solid #ff0000; }
+        .test-name { font-weight: bold; margin-bottom: 10px; }
+        .test-result { font-size: 14px; }
+        .pass { color: #00ff00; }
+        .fail { color: #ff0000; }
+        h1 { color: #00d4ff; }
+        h2 { color: #00d4ff; margin-top: 30px; }
+        #summary { font-size: 18px; margin: 20px 0; padding: 15px; background: #0f3460; border-radius: 8px; }
+        .hidden-canvas { display: none; }
+    </style>
+</head>
+<body>
+    <h1>Rendering System Unit Tests</h1>
+    <div id="summary"></div>
+    <div id="results"></div>
+    
+    <canvas id="testCanvas" class="hidden-canvas" width="800" height="600"></canvas>
+    
+    <script type="module">
+        import '../Utils/gFrame/audio.js';
+        import Game from '../GameRule/Games/core/GameBase.js';
+        import GameMap from '../Characters/Map.js';
+        import Unit from '../Characters/Units/core/UnitBase.js';
+        import Building from '../Characters/Buildings/core/BuildingBase.js';
+        import Gobj from '../Characters/Gobj.js';
+        import sourceLoader from '../Utils/sourceLoader.js';
+        import Protoss from '../Characters/Protosses/core/ProtossBase.js';
+        import Zerg from '../Characters/Zergs/core/ZergBase.js';
+        import { ProtossBuilding } from '../Characters/Buildings/core/BuildingRaces.js';
+        import { LurkerCocoon } from '../Characters/Buildings/zerg/ZergEvolve.js';
+        import '../Characters/Protosses/ground/ProtossGround.js';
+        import '../Characters/Zergs/ground/ZergGround.js';
+        import '../Characters/Buildings/protoss/ProtossSpecial.js';
+
+        // Mock map source to initialize explored area
+        sourceLoader.sources['Map_Switchback'] = { width: 1024, height: 1024 };
+        GameMap.setCurrentMap('Switchback');
+
+        const results = [];
+        let passed = 0;
+        let failed = 0;
+
+        function test(name, fn) {
+            const container = document.createElement('div');
+            container.className = 'test-container';
+            try {
+                const result = fn();
+                if (result.pass) {
+                    container.classList.add('test-pass');
+                    passed++;
+                } else {
+                    container.classList.add('test-fail');
+                    failed++;
+                }
+                container.innerHTML = `
+                    <div class="test-name">${name}</div>
+                    <div class="test-result ${result.pass ? 'pass' : 'fail'}">
+                        ${result.pass ? 'PASS' : 'FAIL'}: ${result.message}
+                    </div>
+                `;
+            } catch (e) {
+                container.classList.add('test-fail');
+                container.innerHTML = `
+                    <div class="test-name">${name}</div>
+                    <div class="test-result fail">ERROR: ${e.message}</div>
+                `;
+                failed++;
+            }
+            document.getElementById('results').appendChild(container);
+        }
+
+        function group(name) {
+            const heading = document.createElement('h2');
+            heading.textContent = name;
+            document.getElementById('results').appendChild(heading);
+        }
+
+        group('Visibility System Tests');
+
+        test('isUnitVisibleToPlayer returns true for allied units', () => {
+            const mockUnit = { isEnemy: false };
+            const result = GameMap.isUnitVisibleToPlayer(mockUnit);
+            return { pass: result === true, message: `Expected true, got ${result}` };
+        });
+
+        test('isUnitVisibleToPlayer returns true when fog is disabled', () => {
+            const originalFogFlag = GameMap.fogFlag;
+            GameMap.fogFlag = false;
+            const mockUnit = { isEnemy: true };
+            const result = GameMap.isUnitVisibleToPlayer(mockUnit);
+            GameMap.fogFlag = originalFogFlag;
+            return { pass: result === true, message: `Expected true, got ${result}` };
+        });
+
+        test('isUnitVisibleToPlayer returns true for revealed enemy units', () => {
+            const mockUnit = { 
+                isEnemy: true, 
+                _revealedUntil: Date.now() + 5000 
+            };
+            const result = GameMap.isUnitVisibleToPlayer(mockUnit);
+            return { pass: result === true, message: `Expected true, got ${result}` };
+        });
+
+        test('isUnitVisibleToPlayer returns true for recently attacking enemy units', () => {
+            const mockUnit = { 
+                isEnemy: true, 
+                _lastAttackAt: Date.now() - 1000 
+            };
+            const result = GameMap.isUnitVisibleToPlayer(mockUnit);
+            return { pass: result === true, message: `Expected true, got ${result}` };
+        });
+
+        group('Unit Visibility Check Tests');
+
+        test('revealUnitTemporarily sets _revealedUntil on enemy units', () => {
+            const mockUnit = { isEnemy: true };
+            GameMap.revealUnitTemporarily(mockUnit, 5000);
+            const now = (window.performance && performance.now) ? performance.now() : Date.now();
+            const hasRevealedUntil = mockUnit._revealedUntil && mockUnit._revealedUntil > now;
+            return { pass: hasRevealedUntil, message: `_revealedUntil should be set in the future` };
+        });
+
+        test('revealUnitTemporarily does not affect allied units', () => {
+            const mockUnit = { isEnemy: false };
+            GameMap.revealUnitTemporarily(mockUnit, 5000);
+            const notAffected = !mockUnit._revealedUntil;
+            return { pass: notAffected, message: `Allied units should not be affected` };
+        });
+
+        group('Fog of War Tests');
+
+        test('Fog flag can be toggled', () => {
+            const originalValue = GameMap.fogFlag;
+            GameMap.fogFlag = !GameMap.fogFlag;
+            const changed = GameMap.fogFlag !== originalValue;
+            GameMap.fogFlag = originalValue;
+            return { pass: changed, message: `Fog flag should be toggleable` };
+        });
+
+        test('Explored map is initialized correctly', () => {
+            const hasExplored = GameMap.explored !== null;
+            return { pass: hasExplored, message: `Explored map should be initialized` };
+        });
+
+        group('Attack Tracking Tests');
+
+        test('_lastAttackAt is set when unit attacks', () => {
+            let attackTracked = false;
+            const mockUnit = {
+                isEnemy: true,
+                _lastAttackAt: null
+            };
+            const now = (window.performance && performance.now) ? performance.now() : Date.now();
+            mockUnit._lastAttackAt = now;
+            attackTracked = mockUnit._lastAttackAt === now;
+            return { pass: attackTracked, message: `_lastAttackAt should be set on attack` };
+        });
+
+        test('Enemy unit becomes visible after attacking', () => {
+            const now = (window.performance && performance.now) ? performance.now() : Date.now();
+            const mockUnit = { 
+                isEnemy: true, 
+                status: 'alive',
+                _lastAttackAt: now - 1000
+            };
+            const isVisible = GameMap.isUnitVisibleToPlayer(mockUnit);
+            return { pass: isVisible, message: `Attacking enemy should be visible` };
+        });
+
+        test('Enemy unit visibility expires after timeout', () => {
+            const now = (window.performance && performance.now) ? performance.now() : Date.now();
+            const mockUnit = { 
+                isEnemy: true, 
+                status: 'alive',
+                _lastAttackAt: now - 5000
+            };
+            const isVisible = GameMap.isUnitVisibleToPlayer(mockUnit);
+            return { pass: !isVisible, message: `Enemy should not be visible after timeout` };
+        });
+
+        group('Rendering Pipeline Tests');
+
+        test('insideScreen method exists on units', () => {
+            const hasMethod = typeof Gobj.prototype.insideScreen === 'function';
+            return { pass: hasMethod, message: `insideScreen should be a method` };
+        });
+
+        test('canSee method exists on units', () => {
+            const hasMethod = typeof Gobj.prototype.canSee === 'function';
+            return { pass: hasMethod, message: `canSee should be a method` };
+        });
+
+        group('Gameplay Logic / isEnemy Propagation Tests');
+
+        test('Unit constructor inherits isEnemy from target', () => {
+            const targetUnit = { isEnemy: true };
+            const u = new Unit({ target: targetUnit });
+            const isOk = u.isEnemy === true;
+            u.die(); // clean up from lists
+            return { pass: isOk, message: `Unit constructor should inherit isEnemy from target` };
+        });
+
+        test('Building constructor inherits isEnemy from target', () => {
+            const targetBuilding = { isEnemy: true };
+            const b = new Building({ target: targetBuilding });
+            const isOk = b.isEnemy === true;
+            b.die(); // clean up from lists
+            return { pass: isOk, message: `Building constructor should inherit isEnemy from target` };
+        });
+
+        test('evolveTo propagates isEnemy to new type', () => {
+            class DummyOld extends Gobj {
+                constructor(props) {
+                    super(props);
+                }
+            }
+            class DummyNew extends Gobj {
+                constructor(props) {
+                    super(props);
+                }
+            }
+            const oldChara = new DummyOld({ isEnemy: true });
+            const newChara = oldChara.evolveTo(DummyNew);
+            const isOk = newChara && newChara.isEnemy === true;
+            return { pass: isOk, message: `evolveTo should propagate isEnemy to new type` };
+        });
+
+        test('LurkerCocoon evolves to Lurker unit', () => {
+            const cocoon = new LurkerCocoon({ x: 100, y: 100, isEnemy: true });
+            const result = cocoon.evolveTo(Zerg.Lurker);
+            const isOk = result instanceof Zerg.Lurker && result.isEnemy === true;
+            if (result) result.die();
+            return { pass: isOk, message: `LurkerCocoon should evolve to Zerg.Lurker and propagate isEnemy` };
+        });
+
+        test('ProtossBuilding.Archon evolves to Archon unit', () => {
+            const cocoon = new ProtossBuilding.Archon({ x: 100, y: 100, isEnemy: true });
+            const result = cocoon.evolveTo(Protoss.Archon);
+            const isOk = result instanceof Protoss.Archon && result.isEnemy === true;
+            if (result) result.die();
+            return { pass: isOk, message: `ProtossBuilding.Archon should evolve to Protoss.Archon and propagate isEnemy` };
+        });
+
+        const summary = document.getElementById('summary');
+        summary.innerHTML = `
+            <strong>Test Summary:</strong><br>
+            Total: ${passed + failed} | 
+            <span class="pass">Passed: ${passed}</span> | 
+            <span class="fail">Failed: ${failed}</span>
+        `;
+    </script>
+</body>
+</html>

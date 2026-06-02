@@ -1,3 +1,5 @@
+import Animation from '../core/AnimationBase.js';
+
 Animation.ScannerSweep = class ScannerSweep extends Animation {};
 Object.assign(Animation.ScannerSweep.prototype, {
     //Add basic unit info

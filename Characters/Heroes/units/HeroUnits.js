@@ -1,256 +1,382 @@
-Hero.HeroCruiser=AttackableUnit.extends({
-    constructorPlus:function(props){
-        this.imgPos.dock=this.imgPos.moving;
-        this.frame.dock=this.frame.moving;
-        this.magic=this.get('MP');
-    },
-    prototypePlus: {
-        name: "HeroCruiser",
-        imgPos: {
-            moving: {
-                left: [0, 95, 195, 297, 0, 99, 201, 301],
-                top: [81, 81, 81, 81, 0, 0, 0, 0]
-            }
-        },
-        width: 94,
-        height: 80,
-        frame: {
-            moving: 1,
-            stop: 1
-        },
-        speed:Unit.getSpeedMatrixBy(9),
-        HP: 1000,
-        damage: 50,
-        armor:3,
-        MP: 500,
-        sight:385,
-        attackRange: 250,
-        attackInterval: 3000,
-        portraitOffset: {x:240,y:168},
-        dieEffect:Burst.BigExplode,
-        isFlying:true,
-        unitType:Unit.BIG,
-        attackType:AttackableUnit.NORMAL_ATTACK,
-        recover:function(){
-            if (this.magic<this.get('MP')) {
-                this.magic+=3;
-                if (this.magic>this.get('MP')) this.magic=this.get('MP');
-            }
-        },
-        items:{
-            '6':{name:'Yamato'},
-            '7':{name:'DefensiveMatrix'},
-            '8':{name:'EMPShockwave'},
-            '9':{name:'Irradiate'}
-        },
-        cost:{
-            man:8
-        },
-        dock:function(){
-            Zerg.Devourer.prototype.dock.call(this);
+import Hero from '../core/HeroBase.js';
+import Unit from '../../Units/core/UnitBase.js';
+import AttackableUnit from '../../Units/core/AttackableUnitBase.js';
+import Burst from '../../Bursts/core/BurstBase.js';
+import { BigExplode } from '../../Bursts/buildings/BuildingBursts.js';
+import { HumanDeath, FireSpark } from '../../Bursts/terran/TerranEffects.js';
+import { SmallZergFlyingDeath } from '../../Bursts/zerg/ZergDeaths.js';
+import Gobj from '../../Gobj.js';
+
+export class HeroCruiser extends AttackableUnit {
+    constructor(props) {
+        super(props);
+        this.imgPos.dock = this.imgPos.moving;
+        this.frame.dock = this.frame.moving;
+        this.magic = this.get('MP');
+    }
+
+    name = "HeroCruiser";
+    imgPos = {
+        moving: {
+            left: [0, 95, 195, 297, 0, 99, 201, 301],
+            top: [81, 81, 81, 81, 0, 0, 0, 0]
+        }
+    };
+    width = 94;
+    height = 80;
+    frame = {
+        moving: 1,
+        stop: 1
+    };
+    speed = Unit.getSpeedMatrixBy(9);
+    HP = 1000;
+    damage = 50;
+    armor = 3;
+    MP = 500;
+    sight = 385;
+    attackRange = 250;
+    attackInterval = 3000;
+    portraitOffset = {x:240,y:168};
+    dieEffect = BigExplode;
+    isFlying = true;
+    unitType = Unit.BIG;
+    attackType = AttackableUnit.NORMAL_ATTACK;
+    items = {
+        '6':{name:'Yamato'},
+        '7':{name:'DefensiveMatrix'},
+        '8':{name:'EMPShockwave'},
+        '9':{name:'Irradiate'}
+    };
+    cost = {
+        man:8
+    };
+
+    recover() {
+        if (this.magic < this.get('MP')) {
+            this.magic += 3;
+            if (this.magic > this.get('MP')) this.magic = this.get('MP');
         }
     }
-});
-Hero.Kerrigan=AttackableUnit.extends({
-    constructorPlus:function(props){
-        this.magic=this.get('MP');
-    },
-    prototypePlus: {
-        name: "Kerrigan",
-        imgPos: {
-            moving: {
-                left: [
-                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    [74, 74, 74, 74, 74, 74, 74, 74, 74],
-                    [148, 148, 148, 148, 148, 148, 148, 148, 148],
-                    [222, 222, 222, 222, 222, 222, 222, 222, 222],
-                    [296, 296, 296, 296, 296, 296, 296, 296, 296],
-                    [407, 407, 407, 407, 407, 407, 407, 407, 407],
-                    [481, 481, 481, 481, 481, 481, 481, 481, 481],
-                    [555, 555, 555, 555, 555, 555, 555, 555, 555]
-                ],
-                top: [
-                    [0, 43, 86, 129, 172, 215, 258, 301, 344],
-                    [0, 43, 86, 129, 172, 215, 258, 301, 344],
-                    [0, 43, 86, 129, 172, 215, 258, 301, 344],
-                    [0, 43, 86, 129, 172, 215, 258, 301, 344],
-                    [0, 43, 86, 129, 172, 215, 258, 301, 344],
-                    [0, 43, 86, 129, 172, 215, 258, 301, 344],
-                    [0, 43, 86, 129, 172, 215, 258, 301, 344],
-                    [0, 43, 86, 129, 172, 215, 258, 301, 344]
-                ]
-            },
-            attack: {
-                left: [
-                    [0, 0, 0, 0],
-                    [74, 74, 74, 74],
-                    [148, 148, 148, 148],
-                    [222, 222, 222, 222],
-                    [296, 296, 296, 296],
-                    [407, 407, 407, 407],
-                    [481, 481, 481, 481],
-                    [555, 555, 555, 555]
-                ],
-                top: [
-                    [387, 430, 473, 516],
-                    [387, 430, 473, 516],
-                    [387, 430, 473, 516],
-                    [387, 430, 473, 516],
-                    [387, 430, 473, 516],
-                    [387, 430, 473, 516],
-                    [387, 430, 473, 516],
-                    [387, 430, 473, 516]
-                ]
-            },
+
+    dock() {
+        AttackableUnit.hover.call(this);
+    }
+}
+Hero.HeroCruiser = HeroCruiser;
+
+export class Kerrigan extends AttackableUnit {
+    constructor(props) {
+        super(props);
+        this.magic = this.get('MP');
+    }
+
+    name = "Kerrigan";
+    imgPos = {
+        moving: {
+            left: [
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [74, 74, 74, 74, 74, 74, 74, 74, 74],
+                [148, 148, 148, 148, 148, 148, 148, 148, 148],
+                [222, 222, 222, 222, 222, 222, 222, 222, 222],
+                [296, 296, 296, 296, 296, 296, 296, 296, 296],
+                [407, 407, 407, 407, 407, 407, 407, 407, 407],
+                [481, 481, 481, 481, 481, 481, 481, 481, 481],
+                [555, 555, 555, 555, 555, 555, 555, 555, 555]
+            ],
+            top: [
+                [0, 43, 86, 129, 172, 215, 258, 301, 344],
+                [0, 43, 86, 129, 172, 215, 258, 301, 344],
+                [0, 43, 86, 129, 172, 215, 258, 301, 344],
+                [0, 43, 86, 129, 172, 215, 258, 301, 344],
+                [0, 43, 86, 129, 172, 215, 258, 301, 344],
+                [0, 43, 86, 129, 172, 215, 258, 301, 344],
+                [0, 43, 86, 129, 172, 215, 258, 301, 344],
+                [0, 43, 86, 129, 172, 215, 258, 301, 344]
+            ]
+        },
+        attack: {
+            left: [
+                [0, 0, 0, 0],
+                [74, 74, 74, 74],
+                [148, 148, 148, 148],
+                [222, 222, 222, 222],
+                [296, 296, 296, 296],
+                [407, 407, 407, 407],
+                [481, 481, 481, 481],
+                [555, 555, 555, 555]
+            ],
+            top: [
+                [387, 430, 473, 516],
+                [387, 430, 473, 516],
+                [387, 430, 473, 516],
+                [387, 430, 473, 516],
+                [387, 430, 473, 516],
+                [387, 430, 473, 516],
+                [387, 430, 473, 516],
+                [387, 430, 473, 516]
+            ]
+        },
+        dock: {
+            left: [0, 74, 148, 222, 296, 407, 481, 555],
+            top: [0, 0, 0, 0, 0, 0, 0, 0]
+        }
+    };
+    width = 37;
+    height = 43;
+    frame = {
+        moving: 9,
+        dock: 1,
+        attack: 4
+    };
+    speed = Unit.getSpeedMatrixBy(10);
+    HP = 300;
+    damage = 20;
+    armor = 1;
+    MP = 300;
+    sight = 315;
+    attackRange = 210;
+    attackInterval = 2200;
+    portraitOffset = {x:540,y:168};
+    dieEffect = HumanDeath;
+    attackEffect = FireSpark;
+    isFlying = false;
+    unitType = Unit.SMALL;
+    attackType = AttackableUnit.WAVE_ATTACK;
+    cost = {
+        man:1
+    };
+    items = {
+        '6':{name:'StimPacks'},
+        '7':{name:'Cloak'},
+        '8':{name:'Lockdown'}
+    };
+
+    recover() {
+        if (this.magic < this.get('MP')) {
+            this.magic += 2;
+            if (this.magic > this.get('MP')) this.magic = this.get('MP');
+        }
+    }
+
+    dock() {
+        AttackableUnit.turnAround.call(this);
+    }
+}
+Hero.Kerrigan = Kerrigan;
+
+export class Sarah extends AttackableUnit {
+    constructor(props) {
+        super(props);
+        this.magic = this.get('MP');
+    }
+
+    name = "Sarah";
+    imgPos = {
+        moving: {
+            left: [
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [124, 124, 124, 124, 124, 124, 124, 124],
+                [248, 248, 248, 248, 248, 248, 248, 248],
+                [372, 372, 372, 372, 372, 372, 372, 372],
+                [496, 496, 496, 496, 496, 496, 496, 496],
+                [682, 682, 682, 682, 682, 682, 682, 682],
+                [806, 806, 806, 806, 806, 806, 806, 806],
+                [930, 930, 930, 930, 930, 930, 930, 930]
+            ],
+            top: [
+                [0, 58, 116, 174, 232, 290, 348, 406],
+                [0, 58, 116, 174, 232, 290, 348, 406],
+                [0, 58, 116, 174, 232, 290, 348, 406],
+                [0, 58, 116, 174, 232, 290, 348, 406],
+                [0, 58, 116, 174, 232, 290, 348, 406],
+                [0, 58, 116, 174, 232, 290, 348, 406],
+                [0, 58, 116, 174, 232, 290, 348, 406],
+                [0, 58, 116, 174, 232, 290, 348, 406]
+            ]
+        },
+        attack: {
+            left: [
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [124, 124, 124, 124, 124, 124, 124, 124],
+                [248, 248, 248, 248, 248, 248, 248, 248],
+                [372, 372, 372, 372, 372, 372, 372, 372],
+                [496, 496, 496, 496, 496, 496, 496, 496],
+                [682, 682, 682, 682, 682, 682, 682, 682],
+                [806, 806, 806, 806, 806, 806, 806, 806],
+                [930, 930, 930, 930, 930, 930, 930, 930]
+            ],
+            top: [
+                [464, 522, 580, 638, 696, 754, 812, 870],
+                [464, 522, 580, 638, 696, 754, 812, 870],
+                [464, 522, 580, 638, 696, 754, 812, 870],
+                [464, 522, 580, 638, 696, 754, 812, 870],
+                [464, 522, 580, 638, 696, 754, 812, 870],
+                [464, 522, 580, 638, 696, 754, 812, 870],
+                [464, 522, 580, 638, 696, 754, 812, 870],
+                [464, 522, 580, 638, 696, 754, 812, 870]
+            ]
+        },
+        dock: {
+            left: [0, 124, 248, 372, 496, 682, 806, 930],
+            top: [0, 0, 0, 0, 0, 0, 0, 0]
+        }
+    };
+    width = 62;
+    height = 58;
+    frame = {
+        moving: 8,
+        dock: 1,
+        attack: 8
+    };
+    speed = Unit.getSpeedMatrixBy(10);
+    HP = 500;
+    SP = 500;
+    damage = 40;
+    armor = 2;
+    plasma = 0;
+    MP = 500;
+    sight = 315;
+    attackRange = 70;
+    attackInterval = 2000;
+    portraitOffset = {x:120,y:168};
+    dieEffect = HumanDeath;
+    attackEffect = FireSpark;
+    isFlying = false;
+    unitType = Unit.SMALL;
+    attackType = AttackableUnit.NORMAL_ATTACK;
+    cost = {
+        man:2
+    };
+    items = {
+        '6':{name:'Cloak'},
+        '7':{name:'PsionicStorm'},
+        '8':{name:'Plague'},
+        '9':{name:'Ensnare'}
+    };
+
+    recover() {
+        if (this.life < this.get('HP')) {
+            this.life += 3;
+            if (this.life > this.get('HP')) this.life = this.get('HP');
+        }
+        if (this.shield < this.get('SP')) {
+            this.shield += 3;
+            if (this.shield > this.get('SP')) this.shield = this.get('SP');
+        }
+        if (this.magic < this.get('MP')) {
+            this.magic += 3;
+            if (this.magic > this.get('MP')) this.magic = this.get('MP');
+        }
+    }
+
+    dock() {
+        AttackableUnit.turnAround.call(this);
+    }
+}
+Hero.Sarah = Sarah;
+
+export class DevilHunter extends AttackableUnit {
+    constructor(props) {
+        super(props);
+        this.magic = this.get('MP');
+    }
+
+    name = "DevilHunter";
+    imgPos = {
+        moving: {
+            left: [
+                [0,0,0,0,0,0,0,0],[62,62,62,62,62,62,62,62],
+                [124,124,124,124,124,124,124,124],[186,186,186,186,186,186,186,186],
+                [248,248,248,248,248,248,248,248],[310,310,310,310,310,310,310,310],
+                [372,372,372,372,372,372,372,372],[434,434,434,434,434,434,434,434],
+                [496,496,496,496,496,496,496,496],[620,620,620,620,620,620,620,620],
+                [682,682,682,682,682,682,682,682],[744,744,744,744,744,744,744,744],
+                [806,806,806,806,806,806,806,806],[868,868,868,868,868,868,868,868],
+                [930,930,930,930,930,930,930,930],[992,992,992,992,992,992,992,992]
+            ],
+            top: [
+                [0,58,116,174,232,290,348,406],[0,58,116,174,232,290,348,406],
+                [0,58,116,174,232,290,348,406],[0,58,116,174,232,290,348,406],
+                [0,58,116,174,232,290,348,406],[0,58,116,174,232,290,348,406],
+                [0,58,116,174,232,290,348,406],[0,58,116,174,232,290,348,406],
+                [0,58,116,174,232,290,348,406],[0,58,116,174,232,290,348,406],
+                [0,58,116,174,232,290,348,406],[0,58,116,174,232,290,348,406],
+                [0,58,116,174,232,290,348,406],[0,58,116,174,232,290,348,406],
+                [0,58,116,174,232,290,348,406],[0,58,116,174,232,290,348,406]
+            ]
+        },
+        attack: {
+            left: [
+                [0,0,0,0,0,0,0,0],[62,62,62,62,62,62,62,62],
+                [124,124,124,124,124,124,124,124],[186,186,186,186,186,186,186,186],
+                [248,248,248,248,248,248,248,248],[310,310,310,310,310,310,310,310],
+                [372,372,372,372,372,372,372,372],[434,434,434,434,434,434,434,434],
+                [496,496,496,496,496,496,496,496],[620,620,620,620,620,620,620,620],
+                [682,682,682,682,682,682,682,682],[744,744,744,744,744,744,744,744],
+                [806,806,806,806,806,806,806,806],[868,868,868,868,868,868,868,868],
+                [930,930,930,930,930,930,930,930],[992,992,992,992,992,992,992,992]
+            ],
+            top: [
+                [464,522,580,638,696,754,812,870],[464,522,580,638,696,754,812,870],
+                [464,522,580,638,696,754,812,870],[464,522,580,638,696,754,812,870],
+                [464,522,580,638,696,754,812,870],[464,522,580,638,696,754,812,870],
+                [464,522,580,638,696,754,812,870],[464,522,580,638,696,754,812,870],
+                [464,522,580,638,696,754,812,870],[464,522,580,638,696,754,812,870],
+                [464,522,580,638,696,754,812,870],[464,522,580,638,696,754,812,870],
+                [464,522,580,638,696,754,812,870],[464,522,580,638,696,754,812,870],
+                [464,522,580,638,696,754,812,870],[464,522,580,638,696,754,812,870]
+            ],
             dock: {
-                left: [0, 74, 148, 222, 296, 407, 481, 555],
-                top: [0, 0, 0, 0, 0, 0, 0, 0]
+                left: [0,62,124,186,248,310,372,434,496,620,682,744,806,868,930,992],
+                top: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
             }
-        },
-        width: 37,
-        height: 43,
-        frame: {
-            moving: 9,
-            dock: 1,
-            attack:4
-        },
-        speed:Unit.getSpeedMatrixBy(10),
-        HP: 300,
-        damage: 20,
-        armor:1,
-        MP: 300,
-        sight:315,
-        attackRange: 210,
-        attackInterval: 2200,
-        portraitOffset: {x:540,y:168},
-        dieEffect:Burst.HumanDeath,
-        attackEffect:Burst.FireSpark,
-        isFlying:false,
-        unitType:Unit.SMALL,
-        attackType:AttackableUnit.WAVE_ATTACK,
-        recover:function(){
-            if (this.magic<this.get('MP')) {
-                this.magic+=2;
-                if (this.magic>this.get('MP')) this.magic=this.get('MP');
+        }
+    };
+    width = 62;
+    height = 58;
+    frame = {
+        moving: 8,
+        dock: 1,
+        attack: 8
+    };
+    speed = 10;
+    HP = 2000;
+    SP = 2000;
+    MP = 200;
+    damage = 30;
+    armor = 0;
+    plasma = 0;
+    sight = 315;
+    detector = Gobj.detectorBuffer;
+    attackRange = 210;
+    attackInterval = 1500;
+    fireDelay = 600;
+    dieEffect = SmallZergFlyingDeath;
+    isFlying = false;
+    unitType = Unit.SMALL;
+    attackType = AttackableUnit.NORMAL_ATTACK;
+    cost = {
+        man: 8
+    };
+    upgrade = ['UpgradeGroundWeapons', 'UpgradeGroundArmor', 'UpgradePlasmaShields'];
+
+    recover() {
+            if (this.life < this.get('HP')) {
+                this.life += 5;
+                if (this.life > this.get('HP')) this.life = this.get('HP');
             }
-        },
-        cost:{
-            man:1
-        },
-        items:{
-            '6':{name:'StimPacks'},
-            '7':{name:'Cloak'},
-            '8':{name:'Lockdown'}
-        },
-        dock:function(){
+            if (this.shield < this.get('SP')) {
+                this.shield += 5;
+                if (this.shield > this.get('SP')) this.shield = this.get('SP');
+            }
+            if (this.magic < this.get('MP')) {
+                this.magic += 5;
+                if (this.magic > this.get('MP')) this.magic = this.get('MP');
+            }
+        }
+
+        dock() {
             AttackableUnit.turnAround.call(this);
         }
-    }
-});
-Hero.Sarah=AttackableUnit.extends({
-    constructorPlus:function(props){
-        this.magic=this.get('MP');
-    },
-    prototypePlus: {
-        name: "Sarah",
-        imgPos: {
-            moving: {
-                left: [
-                    [0, 0, 0, 0, 0, 0, 0, 0],
-                    [124, 124, 124, 124, 124, 124, 124, 124],
-                    [248, 248, 248, 248, 248, 248, 248, 248],
-                    [372, 372, 372, 372, 372, 372, 372, 372],
-                    [496, 496, 496, 496, 496, 496, 496, 496],
-                    [682, 682, 682, 682, 682, 682, 682, 682],
-                    [806, 806, 806, 806, 806, 806, 806, 806],
-                    [930, 930, 930, 930, 930, 930, 930, 930]
-                ],
-                top: [
-                    [0, 58, 116, 174, 232, 290, 348, 406],
-                    [0, 58, 116, 174, 232, 290, 348, 406],
-                    [0, 58, 116, 174, 232, 290, 348, 406],
-                    [0, 58, 116, 174, 232, 290, 348, 406],
-                    [0, 58, 116, 174, 232, 290, 348, 406],
-                    [0, 58, 116, 174, 232, 290, 348, 406],
-                    [0, 58, 116, 174, 232, 290, 348, 406],
-                    [0, 58, 116, 174, 232, 290, 348, 406]
-                ]
-            },
-            attack: {
-                left: [
-                    [0, 0, 0, 0, 0, 0, 0, 0],
-                    [124, 124, 124, 124, 124, 124, 124, 124],
-                    [248, 248, 248, 248, 248, 248, 248, 248],
-                    [372, 372, 372, 372, 372, 372, 372, 372],
-                    [496, 496, 496, 496, 496, 496, 496, 496],
-                    [682, 682, 682, 682, 682, 682, 682, 682],
-                    [806, 806, 806, 806, 806, 806, 806, 806],
-                    [930, 930, 930, 930, 930, 930, 930, 930]
-                ],
-                top: [
-                    [464, 522, 580, 638, 696, 754, 812, 870],
-                    [464, 522, 580, 638, 696, 754, 812, 870],
-                    [464, 522, 580, 638, 696, 754, 812, 870],
-                    [464, 522, 580, 638, 696, 754, 812, 870],
-                    [464, 522, 580, 638, 696, 754, 812, 870],
-                    [464, 522, 580, 638, 696, 754, 812, 870],
-                    [464, 522, 580, 638, 696, 754, 812, 870],
-                    [464, 522, 580, 638, 696, 754, 812, 870]
-                ]
-            },
-            dock: {
-                left: [0, 124, 248, 372, 496, 682, 806, 930],
-                top: [0, 0, 0, 0, 0, 0, 0, 0]
-            }
-        },
-        width: 62,
-        height: 58,
-        frame: {
-            moving: 8,
-            dock: 1,
-            attack: 8
-        },
-        speed:Unit.getSpeedMatrixBy(10),
-        HP: 500,
-        SP: 500,
-        damage: 40,
-        armor:2,
-        plasma:0,
-        MP: 500,
-        sight:315,
-        attackRange: 70,
-        attackInterval: 2000,
-        portraitOffset: {x:120,y:168},
-        dieEffect:Burst.HumanDeath,
-        attackEffect:Burst.FireSpark,
-        isFlying:false,
-        unitType:Unit.SMALL,
-        attackType:AttackableUnit.NORMAL_ATTACK,
-        recover:function(){
-            if (this.life<this.get('HP')) {
-                this.life+=3;
-                if (this.life>this.get('HP')) this.life=this.get('HP');
-            }
-            if (this.shield<this.get('SP')) {
-                this.shield+=3;
-                if (this.shield>this.get('SP')) this.shield=this.get('SP');
-            }
-            if (this.magic<this.get('MP')) {
-                this.magic+=3;
-                if (this.magic>this.get('MP')) this.magic=this.get('MP');
-            }
-        },
-        cost:{
-            man:2
-        },
-        items:{
-            '6':{name:'Cloak'},
-            '7':{name:'PsionicStorm'},
-            '8':{name:'Plague'},
-            '9':{name:'Ensnare'}
-        },
-        dock:function(){
-            AttackableUnit.turnAround.call(this);
-        }
-    }
-});
+}
+Hero.DevilHunter = DevilHunter;

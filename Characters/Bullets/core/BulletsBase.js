@@ -1,31 +1,62 @@
+import Gobj from '../../Gobj.js';
+import Unit from '../../Units/core/UnitBase.js';
+import Building from '../../Buildings/core/BuildingBase.js';
+
 class Bullets extends Gobj {
     constructor(props) {
         super(props);
         if (!props) return;
-        this.owner = props.from;
-        const ownerX = (this.owner instanceof Gobj) ? (this.owner.posX()) : (this.owner.x);
-        const ownerY = (this.owner instanceof Gobj) ? (this.owner.posY()) : (this.owner.y);
-        this.target = props.to;
-        const targetX = (this.target instanceof Gobj) ? (this.target.posX()) : (this.target.x);
-        const targetY = (this.target instanceof Gobj) ? (this.target.posY()) : (this.target.y);
-        this.x = ownerX - this.width / 2;
-        this.y = ownerY - this.height / 2;
-        this.speed = {
-            x: (targetX - ownerX) / (this.duration / 100),
-            y: (targetY - ownerY) / (this.duration / 100)
-        };
-        if (this.forbidRotate) this.angle = 0;
-        else {
-            this.angle = Math.atan((ownerY - targetY) / (targetX - ownerX));
-            if (targetX < ownerX) this.angle += Math.PI;
-        }
-        this.status = "dead";
-        if (props.damage != null) this.damage = props.damage;
+        
+        // Defer complete initialization to next tick so that subclasses' fields 
+        // (like width, height, duration, forbidRotate) are fully initialized before use.
+        setTimeout(() => {
+            this.owner = props.from;
+            const ownerX = (this.owner instanceof Gobj) ? (this.owner.posX()) : (this.owner.x);
+            const ownerY = (this.owner instanceof Gobj) ? (this.owner.posY()) : (this.owner.y);
+            this.target = props.to;
+            const targetX = (this.target instanceof Gobj) ? (this.target.posX()) : (this.target.x);
+            const targetY = (this.target instanceof Gobj) ? (this.target.posY()) : (this.target.y);
+            
+            this.x = ownerX - (this.width || 0) / 2;
+            this.y = ownerY - (this.height || 0) / 2;
+            
+            const duration = this.duration || 100;
+            this.speed = {
+                x: (targetX - ownerX) / (duration / 100),
+                y: (targetY - ownerY) / (duration / 100)
+            };
+            if (this.forbidRotate) this.angle = 0;
+            else {
+                this.angle = Math.atan((ownerY - targetY) / (targetX - ownerX));
+                if (targetX < ownerX) this.angle += Math.PI;
+            }
+            this.status = "dead";
+            if (props.damage != null) this.damage = props.damage;
+            this.ticksRemaining = Math.max(1, (duration / 100) >> 0);
+            
+            // Start the movement if fire was already called
+            if (this._fired) {
+                this.moving();
+            }
+        }, 0);
     }
 
     updateLocation() {
         this.x += this.speed.x;
         this.y += this.speed.y;
+        
+        // Custom damage delay ticks check for subclasses (e.g. Interceptor)
+        if (this.damageDelayTicks && this.ticksRemaining === this.damageDelayTicks) {
+            if (this.onDamageDelay) this.onDamageDelay();
+        }
+
+        if (this.ticksRemaining > 0) {
+            this.ticksRemaining--;
+            if (this.ticksRemaining === 0) {
+                this.burst();
+                if (this.fireCallback) this.fireCallback();
+            }
+        }
     }
 
     burst() {
@@ -84,8 +115,8 @@ class Bullets extends Gobj {
         if (!this.noDamage) {
             if (owner.AOE) {
                 targets.forEach((chara) => {
-                    if (this.damage != null) target.getDamageBy(this.damage);
-                    else target.getDamageBy(owner);
+                    if (this.damage != null) chara.getDamageBy(this.damage);
+                    else chara.getDamageBy(owner);
                     chara.reactionWhenAttackedBy(owner);
                 })
             }
@@ -98,13 +129,17 @@ class Bullets extends Gobj {
     }
 
     fire(callback) {
-        this.moving();
-        if (this.insideScreen() && this.owner.sound.attack) this.owner.sound.attack.play();
-        setTimeout(() => {
-            this.burst();
-            if (callback) callback();
-        }, this.duration);
+        this.fireCallback = callback;
+        this._fired = true;
+        // If already initialized (timeout ran)
+        if (this.ticksRemaining !== undefined) {
+            this.moving();
+        }
     }
 }
 
-Bullets.prototype.duration = 500;
+if (typeof window !== 'undefined') {
+    window.Bullets = Bullets;
+}
+
+export default Bullets;

@@ -1,3 +1,40 @@
+import Upgrade from '../core/UpgradeBase.js';
+import Magic from '../../Magics/core/MagicBase.js';
+import { Forge, CyberneticsCore } from '../../Buildings/protoss/ProtossCore1.js';
+import { CitadelOfAdun, RoboticsSupportBay, FleetBeacon, TemplarArchives } from '../../Buildings/protoss/ProtossTech1.js';
+import { Observatory, ArbiterTribunal } from '../../Buildings/protoss/ProtossTech2.js';
+//import Protoss from '../../Protosses/core/ProtossBase.js';
+import Unit from '../../Units/core/UnitBase.js';
+import { Zealot, Dragoon, Templar, DarkTemplar, Archon, DarkArchon, Reaver } from '../../Protosses/ground/ProtossGround.js';
+import { Scout, Carrier, Arbiter, Corsair, Shuttle, Observer } from '../../Protosses/air/ProtossAir.js';
+import { Probe } from '../../Protosses/workers/ProtossWorkers.js';
+
+const addStat = (obj, key, idx, delta) => {
+    const proto = obj && obj.prototype;
+    if (!proto || !proto[key]) return;
+    proto[key][idx] += delta;
+};
+const setStat = (obj, key, idx, value) => {
+    const proto = obj && obj.prototype;
+    if (!proto || !proto[key]) return;
+    proto[key][idx] = value;
+};
+const addAttackModeStat = (obj, mode, key, idx, delta) => {
+    const proto = obj && obj.prototype;
+    const target = proto && proto.attackMode && proto.attackMode[mode] && proto.attackMode[mode][key];
+    if (!target) return;
+    target[idx] += delta;
+};
+const setAttackModeStat = (obj, mode, key, idx, value) => {
+    const proto = obj && obj.prototype;
+    const target = proto && proto.attackMode && proto.attackMode[mode] && proto.attackMode[mode][key];
+    if (!target) return;
+    target[idx] = value;
+};
+const delItem = (obj, key) => {
+    const proto = obj && obj.prototype;
+    if (proto && proto.items) delete proto.items[key];
+};
 Upgrade.UpgradeGroundWeapons={
     name:"UpgradeGroundWeapons",
     cost:{
@@ -7,13 +44,14 @@ Upgrade.UpgradeGroundWeapons={
     },
     level:[0,0],
     effect:function(isEnemy){
-        Protoss.Zealot.prototype.damage[Number(Boolean(isEnemy))]+=2;
-        Protoss.Dragoon.prototype.damage[Number(Boolean(isEnemy))]+=2;
-        Protoss.Templar.prototype.damage[Number(Boolean(isEnemy))]+=1;
-        Protoss.DarkTemplar.prototype.damage[Number(Boolean(isEnemy))]+=3;
-        Protoss.Archon.prototype.damage[Number(Boolean(isEnemy))]+=3;
-        this.level[Number(Boolean(isEnemy))]++;
-        if (this.level[0]>=3) delete Building.ProtossBuilding.Forge.prototype.items[1];
+        const idx = Number(Boolean(isEnemy));
+        addStat(Zealot, 'damage', idx, 2);
+        addStat(Dragoon, 'damage', idx, 2);
+        addStat(Templar, 'damage', idx, 1);
+        addStat(DarkTemplar, 'damage', idx, 3);
+        addStat(Archon, 'damage', idx, 3);
+        this.level[idx]++;
+        if (this.level[0]>=3) delItem(Forge, 1);
     }
 };
 Upgrade.UpgradeGroundArmor={
@@ -25,16 +63,17 @@ Upgrade.UpgradeGroundArmor={
     },
     level:[0,0],
     effect:function(isEnemy){
-        Protoss.Probe.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Protoss.Zealot.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Protoss.Dragoon.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Protoss.Templar.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Protoss.DarkTemplar.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Protoss.Archon.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Protoss.DarkArchon.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Protoss.Reaver.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        this.level[Number(Boolean(isEnemy))]++;
-        if (this.level[0]>=3) delete Building.ProtossBuilding.Forge.prototype.items[2];
+        const idx = Number(Boolean(isEnemy));
+        addStat(Probe, 'armor', idx, 1);
+        addStat(Zealot, 'armor', idx, 1);
+        addStat(Dragoon, 'armor', idx, 1);
+        addStat(Templar, 'armor', idx, 1);
+        addStat(DarkTemplar, 'armor', idx, 1);
+        addStat(Archon, 'armor', idx, 1);
+        addStat(DarkArchon, 'armor', idx, 1);
+        addStat(Reaver, 'armor', idx, 1);
+        this.level[idx]++;
+        if (this.level[0]>=3) delItem(Forge, 2);
     }
 };
 Upgrade.UpgradePlasmaShields={
@@ -46,11 +85,13 @@ Upgrade.UpgradePlasmaShields={
     },
     level:[0,0],
     effect:function(isEnemy){
-        for (var unitType in Protoss){
-            Protoss[unitType].prototype.plasma[Number(Boolean(isEnemy))]+=1;
-        }
-        this.level[Number(Boolean(isEnemy))]++;
-        if (this.level[0]>=3) delete Building.ProtossBuilding.Forge.prototype.items[3];
+        const idx = Number(Boolean(isEnemy));
+        var units = [Probe, Zealot, Dragoon, Templar, DarkTemplar, Archon, DarkArchon, Reaver, Scout, Carrier, Arbiter, Corsair, Shuttle, Observer];
+        units.forEach(unit => {
+            addStat(unit, 'plasma', idx, 1);
+        });
+        this.level[idx]++;
+        if (this.level[0]>=3) delItem(Forge, 3);
     }
 };
 Upgrade.UpgradeAirWeapons={
@@ -62,13 +103,14 @@ Upgrade.UpgradeAirWeapons={
     },
     level:[0,0],
     effect:function(isEnemy){
-        Protoss.Scout.prototype.attackMode.ground.damage[Number(Boolean(isEnemy))]+=1;
-        Protoss.Scout.prototype.attackMode.flying.damage[Number(Boolean(isEnemy))]+=2;
-        Protoss.Carrier.prototype.damage[Number(Boolean(isEnemy))]+=1;
-        Protoss.Arbiter.prototype.damage[Number(Boolean(isEnemy))]+=1;
-        Protoss.Corsair.prototype.damage[Number(Boolean(isEnemy))]+=1;
-        this.level[Number(Boolean(isEnemy))]++;
-        if (this.level[0]>=3) delete Building.ProtossBuilding.CyberneticsCore.prototype.items[1];
+        const idx = Number(Boolean(isEnemy));
+        addAttackModeStat(Scout, 'ground', 'damage', idx, 1);
+        addAttackModeStat(Scout, 'flying', 'damage', idx, 2);
+        addStat(Carrier, 'damage', idx, 1);
+        addStat(Arbiter, 'damage', idx, 1);
+        addStat(Corsair, 'damage', idx, 1);
+        this.level[idx]++;
+        if (this.level[0]>=3) delItem(CyberneticsCore, 1);
     }
 };
 Upgrade.UpgradeAirArmor={
@@ -80,12 +122,13 @@ Upgrade.UpgradeAirArmor={
     },
     level:[0,0],
     effect:function(isEnemy){
-        Protoss.Scout.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Protoss.Carrier.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Protoss.Arbiter.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Protoss.Corsair.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        this.level[Number(Boolean(isEnemy))]++;
-        if (this.level[0]>=3) delete Building.ProtossBuilding.CyberneticsCore.prototype.items[2];
+        const idx = Number(Boolean(isEnemy));
+        addStat(Scout, 'armor', idx, 1);
+        addStat(Carrier, 'armor', idx, 1);
+        addStat(Arbiter, 'armor', idx, 1);
+        addStat(Corsair, 'armor', idx, 1);
+        this.level[idx]++;
+        if (this.level[0]>=3) delItem(CyberneticsCore, 2);
     }
 };
 Upgrade.DevelopSingularityCharge={
@@ -96,8 +139,9 @@ Upgrade.DevelopSingularityCharge={
         time:1660
     },
     effect:function(isEnemy){
-        Protoss.Dragoon.prototype.attackRange[Number(Boolean(isEnemy))]=210;
-        delete Building.ProtossBuilding.CyberneticsCore.prototype.items[3];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Dragoon, 'attackRange', idx, 210);
+        delItem(CyberneticsCore, 3);
     }
 };
 Upgrade.DevelopLegEnhancements={
@@ -108,8 +152,9 @@ Upgrade.DevelopLegEnhancements={
         time:1330
     },
     effect:function(isEnemy){
-        Protoss.Zealot.prototype.speed[Number(Boolean(isEnemy))]=Unit.getSpeedMatrixBy(14);
-        delete Building.ProtossBuilding.CitadelOfAdun.prototype.items[1];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Zealot, 'speed', idx, Unit.getSpeedMatrixBy(14));
+        delItem(CitadelOfAdun, 1);
     }
 };
 Upgrade.UpgradeScarabDamage={
@@ -120,8 +165,9 @@ Upgrade.UpgradeScarabDamage={
         time:1660
     },
     effect:function(isEnemy){
-        Protoss.Reaver.prototype.damage[Number(Boolean(isEnemy))]=125;
-        delete Building.ProtossBuilding.RoboticsSupportBay.prototype.items[1];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Reaver, 'damage', idx, 125);
+        delItem(RoboticsSupportBay, 1);
     }
 };
 Upgrade.IncreaseReaverCapacity={
@@ -132,8 +178,9 @@ Upgrade.IncreaseReaverCapacity={
         time:1660
     },
     effect:function(isEnemy){
-        Protoss.Reaver.prototype.scarabCapacity[Number(Boolean(isEnemy))]=10;
-        delete Building.ProtossBuilding.RoboticsSupportBay.prototype.items[2];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Reaver, 'scarabCapacity', idx, 10);
+        delItem(RoboticsSupportBay, 2);
     }
 };
 Upgrade.DevelopGraviticDrive={
@@ -144,8 +191,9 @@ Upgrade.DevelopGraviticDrive={
         time:1660
     },
     effect:function(isEnemy){
-        Protoss.Shuttle.prototype.speed[Number(Boolean(isEnemy))]=Unit.getSpeedMatrixBy(16);
-        delete Building.ProtossBuilding.RoboticsSupportBay.prototype.items[3];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Shuttle, 'speed', idx, Unit.getSpeedMatrixBy(16));
+        delItem(RoboticsSupportBay, 3);
     }
 };
 Upgrade.DevelopApialSensors={
@@ -156,8 +204,9 @@ Upgrade.DevelopApialSensors={
         time:1660
     },
     effect:function(isEnemy){
-        Protoss.Scout.prototype.sight[Number(Boolean(isEnemy))]=350;
-        delete Building.ProtossBuilding.FleetBeacon.prototype.items[1];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Scout, 'sight', idx, 350);
+        delItem(FleetBeacon, 1);
     }
 };
 Upgrade.DevelopGraviticThrusters={
@@ -168,8 +217,9 @@ Upgrade.DevelopGraviticThrusters={
         time:1660
     },
     effect:function(isEnemy){
-        Protoss.Scout.prototype.speed[Number(Boolean(isEnemy))]=Unit.getSpeedMatrixBy(16);
-        delete Building.ProtossBuilding.FleetBeacon.prototype.items[2];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Scout, 'speed', idx, Unit.getSpeedMatrixBy(16));
+        delItem(FleetBeacon, 2);
     }
 };
 Upgrade.IncreaseCarrierCapacity={
@@ -180,8 +230,9 @@ Upgrade.IncreaseCarrierCapacity={
         time:1000
     },
     effect:function(isEnemy){
-        Protoss.Carrier.prototype.interceptorCapacity[Number(Boolean(isEnemy))]=8;
-        delete Building.ProtossBuilding.FleetBeacon.prototype.items[3];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Carrier, 'interceptorCapacity', idx, 8);
+        delItem(FleetBeacon, 3);
     }
 };
 Upgrade.DevelopDistruptionWeb={
@@ -192,8 +243,8 @@ Upgrade.DevelopDistruptionWeb={
         time:800
     },
     effect:function(){
-        Magic.DisruptionWeb.enabled=true;
-        delete Building.ProtossBuilding.FleetBeacon.prototype.items[4];
+        if (Magic.DisruptionWeb) Magic.DisruptionWeb.enabled=true;
+        delItem(FleetBeacon, 4);
     }
 };
 Upgrade.DevelopArgusJewel={
@@ -204,8 +255,9 @@ Upgrade.DevelopArgusJewel={
         time:1660
     },
     effect:function(isEnemy){
-        Protoss.Corsair.prototype.MP[Number(Boolean(isEnemy))]=250;
-        delete Building.ProtossBuilding.FleetBeacon.prototype.items[5];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Corsair, 'MP', idx, 250);
+        delItem(FleetBeacon, 5);
     }
 };
 Upgrade.DevelopPsionicStorm={
@@ -216,8 +268,8 @@ Upgrade.DevelopPsionicStorm={
         time:1200
     },
     effect:function(){
-        Magic.PsionicStorm.enabled=true;
-        delete Building.ProtossBuilding.TemplarArchives.prototype.items[1];
+        if (Magic.PsionicStorm) Magic.PsionicStorm.enabled=true;
+        delItem(TemplarArchives, 1);
     }
 };
 Upgrade.DevelopHallucination={
@@ -228,8 +280,8 @@ Upgrade.DevelopHallucination={
         time:800
     },
     effect:function(){
-        Magic.Hallucination.enabled=true;
-        delete Building.ProtossBuilding.TemplarArchives.prototype.items[2];
+        if (Magic.Hallucination) Magic.Hallucination.enabled=true;
+        delItem(TemplarArchives, 2);
     }
 };
 Upgrade.DevelopKhaydarinAmulet={
@@ -240,8 +292,9 @@ Upgrade.DevelopKhaydarinAmulet={
         time:1660
     },
     effect:function(isEnemy){
-        Protoss.Templar.prototype.MP[Number(Boolean(isEnemy))]=250;
-        delete Building.ProtossBuilding.TemplarArchives.prototype.items[3];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Templar, 'MP', idx, 250);
+        delItem(TemplarArchives, 3);
     }
 };
 Upgrade.DevelopMindControl={
@@ -252,8 +305,8 @@ Upgrade.DevelopMindControl={
         time:1200
     },
     effect:function(){
-        Magic.MindControl.enabled=true;
-        delete Building.ProtossBuilding.TemplarArchives.prototype.items[4];
+        if (Magic.MindControl) Magic.MindControl.enabled=true;
+        delItem(TemplarArchives, 4);
     }
 };
 Upgrade.DevelopMaelStorm={
@@ -264,8 +317,8 @@ Upgrade.DevelopMaelStorm={
         time:1000
     },
     effect:function(){
-        Magic.MaelStorm.enabled=true;
-        delete Building.ProtossBuilding.TemplarArchives.prototype.items[5];
+        if (Magic.MaelStorm) Magic.MaelStorm.enabled=true;
+        delItem(TemplarArchives, 5);
     }
 };
 Upgrade.DevelopArgusTalisman={
@@ -276,8 +329,9 @@ Upgrade.DevelopArgusTalisman={
         time:1660
     },
     effect:function(isEnemy){
-        Protoss.DarkArchon.prototype.MP[Number(Boolean(isEnemy))]=250;
-        delete Building.ProtossBuilding.TemplarArchives.prototype.items[6];
+        const idx = Number(Boolean(isEnemy));
+        setStat(DarkArchon, 'MP', idx, 250);
+        delItem(TemplarArchives, 6);
     }
 };
 Upgrade.DevelopGraviticBooster={
@@ -288,8 +342,9 @@ Upgrade.DevelopGraviticBooster={
         time:1330
     },
     effect:function(isEnemy){
-        Protoss.Observer.prototype.speed[Number(Boolean(isEnemy))]=Unit.getSpeedMatrixBy(12);
-        delete Building.ProtossBuilding.Observatory.prototype.items[1];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Observer, 'speed', idx, Unit.getSpeedMatrixBy(12));
+        delItem(Observatory, 1);
     }
 };
 Upgrade.DevelopSensorArray={
@@ -300,8 +355,9 @@ Upgrade.DevelopSensorArray={
         time:1330
     },
     effect:function(isEnemy){
-        Protoss.Observer.prototype.sight[Number(Boolean(isEnemy))]=385;
-        delete Building.ProtossBuilding.Observatory.prototype.items[2];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Observer, 'sight', idx, 385);
+        delItem(Observatory, 2);
     }
 };
 Upgrade.DevelopRecall={
@@ -312,8 +368,8 @@ Upgrade.DevelopRecall={
         time:1200
     },
     effect:function(){
-        Magic.Recall.enabled=true;
-        delete Building.ProtossBuilding.ArbiterTribunal.prototype.items[1];
+        if (Magic.Recall) Magic.Recall.enabled=true;
+        delItem(ArbiterTribunal, 1);
     }
 };
 Upgrade.DevelopStasisField={
@@ -324,8 +380,8 @@ Upgrade.DevelopStasisField={
         time:1000
     },
     effect:function(){
-        Magic.StasisField.enabled=true;
-        delete Building.ProtossBuilding.ArbiterTribunal.prototype.items[2];
+        if (Magic.StasisField) Magic.StasisField.enabled=true;
+        delItem(ArbiterTribunal, 2);
     }
 };
 Upgrade.DevelopKhaydarinCore={
@@ -336,7 +392,8 @@ Upgrade.DevelopKhaydarinCore={
         time:1660
     },
     effect:function(isEnemy){
-        Protoss.Arbiter.prototype.MP[Number(Boolean(isEnemy))]=250;
-        delete Building.ProtossBuilding.ArbiterTribunal.prototype.items[3];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Arbiter, 'MP', idx, 250);
+        delItem(ArbiterTribunal, 3);
     }
 };

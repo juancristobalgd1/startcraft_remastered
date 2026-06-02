@@ -1,3 +1,5 @@
+import _$ from './core.js';
+
 Audio.prototype.playFromStart = function () {
   this.pause();
   this.currentTime = 0;
@@ -180,6 +182,24 @@ if (!Audio.__scWrappedBgm) {
   };
   WrappedAudio.prototype = __nativeAudio.prototype;
   window.Audio = WrappedAudio;
+}
+
+if (!HTMLMediaElement.prototype.__scBgmSrcPatched) {
+  HTMLMediaElement.prototype.__scBgmSrcPatched = true;
+  const desc = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, "src");
+  if (desc && typeof desc.set === "function" && typeof desc.get === "function") {
+    Object.defineProperty(HTMLMediaElement.prototype, "src", {
+      configurable: true,
+      enumerable: desc.enumerable,
+      get: function () {
+        return desc.get.call(this);
+      },
+      set: function (value) {
+        if (typeof value === "string") value = BgmResolver.resolve(value);
+        return desc.set.call(this, value);
+      }
+    });
+  }
 }
 
 // ─── Audio.play Patch (one-time) ───────────────────────────────

@@ -204,36 +204,7 @@
         })();
     </script>
 
-    <script src="Utils/jquery.min.js"></script>
-    <!--<script src="Utils/alloyimage.min.js"></script>-->
-    <script src="Utils/gFrame.js"></script>
-    <script src="Utils/sourceLoader.js"></script>
-    <script src="Characters/Gobj.js"></script>
-    <script src="Characters/Burst.js"></script>
-    <script src="Characters/Animation.js"></script>
-    <script src="Characters/Units.js"></script>
-    <script src="Characters/Magic.js"></script>
-    <script src="Characters/Upgrade.js"></script>
-    <script src="Characters/Building.js"></script>
-    <script src="Characters/Breeds.js"></script>
-    <script src="Characters/Hero.js"></script>
-    <script src="Characters/Bullets.js"></script>
-    <script src="Characters/Button.js?v=4"></script>
-    <script src="Characters/Map.js?v=5"></script>
-    <script src="GameRule/Resource.js"></script>
-    <script src="GameRule/Referee.js"></script>
-    <script src="GameRule/Levels.js?v=6"></script>
-    <script src="GameRule/Game.js?v=4"></script>
-    <script src="GameRule/Cheat.js?v=4"></script>
-    <script src="Controller/mouseController.js?v=4"></script>
-    <script src="Controller/keyController.js?v=4"></script>
-
-    <script>
-        //########## AutoStart ##########//
-        $('body')[0].onload = function () {
-            Game.init();
-        };
-    </script>
+    <script type="module" src="/main.js"></script>
     <script>
         if ("serviceWorker" in navigator) {
             window.addEventListener("load", function () {

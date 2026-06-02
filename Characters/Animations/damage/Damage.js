@@ -1,4 +1,6 @@
 //Damaged related
+import Animation from '../core/AnimationBase.js';
+
 Animation.redFireL = class RedFireL extends Animation {};
 Object.assign(Animation.redFireL.prototype, {
     //Add basic unit info

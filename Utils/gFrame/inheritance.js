@@ -1,3 +1,5 @@
+import _$ from './core.js';
+
 Function.prototype.extends = function (addInObject) {
   var father = this;
   addInObject = addInObject || {};

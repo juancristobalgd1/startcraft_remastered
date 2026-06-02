@@ -1,2 +1,4 @@
-/******* Define Zerg units *******/
-var Zerg={};
+
+const Zerg = {};
+window.Zerg = Zerg;
+export default Zerg;

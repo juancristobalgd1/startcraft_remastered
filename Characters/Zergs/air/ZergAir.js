@@ -1,4 +1,12 @@
-Zerg.Mutalisk=AttackableUnit.extends({
+import Zerg from '../core/ZergBase.js';
+import AttackableUnit from '../../Units/core/AttackableUnitBase.js';
+import Unit from '../../Units/core/UnitBase.js';
+import { ZergBuilding } from '../../Buildings/core/BuildingRaces.js';
+import { recover } from '../core/ZergHelper.js';
+import { SmallZergFlyingDeath, BigZergFlyingDeath } from '../../Bursts/zerg/ZergDeaths.js';
+import { ScourgeBomb } from '../../Bursts/neutral/NeutralBursts.js';
+
+export const Mutalisk=AttackableUnit.extends({
     constructorPlus:function(props){
         //Same action mapping
         this.imgPos.dock=this.imgPos.moving;
@@ -48,11 +56,11 @@ Zerg.Mutalisk=AttackableUnit.extends({
         attackRange: 105,
         attackInterval: 2200,//3000
         portraitOffset: {x:300,y:0},
-        dieEffect:Burst.SmallZergFlyingDeath,
+        dieEffect:SmallZergFlyingDeath,
         isFlying:true,
         unitType:Unit.SMALL,
         attackType:AttackableUnit.NORMAL_ATTACK,
-        recover:Building.ZergBuilding.prototype.recover,
+        recover:recover,
         cost:{
             mine:100,
             gas:100,
@@ -62,19 +70,19 @@ Zerg.Mutalisk=AttackableUnit.extends({
         upgrade:['UpgradeFlyerAttacks','UpgradeFlyerCarapace'],
         items:{
             '7':{name:'Guardian',condition:function(){
-                return Building.ourBuildings.some(function(chara){
+                return ZergBuilding.ourBuildings.some(function(chara){
                     return chara.name=='GreaterSpire';
                 })
             }},
             '8':{name:'Devourer',condition:function(){
-                return Building.ourBuildings.some(function(chara){
+                return ZergBuilding.ourBuildings.some(function(chara){
                     return chara.name=='GreaterSpire';
                 })
             }}
         }
     }
 });
-Zerg.Guardian=AttackableUnit.extends({
+export const Guardian=AttackableUnit.extends({
     constructorPlus:function(props){
         //Same action mapping
         this.imgPos.dock=this.imgPos.moving;
@@ -122,12 +130,12 @@ Zerg.Guardian=AttackableUnit.extends({
         attackRange: 280,
         attackInterval: 3000,
         portraitOffset: {x:360,y:0},
-        dieEffect:Burst.BigZergFlyingDeath,
+        dieEffect:BigZergFlyingDeath,
         isFlying:true,
         attackLimit:"ground",
         unitType:Unit.BIG,
         attackType:AttackableUnit.NORMAL_ATTACK,
-        recover:Building.ZergBuilding.prototype.recover,
+        recover:recover,
         cost:{
             mine:50,
             gas:100,
@@ -142,7 +150,7 @@ Zerg.Guardian=AttackableUnit.extends({
         }
     }
 });
-Zerg.Devourer=AttackableUnit.extends({
+export const Devourer=AttackableUnit.extends({
     constructorPlus:function(props){
         //Same action mapping
         this.imgPos.dock=this.imgPos.moving;
@@ -213,12 +221,12 @@ Zerg.Devourer=AttackableUnit.extends({
         attackRange: 175,//210
         attackInterval: 5000,//10000
         portraitOffset: {x:420,y:0},
-        dieEffect:Burst.BigZergFlyingDeath,
+        dieEffect:BigZergFlyingDeath,
         isFlying:true,
         attackLimit:"flying",
         unitType:Unit.BIG,
         attackType:AttackableUnit.BURST_ATTACK,
-        recover:Building.ZergBuilding.prototype.recover,
+        recover:recover,
         AOE:{
             hasEffect:true,
             radius:60
@@ -237,7 +245,7 @@ Zerg.Devourer=AttackableUnit.extends({
         }
     }
 });
-Zerg.Scourge=AttackableUnit.extends({
+export const Scourge=AttackableUnit.extends({
     constructorPlus:function(props){
         //Same action mapping
         this.imgPos.attack=this.imgPos.dock=this.imgPos.moving;
@@ -288,14 +296,14 @@ Zerg.Scourge=AttackableUnit.extends({
         attackRange:35,
         attackInterval: 1000,//Suicide
         portraitOffset: {x:480,y:0},
-        dieEffect:Burst.SmallZergFlyingDeath,
-        attackEffect:Burst.ScourgeBomb,
+        dieEffect:SmallZergFlyingDeath,
+        attackEffect:ScourgeBomb,
         isFlying:true,
         attackLimit:"flying",
         suicide:true,
         unitType:Unit.SMALL,
         attackType:AttackableUnit.NORMAL_ATTACK,
-        recover:Building.ZergBuilding.prototype.recover,
+        recover:recover,
         cost:{
             mine:15,
             gas:35,
@@ -311,3 +319,7 @@ Zerg.Scourge=AttackableUnit.extends({
         }
     }
 });
+Zerg.Mutalisk = Mutalisk;
+Zerg.Guardian = Guardian;
+Zerg.Devourer = Devourer;
+Zerg.Scourge = Scourge;

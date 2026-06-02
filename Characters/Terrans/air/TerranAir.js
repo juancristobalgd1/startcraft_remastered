@@ -1,9 +1,18 @@
+import Terran from '../core/TerranBase.js';
+import AttackableUnit from '../../Units/core/AttackableUnitBase.js';
+import Unit from '../../Units/core/UnitBase.js';
+import { recover } from '../core/TerranHelper.js';
+import Magic from '../../Magics/core/MagicBase.js';
+import { MiddleExplode, BigExplode } from '../../Bursts/buildings/BuildingBursts.js';
+import Gobj from '../../Gobj.js';
+
 Terran.Wraith = AttackableUnit.extends({
     constructorPlus: function (props) {
         this.imgPos.dock = this.imgPos.moving;
         this.frame.dock = this.frame.moving;
-        this.sound.attackG = new Audio('bgm/' + this.name + '.attack.wav');
-        this.sound.attackF = new Audio('bgm/' + this.name + '.attackF.wav');
+        if (!this.sound) this.sound = {};
+        this.sound.attackG = new Audio('bgm/Terran/Wraith.attack.wav');
+        this.sound.attackF = new Audio('bgm/Terran/Wraith.attackF.wav');
     },
     prototypePlus: {
         name: "Wraith",
@@ -41,10 +50,10 @@ Terran.Wraith = AttackableUnit.extends({
         damage: 8,
         attackRange: 105,
         portraitOffset: { x: 480, y: 56 },
-        dieEffect: Burst.MiddleExplode,
+        dieEffect: MiddleExplode,
         isFlying: true,
         unitType: Unit.BIG,
-        recover: Building.TerranBuilding.prototype.recover,
+        recover: recover,
         cost: {
             mine: 150,
             gas: 100,
@@ -87,10 +96,10 @@ Terran.Dropship = Unit.extends({
         armor: 1,
         sight: 280,
         portraitOffset: { x: 540, y: 56 },
-        dieEffect: Burst.MiddleExplode,
+        dieEffect: MiddleExplode,
         isFlying: true,
         unitType: Unit.BIG,
-        recover: Building.TerranBuilding.prototype.recover,
+        recover: recover,
         cost: {
             mine: 100,
             gas: 100,
@@ -99,8 +108,10 @@ Terran.Dropship = Unit.extends({
         },
         upgrade: ['UpgradeShipArmors'],
         items: {
-            '8': { name: 'Load' }
+            '8': { name: 'Load' },
+            '9': { name: 'UnloadAll' }
         },
+        cargoCapacity: 8,
         dock: function () {
             Unit.hover.call(this);
         }
@@ -130,11 +141,11 @@ Terran.Vessel = Unit.extends({
         MP: 200,
         sight: 350,
         portraitOffset: { x: 600, y: 56 },
-        dieEffect: Burst.BigExplode,
+        dieEffect: BigExplode,
         isFlying: true,
         unitType: Unit.BIG,
         detector: Gobj.detectorBuffer,
-        recover: Building.TerranBuilding.prototype.recover,
+        recover: recover,
         cost: {
             mine: 100,
             gas: 225,
@@ -187,11 +198,11 @@ Terran.BattleCruiser = AttackableUnit.extends({
         attackRange: 210,
         attackInterval: 3000,
         portraitOffset: { x: 660, y: 56 },
-        dieEffect: Burst.BigExplode,
+        dieEffect: BigExplode,
         isFlying: true,
         unitType: Unit.BIG,
         attackType: AttackableUnit.NORMAL_ATTACK,
-        recover: Building.TerranBuilding.prototype.recover,
+        recover: recover,
         cost: {
             mine: 400,
             gas: 300,
@@ -237,12 +248,12 @@ Terran.Valkyrie = AttackableUnit.extends({
         attackRange: 210,
         attackInterval: 600,
         portraitOffset: { x: 720, y: 56 },
-        dieEffect: Burst.MiddleExplode,
+        dieEffect: MiddleExplode,
         isFlying: true,
         attackLimit: "flying",
         unitType: Unit.BIG,
         attackType: AttackableUnit.BURST_ATTACK,
-        recover: Building.TerranBuilding.prototype.recover,
+        recover: recover,
         AOE: {
             type: "LINE",
             hasEffect: true,

@@ -39,7 +39,10 @@
         };
         window.Resource = { paypal: function () { return true; } };
         window.Animation = {};
-        window._$ = { clone: function (o) { return JSON.parse(JSON.stringify(o)); } };
+        window._$ = { 
+          clone: function (o) { return JSON.parse(JSON.stringify(o)); },
+          lazyAudio: function () { return { play: function () {} }; }
+        };
 
         function BuildingBase() {}
         window.Building = BuildingBase;
@@ -116,7 +119,22 @@
         }
 
         async function run() {
-          await loadScript('../Characters/Button.js');
+          const { default: Button } = await import('../Characters/Buttons/core/ButtonBase.js');
+          window.Button = Button;
+          window.Resource.paypal = function () { calls.paypal++; return true; };
+
+          // Re-mock placeholders on the loaded Building class properties
+          window.Building.TerranBuilding.ConstructionS = makePlaceholder('Construction');
+          window.Building.TerranBuilding.ConstructionM = makePlaceholder('Construction');
+          window.Building.TerranBuilding.ConstructionL = makePlaceholder('Construction');
+          window.Building.ProtossBuilding.Tranfer = makePlaceholder('Tranfer');
+          window.Building.ZergBuilding.MutationS = makePlaceholder('Mutation');
+          window.Building.ZergBuilding.MutationM = makePlaceholder('Mutation');
+          window.Building.ZergBuilding.MutationL = makePlaceholder('Mutation');
+
+          window.Game.commandTimeout = function (func, delay) {
+            setTimeout(func, delay);
+          };
 
           var oldIsValid = Button._isBuildRectValid;
           Button._isBuildRectValid = function () { return true; };

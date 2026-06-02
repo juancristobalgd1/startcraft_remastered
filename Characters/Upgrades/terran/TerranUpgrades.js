@@ -1,3 +1,38 @@
+import Upgrade from '../core/UpgradeBase.js';
+import Magic from '../../Magics/core/MagicBase.js';
+import { EngineeringBay, Academy } from '../../Buildings/terran/TerranCore1.js';
+import { MachineShop, ControlTower, ConvertOps, PhysicsLab } from '../../Buildings/terran/TerranAddons.js';
+import { ScienceFacility, Armory } from '../../Buildings/terran/TerranCore2.js';
+import Terran from '../../Terrans/core/TerranBase.js';
+import Unit from '../../Units/core/UnitBase.js';
+
+const addStat = (obj, key, idx, delta) => {
+    const proto = obj && obj.prototype;
+    if (!proto || !proto[key]) return;
+    proto[key][idx] += delta;
+};
+const setStat = (obj, key, idx, value) => {
+    const proto = obj && obj.prototype;
+    if (!proto || !proto[key]) return;
+    proto[key][idx] = value;
+};
+const addAttackModeStat = (obj, mode, key, idx, delta) => {
+    const proto = obj && obj.prototype;
+    const target = proto && proto.attackMode && proto.attackMode[mode] && proto.attackMode[mode][key];
+    if (!target) return;
+    target[idx] += delta;
+};
+const setAttackModeStat = (obj, mode, key, idx, value) => {
+    const proto = obj && obj.prototype;
+    const target = proto && proto.attackMode && proto.attackMode[mode] && proto.attackMode[mode][key];
+    if (!target) return;
+    target[idx] = value;
+};
+const delItem = (obj, key) => {
+    const proto = obj && obj.prototype;
+    if (proto && proto.items) delete proto.items[key];
+};
+
 Upgrade.UpgradeInfantryWeapons={
     name:"UpgradeInfantryWeapons",
     cost:{
@@ -7,11 +42,12 @@ Upgrade.UpgradeInfantryWeapons={
     },
     level:[0,0],
     effect:function(isEnemy){
-        Terran.Marine.prototype.damage[Number(Boolean(isEnemy))]+=1;
-        Terran.Firebat.prototype.damage[Number(Boolean(isEnemy))]+=2;
-        Terran.Ghost.prototype.damage[Number(Boolean(isEnemy))]+=1;
-        this.level[Number(Boolean(isEnemy))]++;
-        if (this.level[0]>=3) delete Building.TerranBuilding.EngineeringBay.prototype.items[1];
+        const idx = Number(Boolean(isEnemy));
+        addStat(Terran.Marine, 'damage', idx, 1);
+        addStat(Terran.Firebat, 'damage', idx, 2);
+        addStat(Terran.Ghost, 'damage', idx, 1);
+        this.level[idx]++;
+        if (this.level[0]>=3) delItem(EngineeringBay, 1);
     }
 };
 Upgrade.UpgradeInfantryArmors={
@@ -23,14 +59,15 @@ Upgrade.UpgradeInfantryArmors={
     },
     level:[0,0],
     effect:function(isEnemy){
-        Terran.SCV.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Terran.Marine.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Terran.Firebat.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Terran.Ghost.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Terran.Medic.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Terran.Civilian.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        this.level[Number(Boolean(isEnemy))]++;
-        if (this.level[0]>=3) delete Building.TerranBuilding.EngineeringBay.prototype.items[2];
+        const idx = Number(Boolean(isEnemy));
+        addStat(Terran.SCV, 'armor', idx, 1);
+        addStat(Terran.Marine, 'armor', idx, 1);
+        addStat(Terran.Firebat, 'armor', idx, 1);
+        addStat(Terran.Ghost, 'armor', idx, 1);
+        addStat(Terran.Medic, 'armor', idx, 1);
+        addStat(Terran.Civilian, 'armor', idx, 1);
+        this.level[idx]++;
+        if (this.level[0]>=3) delItem(EngineeringBay, 2);
     }
 };
 Upgrade.ResearchU238Shells={
@@ -41,8 +78,9 @@ Upgrade.ResearchU238Shells={
         time:1000
     },
     effect:function(isEnemy){
-        Terran.Marine.prototype.attackRange[Number(Boolean(isEnemy))]=175;
-        delete Building.TerranBuilding.Academy.prototype.items[1];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Terran.Marine, 'attackRange', idx, 175);
+        delItem(Academy, 1);
     }
 };
 Upgrade.ResearchStimPackTech={
@@ -53,8 +91,8 @@ Upgrade.ResearchStimPackTech={
         time:800
     },
     effect:function(){
-        Magic.StimPacks.enabled=true;
-        delete Building.TerranBuilding.Academy.prototype.items[2];
+        if (Magic.StimPacks) Magic.StimPacks.enabled=true;
+        delItem(Academy, 2);
     }
 };
 Upgrade.ResearchRestoration={
@@ -65,8 +103,8 @@ Upgrade.ResearchRestoration={
         time:800
     },
     effect:function(){
-        Magic.Restoration.enabled=true;
-        delete Building.TerranBuilding.Academy.prototype.items[4];
+        if (Magic.Restoration) Magic.Restoration.enabled=true;
+        delItem(Academy, 4);
     }
 };
 Upgrade.ResearchOpticalFlare={
@@ -77,8 +115,8 @@ Upgrade.ResearchOpticalFlare={
         time:1200
     },
     effect:function(){
-        Magic.OpticalFlare.enabled=true;
-        delete Building.TerranBuilding.Academy.prototype.items[5];
+        if (Magic.OpticalFlare) Magic.OpticalFlare.enabled=true;
+        delItem(Academy, 5);
     }
 };
 Upgrade.ResearchCaduceusReactor={
@@ -89,8 +127,9 @@ Upgrade.ResearchCaduceusReactor={
         time:1660
     },
     effect:function(isEnemy){
-        Terran.Medic.prototype.MP[Number(Boolean(isEnemy))]=250;
-        delete Building.TerranBuilding.Academy.prototype.items[6];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Terran.Medic, 'MP', idx, 250);
+        delItem(Academy, 6);
     }
 };
 Upgrade.ResearchIonThrusters={
@@ -101,8 +140,9 @@ Upgrade.ResearchIonThrusters={
         time:1000
     },
     effect:function(isEnemy){
-        Terran.Vulture.prototype.speed[Number(Boolean(isEnemy))]=Unit.getSpeedMatrixBy(20);
-        delete Building.TerranBuilding.MachineShop.prototype.items[1];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Terran.Vulture, 'speed', idx, Unit.getSpeedMatrixBy(20));
+        delItem(MachineShop, 1);
     }
 };
 Upgrade.ResearchSpiderMines={
@@ -113,8 +153,8 @@ Upgrade.ResearchSpiderMines={
         time:800
     },
     effect:function(){
-        Magic.SpiderMines.enabled=true;
-        delete Building.TerranBuilding.MachineShop.prototype.items[2];
+        if (Magic.SpiderMines) Magic.SpiderMines.enabled=true;
+        delItem(MachineShop, 2);
     }
 };
 Upgrade.ResearchSiegeTech={
@@ -125,8 +165,8 @@ Upgrade.ResearchSiegeTech={
         time:800
     },
     effect:function(){
-        Magic.SeigeMode.enabled=true;
-        delete Building.TerranBuilding.MachineShop.prototype.items[3];
+        if (Magic.SeigeMode) Magic.SeigeMode.enabled=true;
+        delItem(MachineShop, 3);
     }
 };
 Upgrade.ResearchCharonBoosters={
@@ -137,8 +177,9 @@ Upgrade.ResearchCharonBoosters={
         time:1330
     },
     effect:function(isEnemy){
-        Terran.Goliath.prototype.attackMode.flying.attackRange[Number(Boolean(isEnemy))]=300;
-        delete Building.TerranBuilding.MachineShop.prototype.items[4];
+        const idx = Number(Boolean(isEnemy));
+        setAttackModeStat(Terran.Goliath, 'flying', 'attackRange', idx, 300);
+        delItem(MachineShop, 4);
     }
 };
 Upgrade.ResearchCloakingField={
@@ -149,8 +190,8 @@ Upgrade.ResearchCloakingField={
         time:1000
     },
     effect:function(){
-        Magic.Cloak.enabled=true;
-        delete Building.TerranBuilding.ControlTower.prototype.items[1];
+        if (Magic.Cloak) Magic.Cloak.enabled=true;
+        delItem(ControlTower, 1);
     }
 };
 Upgrade.ResearchApolloReactor={
@@ -161,8 +202,9 @@ Upgrade.ResearchApolloReactor={
         time:1660
     },
     effect:function(isEnemy){
-        Terran.Wraith.prototype.MP[Number(Boolean(isEnemy))]=250;
-        delete Building.TerranBuilding.ControlTower.prototype.items[2];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Terran.Wraith, 'MP', idx, 250);
+        delItem(ControlTower, 2);
     }
 };
 Upgrade.ResearchEMPShockwaves={
@@ -173,8 +215,8 @@ Upgrade.ResearchEMPShockwaves={
         time:1200
     },
     effect:function(){
-        Magic.EMPShockwave.enabled=true;
-        delete Building.TerranBuilding.ScienceFacility.prototype.items[1];
+        if (Magic.EMPShockwave) Magic.EMPShockwave.enabled=true;
+        delItem(ScienceFacility, 1);
     }
 };
 Upgrade.ResearchIrradiate={
@@ -185,8 +227,8 @@ Upgrade.ResearchIrradiate={
         time:800
     },
     effect:function(){
-        Magic.Irradiate.enabled=true;
-        delete Building.TerranBuilding.ScienceFacility.prototype.items[2];
+        if (Magic.Irradiate) Magic.Irradiate.enabled=true;
+        delItem(ScienceFacility, 2);
     }
 };
 Upgrade.ResearchTitanReactor={
@@ -197,8 +239,9 @@ Upgrade.ResearchTitanReactor={
         time:1660
     },
     effect:function(isEnemy){
-        Terran.Vessel.prototype.MP[Number(Boolean(isEnemy))]=250;
-        delete Building.TerranBuilding.ScienceFacility.prototype.items[3];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Terran.Vessel, 'MP', idx, 250);
+        delItem(ScienceFacility, 3);
     }
 };
 Upgrade.ResearchLockdown={
@@ -209,8 +252,8 @@ Upgrade.ResearchLockdown={
         time:1000
     },
     effect:function(){
-        Magic.Lockdown.enabled=true;
-        delete Building.TerranBuilding.ConvertOps.prototype.items[1];
+        if (Magic.Lockdown) Magic.Lockdown.enabled=true;
+        delItem(ConvertOps, 1);
     }
 };
 Upgrade.ResearchPersonalCloaking={
@@ -221,8 +264,8 @@ Upgrade.ResearchPersonalCloaking={
         time:800
     },
     effect:function(){
-        Magic.PersonalCloak.enabled=true;
-        delete Building.TerranBuilding.ConvertOps.prototype.items[2];
+        if (Magic.PersonalCloak) Magic.PersonalCloak.enabled=true;
+        delItem(ConvertOps, 2);
     }
 };
 Upgrade.ResearchOcularImplants={
@@ -233,8 +276,9 @@ Upgrade.ResearchOcularImplants={
         time:1660
     },
     effect:function(isEnemy){
-        Terran.Ghost.prototype.sight[Number(Boolean(isEnemy))]=385;
-        delete Building.TerranBuilding.ConvertOps.prototype.items[4];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Terran.Ghost, 'sight', idx, 385);
+        delItem(ConvertOps, 4);
     }
 };
 Upgrade.ResearchMoebiusReactor={
@@ -245,8 +289,9 @@ Upgrade.ResearchMoebiusReactor={
         time:1660
     },
     effect:function(isEnemy){
-        Terran.Ghost.prototype.MP[Number(Boolean(isEnemy))]=250;
-        delete Building.TerranBuilding.ConvertOps.prototype.items[5];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Terran.Ghost, 'MP', idx, 250);
+        delItem(ConvertOps, 5);
     }
 };
 Upgrade.ResearchYamatoGun={
@@ -257,8 +302,8 @@ Upgrade.ResearchYamatoGun={
         time:1200
     },
     effect:function(){
-        Magic.Yamato.enabled=true;
-        delete Building.TerranBuilding.PhysicsLab.prototype.items[1];
+        if (Magic.Yamato) Magic.Yamato.enabled=true;
+        delItem(PhysicsLab, 1);
     }
 };
 Upgrade.ResearchColossusReactor={
@@ -269,8 +314,9 @@ Upgrade.ResearchColossusReactor={
         time:1600
     },
     effect:function(isEnemy){
-        Terran.BattleCruiser.prototype.MP[Number(Boolean(isEnemy))]=250;
-        delete Building.TerranBuilding.PhysicsLab.prototype.items[2];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Terran.BattleCruiser, 'MP', idx, 250);
+        delItem(PhysicsLab, 2);
     }
 };
 Upgrade.UpgradeVehicleWeapons={
@@ -282,12 +328,13 @@ Upgrade.UpgradeVehicleWeapons={
     },
     level:[0,0],
     effect:function(isEnemy){
-        Terran.Vulture.prototype.damage[Number(Boolean(isEnemy))]+=2;
-        Terran.Tank.prototype.damage[Number(Boolean(isEnemy))]+=3;
-        Terran.Goliath.prototype.attackMode.ground.damage[Number(Boolean(isEnemy))]+=2;
-        Terran.Goliath.prototype.attackMode.flying.damage[Number(Boolean(isEnemy))]+=4;
-        this.level[Number(Boolean(isEnemy))]++;
-        if (this.level[0]>=3) delete Building.TerranBuilding.Armory.prototype.items[1];
+        const idx = Number(Boolean(isEnemy));
+        addStat(Terran.Vulture, 'damage', idx, 2);
+        addStat(Terran.Tank, 'damage', idx, 3);
+        addAttackModeStat(Terran.Goliath, 'ground', 'damage', idx, 2);
+        addAttackModeStat(Terran.Goliath, 'flying', 'damage', idx, 4);
+        this.level[idx]++;
+        if (this.level[0]>=3) delItem(Armory, 1);
     }
 };
 Upgrade.UpgradeShipWeapons={
@@ -299,12 +346,13 @@ Upgrade.UpgradeShipWeapons={
     },
     level:[0,0],
     effect:function(isEnemy){
-        Terran.Wraith.prototype.attackMode.ground.damage[Number(Boolean(isEnemy))]+=1;
-        Terran.Wraith.prototype.attackMode.flying.damage[Number(Boolean(isEnemy))]+=2;
-        Terran.BattleCruiser.prototype.damage[Number(Boolean(isEnemy))]+=3;
-        Terran.Valkyrie.prototype.damage[Number(Boolean(isEnemy))]+=1;
-        this.level[Number(Boolean(isEnemy))]++;
-        if (this.level[0]>=3) delete Building.TerranBuilding.Armory.prototype.items[2];
+        const idx = Number(Boolean(isEnemy));
+        addAttackModeStat(Terran.Wraith, 'ground', 'damage', idx, 1);
+        addAttackModeStat(Terran.Wraith, 'flying', 'damage', idx, 2);
+        addStat(Terran.BattleCruiser, 'damage', idx, 3);
+        addStat(Terran.Valkyrie, 'damage', idx, 1);
+        this.level[idx]++;
+        if (this.level[0]>=3) delItem(Armory, 2);
     }
 };
 Upgrade.UpgradeVehicleArmors={
@@ -316,11 +364,12 @@ Upgrade.UpgradeVehicleArmors={
     },
     level:[0,0],
     effect:function(isEnemy){
-        Terran.Vulture.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Terran.Tank.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Terran.Goliath.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        this.level[Number(Boolean(isEnemy))]++;
-        if (this.level[0]>=3) delete Building.TerranBuilding.Armory.prototype.items[4];
+        const idx = Number(Boolean(isEnemy));
+        addStat(Terran.Vulture, 'armor', idx, 1);
+        addStat(Terran.Tank, 'armor', idx, 1);
+        addStat(Terran.Goliath, 'armor', idx, 1);
+        this.level[idx]++;
+        if (this.level[0]>=3) delItem(Armory, 4);
     }
 };
 Upgrade.UpgradeShipArmors={
@@ -332,12 +381,13 @@ Upgrade.UpgradeShipArmors={
     },
     level:[0,0],
     effect:function(isEnemy){
-        Terran.Wraith.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Terran.Dropship.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Terran.BattleCruiser.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Terran.Vessel.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Terran.Valkyrie.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        this.level[Number(Boolean(isEnemy))]++;
-        if (this.level[0]>=3) delete Building.TerranBuilding.Armory.prototype.items[5];
+        const idx = Number(Boolean(isEnemy));
+        addStat(Terran.Wraith, 'armor', idx, 1);
+        addStat(Terran.Dropship, 'armor', idx, 1);
+        addStat(Terran.BattleCruiser, 'armor', idx, 1);
+        addStat(Terran.Vessel, 'armor', idx, 1);
+        addStat(Terran.Valkyrie, 'armor', idx, 1);
+        this.level[idx]++;
+        if (this.level[0]>=3) delItem(Armory, 5);
     }
 };

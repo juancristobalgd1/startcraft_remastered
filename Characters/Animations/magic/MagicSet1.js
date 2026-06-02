@@ -1,3 +1,5 @@
+import Animation from '../core/AnimationBase.js';
+
 Animation.RightClickCursor = class RightClickCursor extends Animation {};
 Object.assign(Animation.RightClickCursor.prototype, {
     //Add basic unit info

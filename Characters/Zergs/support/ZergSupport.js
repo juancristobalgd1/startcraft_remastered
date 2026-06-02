@@ -1,7 +1,15 @@
-Zerg.Overlord=Unit.extends({
-    constructorPlus:function(props){
-        this.direction=3;
-        this.y-=12;//(OverlordBirth.height-Overlord.height)/2
+import Zerg from '../core/ZergBase.js';
+import Unit from '../../Units/core/UnitBase.js';
+import Building from '../../Buildings/core/BuildingBase.js';
+import { recover } from '../core/ZergHelper.js';
+import { BigZergFlyingDeath, DefilerDeath, LarvaDeath } from '../../Bursts/zerg/ZergDeaths.js';
+import Magic from '../../Magics/core/MagicBase.js';
+import Gobj from '../../Gobj.js';
+
+export const Overlord = Unit.extends({
+    constructorPlus: function (props) {
+        this.direction = 3;
+        this.y -= 12;//(OverlordBirth.height-Overlord.height)/2
     },
     prototypePlus: {
         //Add basic unit info
@@ -41,42 +49,46 @@ Zerg.Overlord=Unit.extends({
             dock: 1
         },
         //Only for moving status, override
-        speed:Unit.getSpeedMatrixBy(2),
+        speed: Unit.getSpeedMatrixBy(2),
         HP: 200,
-        armor:0,
-        sight:315,
-        portraitOffset: {x:120,y:0},
-        dieEffect:Burst.BigZergFlyingDeath,
-        isFlying:true,
-        unitType:Unit.BIG,
-        detector:Gobj.detectorBuffer,
-        recover:Building.ZergBuilding.prototype.recover,
-        cost:{
-            mine:100,
-            time:400
+        armor: 0,
+        sight: 315,
+        portraitOffset: { x: 120, y: 0 },
+        dieEffect: BigZergFlyingDeath,
+        isFlying: true,
+        unitType: Unit.BIG,
+        detector: Gobj.detectorBuffer,
+        recover: recover,
+        cost: {
+            mine: 100,
+            time: 400
         },
-        upgrade:['UpgradeFlyerCarapace'],
-        manPlus:8,
-        items:{
-            '8':{name:'Load',condition:function(){
-                return Magic.Load.enabled
-            }}
+        upgrade: ['UpgradeFlyerCarapace'],
+        manPlus: 8,
+        items: {
+            '8': {
+                name: 'Load'
+            },
+            '9': {
+                name: 'UnloadAll'
+            }
         },
+        cargoCapacity: 8,
         //Override
-        dock:function(){
+        dock: function () {
             //Use the same behavior
             Unit.hover.call(this);
         }
     }
 });
-Zerg.Queen=Unit.extends({
-    constructorPlus:function(props){
+export const Queen = Unit.extends({
+    constructorPlus: function (props) {
         //Same action mapping
-        this.imgPos.dock=this.imgPos.moving;
-        this.frame.dock=this.frame.moving;
-        this.direction=3;
+        this.imgPos.dock = this.imgPos.moving;
+        this.frame.dock = this.frame.moving;
+        this.direction = 3;
         //Adjust for multi frames
-        this.y-=16;
+        this.y -= 16;
     },
     prototypePlus: {
         //Add basic unit info
@@ -112,48 +124,52 @@ Zerg.Queen=Unit.extends({
             //attack: 6//Reserved
         },
         //Only for moving status, override
-        speed:Unit.getSpeedMatrixBy(16),
+        speed: Unit.getSpeedMatrixBy(16),
         HP: 120,
-        armor:0,
+        armor: 0,
         MP: 200,
-        sight:350,
-        portraitOffset: {x:540,y:0},
-        dieEffect:Burst.BigZergFlyingDeath,
-        isFlying:true,
-        unitType:Unit.MIDDLE,
-        recover:Building.ZergBuilding.prototype.recover,
-        cost:{
-            mine:100,
-            gas:150,
-            man:2,
-            time:500
+        sight: 350,
+        portraitOffset: { x: 540, y: 0 },
+        dieEffect: BigZergFlyingDeath,
+        isFlying: true,
+        unitType: Unit.MIDDLE,
+        recover: recover,
+        cost: {
+            mine: 100,
+            gas: 150,
+            man: 2,
+            time: 500
         },
-        upgrade:['UpgradeFlyerCarapace'],
-        items:{
-            '6':{name:'InfestTerranCommandCenter'},
-            '7':{name:'Parasite'},
-            '8':{name:'SpawnBroodlings',condition:function(){
-                return Magic.SpawnBroodlings.enabled
-            }},
-            '9':{name:'Ensnare',condition:function(){
-                return Magic.Ensnare.enabled
-            }}
+        upgrade: ['UpgradeFlyerCarapace'],
+        items: {
+            '6': { name: 'InfestTerranCommandCenter' },
+            '7': { name: 'Parasite' },
+            '8': {
+                name: 'SpawnBroodlings', condition: function () {
+                    return Magic.SpawnBroodlings.enabled
+                }
+            },
+            '9': {
+                name: 'Ensnare', condition: function () {
+                    return Magic.Ensnare.enabled
+                }
+            }
         },
         //Override
-        dock:function(){
+        dock: function () {
             //Use the same behavior
             Unit.hover.call(this);
         }
     }
 });
-Zerg.Defiler=Unit.extends({
-    constructorPlus:function(props){
+export const Defiler = Unit.extends({
+    constructorPlus: function (props) {
         //Same action mapping
-        this.imgPos.dock=this.imgPos.moving;
-        this.frame.dock=this.frame.moving;
-        this.sound.burrow=new Audio('bgm/Zerg.burrow.wav');
-        this.sound.unburrow=new Audio('bgm/Zerg.unburrow.wav');
-        this.direction=3;
+        this.imgPos.dock = this.imgPos.moving;
+        this.frame.dock = this.frame.moving;
+        this.sound.burrow = new Audio('bgm/Zerg.burrow.wav');
+        this.sound.unburrow = new Audio('bgm/Zerg.unburrow.wav');
+        this.direction = 3;
     },
     prototypePlus: {
         //Add basic unit info
@@ -234,41 +250,47 @@ Zerg.Defiler=Unit.extends({
             unburrow: 6
         },
         //Only for moving status, override
-        speed:Unit.getSpeedMatrixBy(10),
+        speed: Unit.getSpeedMatrixBy(10),
         HP: 80,
-        armor:1,
+        armor: 1,
         MP: 200,
-        sight:350,
-        portraitOffset: {x:660,y:0},
-        dieEffect:Burst.DefilerDeath,
-        isFlying:false,
-        unitType:Unit.MIDDLE,
-        recover:Building.ZergBuilding.prototype.recover,
-        cost:{
-            mine:50,
-            gas:150,
-            man:2,
-            time:500
+        sight: 350,
+        portraitOffset: { x: 660, y: 0 },
+        dieEffect: DefilerDeath,
+        isFlying: false,
+        unitType: Unit.MIDDLE,
+        recover: recover,
+        cost: {
+            mine: 50,
+            gas: 150,
+            man: 2,
+            time: 500
         },
-        upgrade:['EvolveCarapace'],
-        items:{
-            '6':{name:'Consume',condition:function(){
-                return Magic.Consume.enabled
-            }},
-            '7':{name:'DarkSwarm'},
-            '8':{name:'Plague',condition:function(){
-                return Magic.Plague.enabled
-            }},
-            '9':{name:'Burrow',condition:function(){
-                return Magic.Burrow.enabled
-            }}
+        upgrade: ['EvolveCarapace'],
+        items: {
+            '6': {
+                name: 'Consume', condition: function () {
+                    return Magic.Consume.enabled
+                }
+            },
+            '7': { name: 'DarkSwarm' },
+            '8': {
+                name: 'Plague', condition: function () {
+                    return Magic.Plague.enabled
+                }
+            },
+            '9': {
+                name: 'Burrow', condition: function () {
+                    return Magic.Burrow.enabled
+                }
+            }
         }
     }
 });
-Zerg.Larva=Unit.extends({
-    constructorPlus:function(props){
-        this.imgPos.dock=this.imgPos.moving;
-        this.direction=2;
+export const Larva = Unit.extends({
+    constructorPlus: function (props) {
+        this.imgPos.dock = this.imgPos.moving;
+        this.direction = 2;
     },
     prototypePlus: {
         //Add basic unit info
@@ -304,61 +326,108 @@ Zerg.Larva=Unit.extends({
             dock: 1
         },
         //Only for moving status, override
-        speed:Unit.getSpeedMatrixBy(4),
+        speed: Unit.getSpeedMatrixBy(4),
         HP: 25,
-        armor:10,
-        sight:70,
-        portraitOffset: {x:900,y:0},
-        dieEffect:Burst.LarvaDeath,
-        unitType:Unit.SMALL,
-        isFlying:false,
-        recover:Building.ZergBuilding.prototype.recover,
-        upgrade:['EvolveCarapace'],
-        items:{
-            '1':{name:'Drone'},
-            '2':{name:'Zergling',condition:function(){
-                return Building.ourBuildings.some(function(chara){
-                    return chara.name=='SpawningPool';
-                })
-            }},
-            '3':{name:'Overlord'},
-            '4':{name:'Hydralisk',condition:function(){
-                return Building.ourBuildings.some(function(chara){
-                    return chara.name=='HydraliskDen';
-                })
-            }},
-            '5':{name:'Mutalisk',condition:function(){
-                return Building.ourBuildings.some(function(chara){
-                    return chara.name=='Spire' || chara.name=='GreaterSpire';
-                })
-            }},
-            '6':{name:'Scourge',condition:function(){
-                return Building.ourBuildings.some(function(chara){
-                    return chara.name=='Spire' || chara.name=='GreaterSpire';
-                })
-            }},
-            '7':{name:'Queen',condition:function(){
-                return Building.ourBuildings.some(function(chara){
-                    return chara.name=='QueenNest';
-                })
-            }},
-            '8':{name:'Ultralisk',condition:function(){
-                return Building.ourBuildings.some(function(chara){
-                    return chara.name=='UltraliskCavern';
-                })
-            }},
-            '9':{name:'Defiler',condition:function(){
-                return Building.ourBuildings.some(function(chara){
-                    return chara.name=='DefilerMound';
-                })
-            }}
+        armor: 10,
+        sight: 70,
+        portraitOffset: { x: 900, y: 0 },
+        dieEffect: LarvaDeath,
+        unitType: Unit.SMALL,
+        isFlying: false,
+        recover: recover,
+        upgrade: ['EvolveCarapace'],
+        items: {
+            '1': {
+                name: 'Drone', run: function () {
+                    import('../core/ZergEvolveLogic.js').then(Logic => Logic.default.morphLarva(this, 'Drone'));
+                }
+            },
+            '2': {
+                name: 'Zergling', condition: function () {
+                    return Building.ourBuildings.some(function (chara) {
+                        return chara.name == 'SpawningPool';
+                    })
+                },
+                run: function () {
+                    import('../core/ZergEvolveLogic.js').then(Logic => Logic.default.morphLarva(this, 'Zergling'));
+                }
+            },
+            '3': {
+                name: 'Overlord', run: function () {
+                    import('../core/ZergEvolveLogic.js').then(Logic => Logic.default.morphLarva(this, 'Overlord'));
+                }
+            },
+            '4': {
+                name: 'Hydralisk', condition: function () {
+                    return Building.ourBuildings.some(function (chara) {
+                        return chara.name == 'HydraliskDen';
+                    })
+                },
+                run: function () {
+                    import('../core/ZergEvolveLogic.js').then(Logic => Logic.default.morphLarva(this, 'Hydralisk'));
+                }
+            },
+            '5': {
+                name: 'Mutalisk', condition: function () {
+                    return Building.ourBuildings.some(function (chara) {
+                        return chara.name == 'Spire' || chara.name == 'GreaterSpire';
+                    })
+                },
+                run: function () {
+                    import('../core/ZergEvolveLogic.js').then(Logic => Logic.default.morphLarva(this, 'Mutalisk'));
+                }
+            },
+            '6': {
+                name: 'Scourge', condition: function () {
+                    return Building.ourBuildings.some(function (chara) {
+                        return chara.name == 'Spire' || chara.name == 'GreaterSpire';
+                    })
+                },
+                run: function () {
+                    import('../core/ZergEvolveLogic.js').then(Logic => Logic.default.morphLarva(this, 'Scourge'));
+                }
+            },
+            '7': {
+                name: 'Queen', condition: function () {
+                    return Building.ourBuildings.some(function (chara) {
+                        return chara.name == 'QueenNest';
+                    })
+                },
+                run: function () {
+                    import('../core/ZergEvolveLogic.js').then(Logic => Logic.default.morphLarva(this, 'Queen'));
+                }
+            },
+            '8': {
+                name: 'Ultralisk', condition: function () {
+                    return Building.ourBuildings.some(function (chara) {
+                        return chara.name == 'UltraliskCavern';
+                    })
+                },
+                run: function () {
+                    import('../core/ZergEvolveLogic.js').then(Logic => Logic.default.morphLarva(this, 'Ultralisk'));
+                }
+            },
+            '9': {
+                name: 'Defiler', condition: function () {
+                    return Building.ourBuildings.some(function (chara) {
+                        return chara.name == 'DefilerMound';
+                    })
+                },
+                run: function () {
+                    import('../core/ZergEvolveLogic.js').then(Logic => Logic.default.morphLarva(this, 'Defiler'));
+                }
+            }
         },
         //Prevent user control moving
-        moveTo:function(){},
-        moveToward:function(){},
+        moveTo: function () { },
+        moveToward: function () { },
         //Override
-        dock:function(){
+        dock: function () {
             Unit.walkAroundLarva.call(this);
         }
     }
 });
+Zerg.Overlord = Overlord;
+Zerg.Queen = Queen;
+Zerg.Defiler = Defiler;
+Zerg.Larva = Larva;

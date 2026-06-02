@@ -1,7 +1,16 @@
-Zerg.Zergling=AttackableUnit.extends({
-    constructorPlus:function(props){
-        this.sound.burrow=new Audio('bgm/Zerg.burrow.wav');
-        this.sound.unburrow=new Audio('bgm/Zerg.unburrow.wav');
+import Zerg from '../core/ZergBase.js';
+import AttackableUnit from '../../Units/core/AttackableUnitBase.js';
+import Unit from '../../Units/core/UnitBase.js';
+import { recover } from '../core/ZergHelper.js';
+import Magic from '../../Magics/core/MagicBase.js';
+import { ZerglingDeath, HydraliskDeath, LurkerDeath, BroodlingDeath, UltraliskDeath } from '../../Bursts/zerg/ZergDeaths.js';
+import { HumanDeath } from '../../Bursts/terran/TerranEffects.js';
+import { InfestedBomb } from '../../Bursts/neutral/NeutralBursts.js';
+
+export const Zergling = AttackableUnit.extends({
+    constructorPlus: function (props) {
+        this.sound.burrow = new Audio('bgm/Zerg.burrow.wav');
+        this.sound.unburrow = new Audio('bgm/Zerg.unburrow.wav');
     },
     prototypePlus: {
         //Add basic unit info
@@ -110,39 +119,44 @@ Zerg.Zergling=AttackableUnit.extends({
             unburrow: 6
         },
         //Only for moving status, override
-        speed:Unit.getSpeedMatrixBy(13),
+        speed: Unit.getSpeedMatrixBy(13),
         HP: 35,
         damage: 5,
-        armor:0,
-        sight:175,
+        armor: 0,
+        sight: 175,
         meleeAttack: true,
         attackInterval: 800,
-        portraitOffset: {x:60,y:0},
-        dieEffect:Burst.ZerglingDeath,
-        isFlying:false,
-        attackLimit:"ground",
-        unitType:Unit.SMALL,
-        attackType:AttackableUnit.NORMAL_ATTACK,
-        recover:Building.ZergBuilding.prototype.recover,
-        cost:{
-            mine:25,
-            man:0.5,
-            time:140
+        damageDelay: 200,
+        portraitOffset: { x: 60, y: 0 },
+        dieEffect: ZerglingDeath,
+        isFlying: false,
+        attackLimit: "ground",
+        unitType: Unit.SMALL,
+        attackType: AttackableUnit.NORMAL_ATTACK,
+        recover: recover,
+        cost: {
+            mine: 25,
+            man: 0.5,
+            time: 140
         },
-        birthCount:2,
-        upgrade:['UpgradeMeleeAttacks','EvolveCarapace'],
-        items:{
-            '9':{name:'Burrow',condition:function(){
-                return Magic.Burrow.enabled
-            }}
+        birthCount: 2,
+        upgrade: ['UpgradeMeleeAttacks', 'EvolveCarapace'],
+        items: {
+            '9': {
+                name: 'Burrow', condition: function () {
+                    return Magic.Burrow.enabled
+                }, run: function () {
+                    Magic.Burrow.spell.call(this);
+                }
+            }
         }
     }
 });
-Zerg.Hydralisk=AttackableUnit.extends({
-    constructorPlus:function(props){
-        this.sound.burrow=new Audio('bgm/Zerg.burrow.wav');
-        this.sound.unburrow=new Audio('bgm/Zerg.unburrow.wav');
-        this.direction=3;
+export const Hydralisk = AttackableUnit.extends({
+    constructorPlus: function (props) {
+        this.sound.burrow = new Audio('bgm/Zerg.burrow.wav');
+        this.sound.unburrow = new Audio('bgm/Zerg.unburrow.wav');
+        this.direction = 3;
     },
     prototypePlus: {
         //Add basic unit info
@@ -251,57 +265,63 @@ Zerg.Hydralisk=AttackableUnit.extends({
             unburrow: 6
         },
         //Only for moving status, override
-        speed:Unit.getSpeedMatrixBy(9),
+        speed: Unit.getSpeedMatrixBy(9),
         HP: 80,
         damage: 10,
-        armor:0,
-        sight:210,
+        armor: 0,
+        sight: 210,
         attackRange: 140,
         attackInterval: 1500,
-        portraitOffset: {x:180,y:0},
-        dieEffect:Burst.HydraliskDeath,
-        isFlying:false,
-        unitType:Unit.MIDDLE,
-        attackType:AttackableUnit.BURST_ATTACK,
-        recover:Building.ZergBuilding.prototype.recover,
-        cost:{
-            mine:75,
-            gas:25,
-            man:1,
-            time:280
+        portraitOffset: { x: 180, y: 0 },
+        dieEffect: HydraliskDeath,
+        isFlying: false,
+        unitType: Unit.MIDDLE,
+        attackType: AttackableUnit.BURST_ATTACK,
+        recover: recover,
+        cost: {
+            mine: 75,
+            gas: 25,
+            man: 1,
+            time: 280
         },
-        upgrade:['UpgradeMissileAttacks','EvolveCarapace'],
-        items:{
-            '7':{name:'Lurker',condition:function(){
-                return Magic.Lurker.enabled
-            }},
-            '9':{name:'Burrow',condition:function(){
-                return Magic.Burrow.enabled
-            }}
+        upgrade: ['UpgradeMissileAttacks', 'EvolveCarapace'],
+        items: {
+            '7': {
+                name: 'Lurker', condition: function () {
+                    return Magic.Lurker.enabled
+                }
+            },
+            '9': {
+                name: 'Burrow', condition: function () {
+                    return Magic.Burrow.enabled
+                }, run: function () {
+                    Magic.Burrow.spell.call(this);
+                }
+            }
         },
         //Override
-        dock:function(){
+        dock: function () {
             //Use the same behavior
             AttackableUnit.turnAround.call(this);
         }
     }
 });
-Zerg.Lurker=Unit.extends({
-    constructorPlus:function(props){
+export const Lurker = Unit.extends({
+    constructorPlus: function (props) {
         //Same as attackable unit
-        this.attackTimer=0;
-        this.bullet={};
-        this.kill=0;
-        this.target={};
+        this.attackTimer = 0;
+        this.bullet = {};
+        this.kill = 0;
+        this.target = {};
         //Idle by default
-        this.targetLock=false;
+        this.targetLock = false;
         //Can fire by default
-        this.coolDown=true;
+        this.coolDown = true;
         //Add attack sound for AttackableUnit
-        this.sound.attack=new Audio('bgm/Lurker.attack.wav');
-        this.sound.burrow=new Audio('bgm/Lurker.burrow.wav');
-        this.sound.unburrow=new Audio('bgm/Zerg.unburrow.wav');
-        this.direction=3;
+        this.sound.attack = new Audio('bgm/Lurker.attack.wav');
+        this.sound.burrow = new Audio('bgm/Lurker.burrow.wav');
+        this.sound.unburrow = new Audio('bgm/Zerg.unburrow.wav');
+        this.direction = 3;
     },
     prototypePlus: {
         //Add basic unit info
@@ -330,19 +350,19 @@ Zerg.Lurker=Unit.extends({
                 ]
             },
             dock: {
-                left: [0,144,288,432,576,792,936,1080],
-                top: [1,1,1,1,1,1,1,1]
+                left: [0, 144, 288, 432, 576, 792, 936, 1080],
+                top: [1, 1, 1, 1, 1, 1, 1, 1]
             },
             burrow: {
                 left: [
-                    [502, -1, 2, 66, 130, 192, 256, 2, 66, 130, 192, 256, 318, 380 ,444],
-                    [502, -1, 2, 66, 130, 192, 256, 2, 66, 130, 192, 256, 318, 380 ,444],
-                    [502, -1, 2, 66, 130, 192, 256, 2, 66, 130, 192, 256, 318, 380 ,444],
-                    [502, -1, 2, 66, 130, 192, 256, 2, 66, 130, 192, 256, 318, 380 ,444],
-                    [502, -1, 2, 66, 130, 192, 256, 2, 66, 130, 192, 256, 318, 380 ,444],
-                    [502, -1, 2, 66, 130, 192, 256, 2, 66, 130, 192, 256, 318, 380 ,444],
-                    [502, -1, 2, 66, 130, 192, 256, 2, 66, 130, 192, 256, 318, 380 ,444],
-                    [502, -1, 2, 66, 130, 192, 256, 2, 66, 130, 192, 256, 318, 380 ,444]
+                    [502, -1, 2, 66, 130, 192, 256, 2, 66, 130, 192, 256, 318, 380, 444],
+                    [502, -1, 2, 66, 130, 192, 256, 2, 66, 130, 192, 256, 318, 380, 444],
+                    [502, -1, 2, 66, 130, 192, 256, 2, 66, 130, 192, 256, 318, 380, 444],
+                    [502, -1, 2, 66, 130, 192, 256, 2, 66, 130, 192, 256, 318, 380, 444],
+                    [502, -1, 2, 66, 130, 192, 256, 2, 66, 130, 192, 256, 318, 380, 444],
+                    [502, -1, 2, 66, 130, 192, 256, 2, 66, 130, 192, 256, 318, 380, 444],
+                    [502, -1, 2, 66, 130, 192, 256, 2, 66, 130, 192, 256, 318, 380, 444],
+                    [502, -1, 2, 66, 130, 192, 256, 2, 66, 130, 192, 256, 318, 380, 444]
                 ],
                 top: [
                     [482, -1, 482, 482, 482, 482, 482, 482, 482, 482, 482, 482, 482, 482, 482],
@@ -387,55 +407,61 @@ Zerg.Lurker=Unit.extends({
             unburrow: 8
         },
         //Only for moving status, override
-        speed:Unit.getSpeedMatrixBy(14),
+        speed: Unit.getSpeedMatrixBy(14),
         HP: 125,
         damage: 20,
-        armor:0,
-        sight:280,
+        armor: 0,
+        sight: 280,
         attackRange: 210,
         attackInterval: 3700,
-        continuousAttack:{
-            count:3,
-            layout:function(bullet,num){
+        continuousAttack: {
+            count: 3,
+            layout: function (bullet, num) {
                 //Reassign location
-                bullet.x+=bullet.speed.x*(num);
-                bullet.y+=bullet.speed.y*(num);
+                bullet.x += bullet.speed.x * (num);
+                bullet.y += bullet.speed.y * (num);
                 //Reassign each action
-                bullet.action=(bullet.action+num)%(bullet.frame.moving);
+                bullet.action = (bullet.action + num) % (bullet.frame.moving);
             },
-            onlyOnce:true
+            onlyOnce: true
         },
-        portraitOffset: {x:240,y:0},
-        dieEffect:Burst.LurkerDeath,
-        isFlying:false,
-        attackLimit:"ground",
-        unitType:Unit.MIDDLE,
-        attackType:AttackableUnit.NORMAL_ATTACK,
-        recover:Building.ZergBuilding.prototype.recover,
-        AOE:{
-            type:"LINE",
-            hasEffect:false,
-            radius:35
+        portraitOffset: { x: 240, y: 0 },
+        dieEffect: LurkerDeath,
+        isFlying: false,
+        attackLimit: "ground",
+        unitType: Unit.MIDDLE,
+        attackType: AttackableUnit.NORMAL_ATTACK,
+        recover: recover,
+        AOE: {
+            type: "LINE",
+            hasEffect: false,
+            radius: 35
         },
-        cost:{
-            mine:50,
-            gas:100,
-            man:2,
-            time:400
+        cost: {
+            mine: 50,
+            gas: 100,
+            man: 2,
+            time: 400
         },
-        upgrade:['UpgradeMissileAttacks','EvolveCarapace'],
-        items:{
-            '9':{name:'Burrow'}
+        upgrade: ['UpgradeMissileAttacks', 'EvolveCarapace'],
+        items: {
+            '9': {
+                name: 'Burrow', condition: function () {
+                    return Magic.Burrow.enabled
+                }, run: function () {
+                    Magic.Burrow.spell.call(this);
+                }
+            }
         },
         //Override
-        dock:function(){
+        dock: function () {
             //Use the same behavior
             AttackableUnit.turnAround.call(this);
         }
     }
 });
-Zerg.Broodling=AttackableUnit.extends({
-    constructorPlus:function(props){
+export const Broodling = AttackableUnit.extends({
+    constructorPlus: function (props) {
         //Nothing
     },
     prototypePlus: {
@@ -499,31 +525,31 @@ Zerg.Broodling=AttackableUnit.extends({
             attack: 5
         },
         //Only for moving status, override
-        speed:Unit.getSpeedMatrixBy(6),
+        speed: Unit.getSpeedMatrixBy(6),
         HP: 30,
         damage: 4,
-        armor:0,
-        sight:175,
+        armor: 0,
+        sight: 175,
         meleeAttack: true,
         attackInterval: 1500,
-        portraitOffset: {x:720,y:0},
-        dieEffect:Burst.BroodlingDeath,
-        isFlying:false,
-        attackLimit:"ground",
-        unitType:Unit.SMALL,
-        recover:Building.ZergBuilding.prototype.recover,
-        upgrade:['UpgradeMeleeAttacks','EvolveCarapace'],
-        attackType:AttackableUnit.NORMAL_ATTACK,
+        portraitOffset: { x: 720, y: 0 },
+        dieEffect: BroodlingDeath,
+        isFlying: false,
+        attackLimit: "ground",
+        unitType: Unit.SMALL,
+        recover: recover,
+        upgrade: ['UpgradeMeleeAttacks', 'EvolveCarapace'],
+        attackType: AttackableUnit.NORMAL_ATTACK,
         //Override
-        dock:function(){
+        dock: function () {
             //Use the same behavior
             AttackableUnit.walkAround.call(this);
         }
     }
 });
-Zerg.Ultralisk=AttackableUnit.extends({
-    constructorPlus:function(props){
-        this.direction=3;
+export const Ultralisk = AttackableUnit.extends({
+    constructorPlus: function (props) {
+        this.direction = 3;
     },
     prototypePlus: {
         //Add basic unit info
@@ -586,33 +612,34 @@ Zerg.Ultralisk=AttackableUnit.extends({
             attack: 6
         },
         //Only for moving status, override
-        speed:Unit.getSpeedMatrixBy(12),
+        speed: Unit.getSpeedMatrixBy(12),
         HP: 400,
         damage: 20,
-        armor:1,
-        sight:245,
+        armor: 1,
+        sight: 245,
         meleeAttack: true,
-        attackInterval: 1500,
-        portraitOffset: {x:600,y:0},
-        dieEffect:Burst.UltraliskDeath,
-        isFlying:false,
-        attackLimit:"ground",
-        unitType:Unit.BIG,
-        attackType:AttackableUnit.NORMAL_ATTACK,
-        recover:Building.ZergBuilding.prototype.recover,
-        cost:{
-            mine:200,
-            gas:200,
-            man:6,
-            time:600
+        attackInterval: 500,
+        damageDelay: 200,
+        portraitOffset: { x: 60, y: 112 },
+        dieEffect: UltraliskDeath,
+        isFlying: false,
+        attackLimit: "ground",
+        unitType: Unit.BIG,
+        attackType: AttackableUnit.NORMAL_ATTACK,
+        recover: recover,
+        cost: {
+            mine: 200,
+            gas: 200,
+            man: 6,
+            time: 600
         },
-        upgrade:['UpgradeMeleeAttacks','EvolveCarapace']
+        upgrade: ['UpgradeMeleeAttacks', 'EvolveCarapace']
     }
 });
-Zerg.InfestedTerran=AttackableUnit.extends({
-    constructorPlus:function(props){
-        this.sound.burrow=new Audio('bgm/Zerg.burrow.wav');
-        this.sound.unburrow=new Audio('bgm/Zerg.unburrow.wav');
+export const InfestedTerran = AttackableUnit.extends({
+    constructorPlus: function (props) {
+        this.sound.burrow = new Audio('bgm/Zerg.burrow.wav');
+        this.sound.unburrow = new Audio('bgm/Zerg.unburrow.wav');
     },
     prototypePlus: {
         //Add basic unit info
@@ -698,43 +725,53 @@ Zerg.InfestedTerran=AttackableUnit.extends({
             unburrow: 7
         },
         //Only for moving status, override
-        speed:Unit.getSpeedMatrixBy(10),
+        speed: Unit.getSpeedMatrixBy(10),
         HP: 60,
         damage: 500,//Suicide
-        armor:0,
-        sight:175,
+        armor: 0,
+        sight: 175,
         meleeAttack: true,
-        attackRange:35,
+        attackRange: 35,
         attackInterval: 1000,//Suicide
-        portraitOffset: {x:780,y:0},
-        dieEffect:Burst.HumanDeath,
-        attackEffect:Burst.InfestedBomb,
-        isFlying:false,
-        attackLimit:"ground",
-        suicide:true,
-        unitType:Unit.SMALL,
-        attackType:AttackableUnit.NORMAL_ATTACK,
-        recover:Building.ZergBuilding.prototype.recover,
-        AOE:{
-            hasEffect:false,
-            radius:80
+        portraitOffset: { x: 780, y: 0 },
+        dieEffect: HumanDeath,
+        attackEffect: InfestedBomb,
+        isFlying: false,
+        attackLimit: "ground",
+        suicide: true,
+        unitType: Unit.SMALL,
+        attackType: AttackableUnit.NORMAL_ATTACK,
+        recover: recover,
+        AOE: {
+            hasEffect: false,
+            radius: 80
         },
-        cost:{
-            mine:100,
-            gas:50,
-            man:1,
-            time:400
+        cost: {
+            mine: 100,
+            gas: 50,
+            man: 1,
+            time: 400
         },
-        upgrade:['EvolveCarapace'],
-        items:{
-            '9':{name:'Burrow',condition:function(){
-                return Magic.Burrow.enabled
-            }}
+        upgrade: ['EvolveCarapace'],
+        items: {
+            '9': {
+                name: 'Burrow', condition: function () {
+                    return Magic.Burrow.enabled
+                }, run: function () {
+                    Magic.Burrow.spell.call(this);
+                }
+            }
         },
         //Override
-        dock:function(){
+        dock: function () {
             //Use the same behavior
             AttackableUnit.turnAround.call(this);
         }
     }
 });
+Zerg.Zergling = Zergling;
+Zerg.Hydralisk = Hydralisk;
+Zerg.Lurker = Lurker;
+Zerg.Broodling = Broodling;
+Zerg.Ultralisk = Ultralisk;
+Zerg.InfestedTerran = InfestedTerran;

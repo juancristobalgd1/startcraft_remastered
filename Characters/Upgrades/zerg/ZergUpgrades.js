@@ -1,3 +1,29 @@
+import Upgrade from '../core/UpgradeBase.js';
+import Magic from '../../Magics/core/MagicBase.js';
+import { Hatchery, Lair, Hive, SpawningPool } from '../../Buildings/zerg/ZergCore1.js';
+import { EvolutionChamber, HydraliskDen, Spire, GreaterSpire, QueenNest, UltraliskCavern, DefilerMound } from '../../Buildings/zerg/ZergCore2.js';
+//import Zerg from '../../Zergs/core/ZergBase.js';
+import { Zergling, Hydralisk, Lurker, Ultralisk, Broodling, InfestedTerran } from '../../Zergs/ground/ZergGround.js';
+import { Mutalisk, Guardian, Devourer, Scourge } from '../../Zergs/air/ZergAir.js';
+import { Drone } from '../../Zergs/workers/ZergWorkers.js';
+import { Overlord, Queen, Defiler } from '../../Zergs/support/ZergSupport.js';
+import Unit from '../../Units/core/UnitBase.js';
+
+const addStat = (obj, key, idx, delta) => {
+    const proto = obj && obj.prototype;
+    if (!proto || !proto[key]) return;
+    proto[key][idx] += delta;
+};
+const setStat = (obj, key, idx, value) => {
+    const proto = obj && obj.prototype;
+    if (!proto || !proto[key]) return;
+    proto[key][idx] = value;
+};
+const delItem = (obj, key) => {
+    const proto = obj && obj.prototype;
+    if (proto && proto.items) delete proto.items[key];
+};
+
 Upgrade.EvolveBurrow={
     name:"EvolveBurrow",
     cost:{
@@ -6,10 +32,11 @@ Upgrade.EvolveBurrow={
         time:800
     },
     effect:function(){
-        Magic.Burrow.enabled=Magic.Unburrow.enabled=true;
-        delete Building.ZergBuilding.Hatchery.prototype.items[3];
-        delete Building.ZergBuilding.Lair.prototype.items[3];
-        delete Building.ZergBuilding.Hive.prototype.items[3];
+        if (Magic.Burrow) Magic.Burrow.enabled=true;
+        if (Magic.Unburrow) Magic.Unburrow.enabled=true;
+        delItem(Hatchery, 3);
+        delItem(Lair, 3);
+        delItem(Hive, 3);
     }
 };
 Upgrade.EvolveVentralSacs={
@@ -20,9 +47,10 @@ Upgrade.EvolveVentralSacs={
         time:1600
     },
     effect:function(){
-        Magic.Load.enabled=Magic.UnloadAll.enabled=true;
-        delete Building.ZergBuilding.Lair.prototype.items[4];
-        delete Building.ZergBuilding.Hive.prototype.items[4];
+        if (Magic.Load) Magic.Load.enabled=true;
+        if (Magic.UnloadAll) Magic.UnloadAll.enabled=true;
+        delItem(Lair, 4);
+        delItem(Hive, 4);
     }
 };
 Upgrade.EvolveAntennas={
@@ -33,9 +61,10 @@ Upgrade.EvolveAntennas={
         time:1330
     },
     effect:function(isEnemy){
-        Zerg.Overlord.prototype.sight[Number(Boolean(isEnemy))]=385;
-        delete Building.ZergBuilding.Lair.prototype.items[5];
-        delete Building.ZergBuilding.Hive.prototype.items[5];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Overlord, 'sight', idx, 385);
+        delItem(Lair, 5);
+        delItem(Hive, 5);
     }
 };
 Upgrade.EvolvePneumatizedCarapace={
@@ -46,9 +75,10 @@ Upgrade.EvolvePneumatizedCarapace={
         time:1330
     },
     effect:function(isEnemy){
-        Zerg.Overlord.prototype.speed[Number(Boolean(isEnemy))]=Unit.getSpeedMatrixBy(8);
-        delete Building.ZergBuilding.Lair.prototype.items[6];
-        delete Building.ZergBuilding.Hive.prototype.items[6];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Overlord, 'speed', idx, Unit.getSpeedMatrixBy(8));
+        delItem(Lair, 6);
+        delItem(Hive, 6);
     }
 };
 Upgrade.EvolveMetabolicBoost={
@@ -59,8 +89,9 @@ Upgrade.EvolveMetabolicBoost={
         time:1000
     },
     effect:function(isEnemy){
-        Zerg.Zergling.prototype.speed[Number(Boolean(isEnemy))]=Unit.getSpeedMatrixBy(18);
-        delete Building.ZergBuilding.SpawningPool.prototype.items[1];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Zergling, 'speed', idx, Unit.getSpeedMatrixBy(18));
+        delItem(SpawningPool, 1);
     }
 };
 Upgrade.EvolveAdrenalGlands={
@@ -71,8 +102,9 @@ Upgrade.EvolveAdrenalGlands={
         time:1000
     },
     effect:function(isEnemy){
-        Zerg.Zergling.prototype.attackInterval[Number(Boolean(isEnemy))]=600;
-        delete Building.ZergBuilding.SpawningPool.prototype.items[2];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Zergling, 'attackInterval', idx, 600);
+        delItem(SpawningPool, 2);
     }
 };
 Upgrade.UpgradeMeleeAttacks={
@@ -84,11 +116,12 @@ Upgrade.UpgradeMeleeAttacks={
     },
     level:[0,0],
     effect:function(isEnemy){
-        Zerg.Zergling.prototype.damage[Number(Boolean(isEnemy))]+=1;
-        Zerg.Ultralisk.prototype.damage[Number(Boolean(isEnemy))]+=3;
-        Zerg.Broodling.prototype.damage[Number(Boolean(isEnemy))]+=1;
-        this.level[Number(Boolean(isEnemy))]++;
-        if (this.level[0]>=3) delete Building.ZergBuilding.EvolutionChamber.prototype.items[1];
+        const idx = Number(Boolean(isEnemy));
+        addStat(Zergling, 'damage', idx, 1);
+        addStat(Ultralisk, 'damage', idx, 3);
+        addStat(Broodling, 'damage', idx, 1);
+        this.level[idx]++;
+        if (this.level[0]>=3) delItem(EvolutionChamber, 1);
     }
 };
 Upgrade.UpgradeMissileAttacks={
@@ -100,10 +133,11 @@ Upgrade.UpgradeMissileAttacks={
     },
     level:[0,0],
     effect:function(isEnemy){
-        Zerg.Hydralisk.prototype.damage[Number(Boolean(isEnemy))]+=1;
-        Zerg.Lurker.prototype.damage[Number(Boolean(isEnemy))]+=2;
-        this.level[Number(Boolean(isEnemy))]++;
-        if (this.level[0]>=3) delete Building.ZergBuilding.EvolutionChamber.prototype.items[2];
+        const idx = Number(Boolean(isEnemy));
+        addStat(Hydralisk, 'damage', idx, 1);
+        addStat(Lurker, 'damage', idx, 2);
+        this.level[idx]++;
+        if (this.level[0]>=3) delItem(EvolutionChamber, 2);
     }
 };
 Upgrade.EvolveCarapace={
@@ -115,16 +149,17 @@ Upgrade.EvolveCarapace={
     },
     level:[0,0],
     effect:function(isEnemy){
-        Zerg.Drone.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Zerg.Zergling.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Zerg.Hydralisk.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Zerg.Lurker.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Zerg.Ultralisk.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Zerg.Defiler.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Zerg.Broodling.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Zerg.InfestedTerran.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        this.level[Number(Boolean(isEnemy))]++;
-        if (this.level[0]>=3) delete Building.ZergBuilding.EvolutionChamber.prototype.items[3];
+        const idx = Number(Boolean(isEnemy));
+        addStat(Drone, 'armor', idx, 1);
+        addStat(Zergling, 'armor', idx, 1);
+        addStat(Hydralisk, 'armor', idx, 1);
+        addStat(Lurker, 'armor', idx, 1);
+        addStat(Ultralisk, 'armor', idx, 1);
+        addStat(Defiler, 'armor', idx, 1);
+        addStat(Broodling, 'armor', idx, 1);
+        addStat(InfestedTerran, 'armor', idx, 1);
+        this.level[idx]++;
+        if (this.level[0]>=3) delItem(EvolutionChamber, 3);
     }
 };
 Upgrade.EvolveMuscularAugments={
@@ -135,8 +170,9 @@ Upgrade.EvolveMuscularAugments={
         time:1000
     },
     effect:function(isEnemy){
-        Zerg.Hydralisk.prototype.speed[Number(Boolean(isEnemy))]=Unit.getSpeedMatrixBy(13);
-        delete Building.ZergBuilding.HydraliskDen.prototype.items[1];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Hydralisk, 'speed', idx, Unit.getSpeedMatrixBy(13));
+        delItem(HydraliskDen, 1);
     }
 };
 Upgrade.EvolveGroovedSpines={
@@ -147,8 +183,9 @@ Upgrade.EvolveGroovedSpines={
         time:1000
     },
     effect:function(isEnemy){
-        Zerg.Hydralisk.prototype.attackRange[Number(Boolean(isEnemy))]=175;
-        delete Building.ZergBuilding.HydraliskDen.prototype.items[2];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Hydralisk, 'attackRange', idx, 175);
+        delItem(HydraliskDen, 2);
     }
 };
 Upgrade.EvolveLurkerAspect={
@@ -159,8 +196,8 @@ Upgrade.EvolveLurkerAspect={
         time:1200
     },
     effect:function(){
-        Magic.Lurker.enabled=true;
-        delete Building.ZergBuilding.HydraliskDen.prototype.items[4];
+        if (Magic.Lurker) Magic.Lurker.enabled=true;
+        delItem(HydraliskDen, 4);
     }
 };
 Upgrade.UpgradeFlyerAttacks={
@@ -172,13 +209,14 @@ Upgrade.UpgradeFlyerAttacks={
     },
     level:[0,0],
     effect:function(isEnemy){
-        Zerg.Mutalisk.prototype.damage[Number(Boolean(isEnemy))]+=1;
-        Zerg.Guardian.prototype.damage[Number(Boolean(isEnemy))]+=2;
-        Zerg.Devourer.prototype.damage[Number(Boolean(isEnemy))]+=2;
-        this.level[Number(Boolean(isEnemy))]++;
+        const idx = Number(Boolean(isEnemy));
+        addStat(Mutalisk, 'damage', idx, 1);
+        addStat(Guardian, 'damage', idx, 2);
+        addStat(Devourer, 'damage', idx, 2);
+        this.level[idx]++;
         if (this.level[0]>=3) {
-            delete Building.ZergBuilding.Spire.prototype.items[1];
-            delete Building.ZergBuilding.GreaterSpire.prototype.items[1];
+            delItem(Spire, 1);
+            delItem(GreaterSpire, 1);
         }
     }
 };
@@ -191,16 +229,17 @@ Upgrade.UpgradeFlyerCarapace={
     },
     level:[0,0],
     effect:function(isEnemy){
-        Zerg.Overlord.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Zerg.Mutalisk.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Zerg.Guardian.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Zerg.Devourer.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Zerg.Scourge.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        Zerg.Queen.prototype.armor[Number(Boolean(isEnemy))]+=1;
-        this.level[Number(Boolean(isEnemy))]++;
+        const idx = Number(Boolean(isEnemy));
+        addStat(Overlord, 'armor', idx, 1);
+        addStat(Mutalisk, 'armor', idx, 1);
+        addStat(Guardian, 'armor', idx, 1);
+        addStat(Devourer, 'armor', idx, 1);
+        addStat(Scourge, 'armor', idx, 1);
+        addStat(Queen, 'armor', idx, 1);
+        this.level[idx]++;
         if (this.level[0]>=3) {
-            delete Building.ZergBuilding.Spire.prototype.items[2];
-            delete Building.ZergBuilding.GreaterSpire.prototype.items[2];
+            delItem(Spire, 2);
+            delItem(GreaterSpire, 2);
         }
     }
 };
@@ -212,8 +251,8 @@ Upgrade.EvolveSpawnBroodling={
         time:800
     },
     effect:function(){
-        Magic.SpawnBroodlings.enabled=true;
-        delete Building.ZergBuilding.QueenNest.prototype.items[1];
+        if (Magic.SpawnBroodlings) Magic.SpawnBroodlings.enabled=true;
+        delItem(QueenNest, 1);
     }
 };
 Upgrade.EvolveEnsnare={
@@ -224,8 +263,8 @@ Upgrade.EvolveEnsnare={
         time:800
     },
     effect:function(){
-        Magic.Ensnare.enabled=true;
-        delete Building.ZergBuilding.QueenNest.prototype.items[2];
+        if (Magic.Ensnare) Magic.Ensnare.enabled=true;
+        delItem(QueenNest, 2);
     }
 };
 Upgrade.EvolveGameteMeiosis={
@@ -236,8 +275,9 @@ Upgrade.EvolveGameteMeiosis={
         time:1660
     },
     effect:function(isEnemy){
-        Zerg.Queen.prototype.MP[Number(Boolean(isEnemy))]=250;
-        delete Building.ZergBuilding.QueenNest.prototype.items[3];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Queen, 'MP', idx, 250);
+        delItem(QueenNest, 3);
     }
 };
 Upgrade.EvolveAnabolicSynthesis={
@@ -248,8 +288,9 @@ Upgrade.EvolveAnabolicSynthesis={
         time:1330
     },
     effect:function(isEnemy){
-        Zerg.Ultralisk.prototype.speed[Number(Boolean(isEnemy))]=Unit.getSpeedMatrixBy(18);
-        delete Building.ZergBuilding.UltraliskCavern.prototype.items[1];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Ultralisk, 'speed', idx, Unit.getSpeedMatrixBy(18));
+        delItem(UltraliskCavern, 1);
     }
 };
 Upgrade.EvolveChitinousPlating={
@@ -260,8 +301,9 @@ Upgrade.EvolveChitinousPlating={
         time:1330
     },
     effect:function(isEnemy){
-        Zerg.Ultralisk.prototype.armor[Number(Boolean(isEnemy))]+=2;
-        delete Building.ZergBuilding.UltraliskCavern.prototype.items[2];
+        const idx = Number(Boolean(isEnemy));
+        addStat(Ultralisk, 'armor', idx, 2);
+        delItem(UltraliskCavern, 2);
     }
 };
 Upgrade.EvolvePlague={
@@ -272,8 +314,8 @@ Upgrade.EvolvePlague={
         time:1000
     },
     effect:function(){
-        Magic.Plague.enabled=true;
-        delete Building.ZergBuilding.DefilerMound.prototype.items[1];
+        if (Magic.Plague) Magic.Plague.enabled=true;
+        delItem(DefilerMound, 1);
     }
 };
 Upgrade.EvolveConsume={
@@ -284,8 +326,8 @@ Upgrade.EvolveConsume={
         time:1000
     },
     effect:function(){
-        Magic.Consume.enabled=true;
-        delete Building.ZergBuilding.DefilerMound.prototype.items[2];
+        if (Magic.Consume) Magic.Consume.enabled=true;
+        delItem(DefilerMound, 2);
     }
 };
 Upgrade.EvolveMetasynapticNode={
@@ -296,7 +338,8 @@ Upgrade.EvolveMetasynapticNode={
         time:1660
     },
     effect:function(isEnemy){
-        Zerg.Defiler.prototype.MP[Number(Boolean(isEnemy))]=250;
-        delete Building.ZergBuilding.DefilerMound.prototype.items[3];
+        const idx = Number(Boolean(isEnemy));
+        setStat(Defiler, 'MP', idx, 250);
+        delItem(DefilerMound, 3);
     }
 };

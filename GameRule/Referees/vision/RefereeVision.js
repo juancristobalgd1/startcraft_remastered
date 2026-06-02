@@ -4,7 +4,7 @@ Referee.judgeArbiter = function () {
         const myArbiters = Unit.ourFlyingUnits.filter((chara) => chara.name == "Arbiter");
         const enemyArbiters = Unit.enemyFlyingUnits.filter((chara) => chara.name == "Arbiter");
         Referee.ourUnderArbiterUnits.concat(Referee.enemyUnderArbiterUnits).forEach((chara) => {
-            chara.removeBuffer(arbiterBuffer);
+            if (chara.removeBuffer) chara.removeBuffer(arbiterBuffer);
         });
         Referee.ourUnderArbiterUnits = [];
         Referee.enemyUnderArbiterUnits = [];
@@ -31,7 +31,7 @@ Referee.judgeDetect = function () {
         });
         const enemyDetectors = Unit.allEnemyUnits().concat(Building.enemyBuildings).filter((chara) => chara.detector);
         Referee.ourDetectedUnits.concat(Referee.enemyDetectedUnits).forEach((chara) => {
-            chara.removeBuffer(detectorBuffer);
+            if (chara.removeBuffer) chara.removeBuffer(detectorBuffer);
         });
         Referee.ourDetectedUnits = [];
         Referee.enemyDetectedUnits = [];

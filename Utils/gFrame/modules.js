@@ -1,3 +1,5 @@
+import _$ from './core.js';
+
 _$.modules = {};
 
 _$.sourceLoader = {

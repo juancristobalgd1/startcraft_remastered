@@ -1,9 +1,115 @@
+import '../../../Utils/jquery.min.js';
+import Game from '../core/GameBase.js';
+import sourceLoader from '../../../Utils/sourceLoader.js';
+import GameMap from '../../../Characters/Map.js';
+import keyController from '../../../Controller/keyController.js';
+import mouseController from '../../../Controller/mouseController.js';
+
+const $ = globalThis.$;
+
+Game.layerSwitchTo = function (layerName) {
+    $('div.GameLayer').hide();
+    if (layerName) {
+        const target = $('#' + layerName);
+        if (target.length) target.show();
+    }
+};
+
+const _formatScaleLabel = function (scale) {
+    if (scale === 'large') return 'Large';
+    if (scale === 'xlarge') return 'XLarge';
+    return 'Normal';
+};
+
+Game._syncPauseMenuOptions = function () {
+    var metricsBtn = document.getElementById('PauseToggleMetrics');
+    if (metricsBtn) metricsBtn.textContent = 'Toggle FPS/Input: ' + ((Game.metrics && Game.metrics.enabled) ? 'On' : 'Off');
+    var hapticsBtn = document.getElementById('PauseToggleHaptics');
+    if (hapticsBtn) hapticsBtn.textContent = 'Toggle Haptics: ' + (Game.hapticsEnabled ? 'On' : 'Off');
+    var uiScaleBtn = document.getElementById('PauseUiScale');
+    if (uiScaleBtn) uiScaleBtn.textContent = 'UI Size: ' + _formatScaleLabel(Game.uiScale);
+    var reducedMotionBtn = document.getElementById('PauseReducedMotion');
+    if (reducedMotionBtn) reducedMotionBtn.textContent = 'Reduced Motion: ' + (Game.reducedMotion ? 'On' : 'Off');
+    var fontScaleBtn = document.getElementById('PauseFontScale');
+    if (fontScaleBtn) fontScaleBtn.textContent = 'Font Size: ' + _formatScaleLabel(Game.fontScale);
+};
+
+Game.setUiScale = function (scale) {
+    Game.uiScale = scale || 'normal';
+    var node = document.getElementById('GamePlay');
+    if (node) {
+        if (Game.uiScale === 'normal') node.removeAttribute('data-ui-scale');
+        else node.setAttribute('data-ui-scale', Game.uiScale);
+    }
+    Game._syncPauseMenuOptions();
+};
+
+Game.setFontScale = function (scale) {
+    Game.fontScale = scale || 'normal';
+    var node = document.getElementById('GamePlay');
+    if (node) {
+        if (Game.fontScale === 'normal') node.removeAttribute('data-font-scale');
+        else node.setAttribute('data-font-scale', Game.fontScale);
+    }
+    Game._syncPauseMenuOptions();
+};
+
+Game.setReducedMotion = function (enabled) {
+    Game.reducedMotion = Boolean(enabled);
+    var node = document.getElementById('GamePlay');
+    if (node) {
+        if (Game.reducedMotion) node.setAttribute('data-reduced-motion', 'true');
+        else node.removeAttribute('data-reduced-motion');
+    }
+    Game._syncPauseMenuOptions();
+};
+
+Game.race = Game.race || {};
+Game.race.selected = Game.race.selected || 'Terran';
+Game.race.choose = function (raceName) {
+    if (!raceName) return;
+    Game.race.selected = raceName;
+    var node = document.getElementById('GamePlay');
+    if (node) node.setAttribute('race', raceName);
+};
+
+Game.pause = function () {
+    if (Game.isPaused) return;
+    Game.isPaused = true;
+    var pauseMenu = document.getElementById('PauseMenu');
+    if (pauseMenu) {
+        pauseMenu.style.display = 'block';
+        pauseMenu.setAttribute('aria-hidden', 'false');
+    }
+    var pauseBtn = document.getElementById('PauseButton');
+    if (pauseBtn) pauseBtn.textContent = 'Resume';
+};
+
+Game.resume = function () {
+    Game.isPaused = false;
+    var pauseMenu = document.getElementById('PauseMenu');
+    if (pauseMenu) {
+        pauseMenu.style.display = 'none';
+        pauseMenu.setAttribute('aria-hidden', 'true');
+    }
+    var pauseBtn = document.getElementById('PauseButton');
+    if (pauseBtn) pauseBtn.textContent = 'Pause';
+};
+
+Game.togglePause = function () {
+    if (Game.isPaused) Game.resume();
+    else Game.pause();
+};
+
 Game.init = function () {
     $('div.GameLayer').on("selectstart", (event) => {
         event.preventDefault();
     });
     window.onresize = Game.resizeWindow;
     Game.layerSwitchTo("GameLoading");
+    if (typeof window !== 'undefined' && window.Resource && window.Resource.init && !window.Resource[0]) {
+        window.Resource.init();
+    }
     Game._loadAsset = function (type, src, id) {
         if (sourceLoader.sources[id]) return;
         sourceLoader.load(type, src, id);
@@ -58,7 +164,37 @@ Game.init = function () {
         return false;
     };
 
+    // Preload all unit sprites (like legacy version)
+    const unitSprites = [
+        // Zerg units
+        "Mutalisk", "Devourer", "Guardian", "Overlord", "Drone", "Zergling", "Hydralisk",
+        "Scourge", "Lurker", "Ultralisk", "Broodling", "InfestedTerran", "Queen", "Defiler", "Larva",
+        // Terran units
+        "BattleCruiser", "Wraith", "SCV", "Civilian", "Marine", "Firebat", "Ghost", "Vulture",
+        "Tank", "Goliath", "Medic", "Dropship", "Vessel", "Valkyrie",
+        // Protoss units
+        "Probe", "Zealot", "Dragoon", "Templar", "DarkTemplar", "Reaver", "Archon", "DarkArchon",
+        "Shuttle", "Observer", "Arbiter", "Scout", "Carrier", "Corsair",
+        // Neutral
+        "Ragnasaur", "Rhynsdon", "Ursadon", "Bengalaas", "Scantid", "Kakaru",
+        // Heroes
+        "HeroCruiser", "Sarah", "Kerrigan",
+        // Buildings
+        "ZergBuilding", "TerranBuilding", "ProtossBuilding"
+    ];
+
+    unitSprites.forEach(function (name) {
+        var folder = Game._charaFolderById[name];
+        var src = folder ? ("img/Charas/" + folder + "/" + name + ".png") : ("img/Charas/" + name + ".png");
+        Game._loadAsset("img", src, name);
+    });
+
     [
+        ["img", "img/Charas/Burst.png", "Burst"],
+        ["img", "img/Charas/BuildingBurst.png", "BuildingBurst"],
+        ["img", "img/Charas/Portrait.png", "Portrait"],
+        ["img", "img/Charas/Magic.png", "Magic"],
+        ["img", "img/Charas/Mud.png", "Mud"],
         ["img", "img/Bg/GameStart.jpg", "GameStart"],
         ["img", "img/Bg/GamePlay.jpg", "GamePlay"],
         ["img", "img/Bg/GameWin.jpg", "GameWin"],
@@ -130,6 +266,8 @@ Game.init = function () {
         Game.setFontScale(Game.fontScale);
         Game.setReducedMotion(Game.reducedMotion);
         Game._syncPauseMenuOptions();
+        // Initialize canvas dimensions
+        Game.resizeWindow();
         Game.start();
     });
 };
@@ -154,6 +292,9 @@ Game.start = function () {
 Game.play = function () {
     Game.resume();
     Game.layerSwitchTo("GameLoading");
+    if (Game.level !== 12) {
+        Game.replayFlag = false;
+    }
     Game.loadGameplayAssets(function () {
         Resource.init();
         Levels[Game.level - 1].load();
@@ -163,6 +304,7 @@ Game.play = function () {
                 Game.resizeWindow();
                 mouseController.toControlAll();
                 keyController.start();
+                Game.initReplayRecording();
                 Game.animation();
             });
         }, 0);
@@ -213,8 +355,11 @@ Game.preloadCurrentLevelAssets = function (callback) {
         add(u.source ? u.source : u.name);
     });
     Building.allBuildings.forEach(function (b) {
+        if (!b) return;
         if (b.source) add(b.source);
-        else add(b.attack ? b.inherited.inherited.name : b.inherited.name);
+        else if (b.inherited) {
+            add(b.attack && b.inherited.inherited ? b.inherited.inherited.name : b.inherited.name);
+        }
     });
     Object.keys(idMap).forEach(function (id) {
         Game.ensureAsset(id);
@@ -251,6 +396,7 @@ Game.restartLevel = function () {
     Game._clock = 0;
     Resource.init();
     Levels[Game.level - 1].load();
+    Game.initReplayRecording();
     setTimeout(function () {
         Game.resizeWindow();
         mouseController.toControlAll();
@@ -258,6 +404,7 @@ Game.restartLevel = function () {
     }, 0);
 };
 Game.win = function () {
+    Game.saveReplay();
     Game.stop(Unit.allUnits);
     $('div#GamePlay').fadeOut(3000);
     setTimeout(function () {
@@ -266,6 +413,7 @@ Game.win = function () {
     }, 3000);
 };
 Game.lose = function () {
+    Game.saveReplay();
     Game.stop(Unit.allUnits);
     $('div#GamePlay').fadeOut(3000);
     setTimeout(function () {
@@ -307,14 +455,88 @@ Game.resizeWindow = function () {
     Game.VBOUND = innerHeight;
     Game.infoBox.width = Game.HBOUND - 295;
     Game.infoBox.y = Game.VBOUND - 110;
-    $('#GamePlay>canvas')[0].width = Game.HBOUND;
-    $('#GamePlay>canvas')[0].height = Game.VBOUND;
-    GameMap.fogCanvas.width = Game.HBOUND;
-    GameMap.fogCanvas.height = Game.VBOUND - Game.infoBox.height + 5;
+    const backCanvas = document.getElementById('backCanvas');
+    const middleCanvas = document.getElementById('middleCanvas');
+    const frontCanvas = document.getElementById('frontCanvas');
+    if (backCanvas) {
+        backCanvas.width = Game.HBOUND;
+        backCanvas.height = Game.VBOUND;
+        Game.backCxt = backCanvas.getContext('2d');
+        if (!Game.mainCxt) Game.mainCxt = Game.backCxt;
+    }
+    if (middleCanvas) {
+        middleCanvas.width = Game.HBOUND;
+        middleCanvas.height = Game.VBOUND;
+        Game.cxt = middleCanvas.getContext('2d');
+    }
+    if (frontCanvas) {
+        frontCanvas.width = Game.HBOUND;
+        frontCanvas.height = Game.VBOUND;
+        Game.frontCxt = frontCanvas.getContext('2d');
+    }
+
+    // Update map viewport rect
+    if (GameMap.rect) {
+        GameMap.rect.width = Game.HBOUND;
+        GameMap.rect.height = Game.VBOUND;
+    }
     $('div.panel_Info')[0].style.width = ((Game.HBOUND - 295) + 'px');
-    GameMap.insideStroke.width = (130 * Game.HBOUND / GameMap.getCurrentMap().width) >> 0;
-    GameMap.insideStroke.height = (130 * Game.VBOUND / GameMap.getCurrentMap().height) >> 0;
-    GameMap.draw();
-    GameMap.refreshFog();
-    if (window.mouseController && mouseController._updateFrontOffset) mouseController._updateFrontOffset();
+    const currentMap = GameMap.getCurrentMap();
+    if (currentMap) {
+        GameMap.insideStroke.width = (130 * Game.HBOUND / currentMap.width) >> 0;
+        GameMap.insideStroke.height = (130 * Game.VBOUND / currentMap.height) >> 0;
+    } else {
+        GameMap.insideStroke.width = 0;
+        GameMap.insideStroke.height = 0;
+    }
+    if (GameMap.refresh) GameMap.refresh(1);
+    if (GameMap.refreshMiniMap) GameMap.refreshMiniMap();
+    if (GameMap.refreshFog) GameMap.refreshFog();
+    if (mouseController && mouseController._updateFrontOffset) mouseController._updateFrontOffset();
+};
+
+Game.initReplayRecording = function () {
+    if (Game.replayFlag) return;
+    Game.replay = {
+        level: Game.level,
+        team: Game.team,
+        cmds: {},
+        end: 0
+    };
+};
+
+Game.saveReplay = function () {
+    if (Game.replayFlag) return;
+    Game.replay.end = Game._clock;
+    try {
+        localStorage.setItem('lastReplay', JSON.stringify(Game.replay));
+    } catch (e) {
+        console.error("Failed to save replay to localStorage:", e);
+    }
+    Game.saveReplayIntoDB();
+};
+
+Game.saveReplayIntoDB = function () {
+    if (Game.replayFlag) return;
+    if (typeof indexedDB === 'undefined') return;
+    const request = indexedDB.open("StarCraftReplays", 1);
+    request.onupgradeneeded = function (event) {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains("replays")) {
+            db.createObjectStore("replays", { keyPath: "id", autoIncrement: true });
+        }
+    };
+    request.onsuccess = function (event) {
+        const db = event.target.result;
+        const transaction = db.transaction(["replays"], "readwrite");
+        const store = transaction.objectStore("replays");
+        const replayData = Object.assign({}, Game.replay, {
+            time: Date.now(),
+            label: "Level " + Game.level + " - " + new Date().toLocaleString()
+        });
+        store.add(replayData);
+    };
+    request.onerror = function (event) {
+        console.error("IndexedDB error saving replay:", event.target.error);
+    };
 };

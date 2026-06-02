@@ -1,3 +1,5 @@
+import keyController from '../../../Controller/keyController.js';
+
 Button.moveHandler = function () {
     if (Button.callback == null) {
         Button.callback = 'move';
@@ -8,9 +10,14 @@ Button.moveHandler = function () {
         Button.callback = null;
     }
 };
-Button.stopHandler = function () {
+Button.stopHandler = function (skipRecord) {
+    var uids = [];
     Unit.allOurUnits().filter(function (chara) {
-        return chara.selected;
+        if (chara.selected) {
+            uids.push(chara.id);
+            return true;
+        }
+        return false;
     }).forEach(function (chara) {
         if (chara.attack) chara.stopAttack();
         chara.dock();
@@ -20,6 +27,14 @@ Button.stopHandler = function () {
             delete chara.destination;
         }
     });
+    if (!skipRecord && globalThis.Multiplayer && !Game.replayFlag && uids.length > 0) {
+        var cmd = {
+            type: 'stop',
+            uids: uids
+        };
+        if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
+        Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
+    }
 };
 Button.attackHandler = function () {
     if (Button.callback == null) {
@@ -113,9 +128,14 @@ Button.gatherHandler = function () {
     }
 };
 Button.holdHandler = function () {
-    Button.stopHandler();
+    Button.stopHandler(true);
+    var uids = [];
     Unit.allOurUnits().filter(function (chara) {
-        return chara.selected;
+        if (chara.selected) {
+            uids.push(chara.id);
+            return true;
+        }
+        return false;
     }).forEach(function (chara) {
         if (chara.hold) {
             delete chara.AI;
@@ -131,6 +151,14 @@ Button.holdHandler = function () {
             Button.reset();
         }
     });
+    if (globalThis.Multiplayer && !Game.replayFlag && uids.length > 0) {
+        var cmd = {
+            type: 'hold',
+            uids: uids
+        };
+        if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
+        Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
+    }
 };
 Button.execute = function (event) {
     switch (Button.callback) {

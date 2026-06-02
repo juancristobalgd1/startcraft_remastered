@@ -1,129 +1,84 @@
+import '../Utils/jquery.min.js';
+import Game from '../GameRule/Games/core/GameBase.js';
+import Button from '../Characters/Buttons/core/ButtonBase.js';
+import Cheat from '../GameRule/Cheat.js';
+import GameMap from '../Characters/Map.js';
+
+const $ = globalThis.$;
+
 var keyController={
 	shift:false,
     ctrl:false,
     disable:false,
-    _lastTeamNum:null,
-    _lastTeamAt:0,
-    hotkeys:{
-        move:77,
-        stop:83,
-        attack:65,
-        patrol:80,
-        hold:72,
-        pause:27,
-        cheat:13,
-        mapLeft:37,
-        mapUp:38,
-        mapRight:39,
-        mapDown:40
-    },
-    keymap:{},
-    _applyHotkeys:function(){
-        const map={};
-        Object.keys(keyController.hotkeys).forEach(function(action){
-            const code=keyController.hotkeys[action];
-            if (typeof code=='number') map[code]=action;
-        });
-        keyController.keymap=map;
-    },
-    loadHotkeys:function(){
-        try{
-            const raw=localStorage.getItem('sc_hotkeys');
-            if (raw){
-                const obj=JSON.parse(raw);
-                if (obj && typeof obj=='object'){
-                    Object.keys(keyController.hotkeys).forEach(function(k){
-                        if (typeof obj[k]=='number') keyController.hotkeys[k]=obj[k];
-                    });
-                }
-            }
-        }
-        catch(e){}
-        keyController._applyHotkeys();
-    },
-    setHotkeys:function(obj){
-        if (!obj || typeof obj!='object') return;
-        Object.keys(keyController.hotkeys).forEach(function(k){
-            if (typeof obj[k]=='number') keyController.hotkeys[k]=obj[k];
-        });
-        try{
-            localStorage.setItem('sc_hotkeys',JSON.stringify(keyController.hotkeys));
-        }
-        catch(e){}
-        keyController._applyHotkeys();
-    },
     start:function(){
-        keyController.loadHotkeys();
-        //Keyboard settings
         window.onkeydown=function(event){
-            //Will not switch page by Ctrl+N,cannot debug
-            //event.preventDefault();
-            //Sometimes need to disable shortcut key
-            if (keyController.disable && event.keyCode!=13 && event.keyCode!=27) return;
-            if (event.keyCode==16){
-                keyController.shift=true;
-                return;
-            }
-            if (event.keyCode==17){
-                keyController.ctrl=true;
-                return;
-            }
-            if (event.keyCode>=48 && event.keyCode<=57){
-                const teamNum=String.fromCharCode(event.keyCode);
-                if (keyController.ctrl || keyController.shift) {
-                    Game.addSelectedIntoTeam(teamNum, keyController.shift);
-                    keyController._lastTeamNum=null;
-                    keyController._lastTeamAt=0;
-                }
-                else {
-                    const now=(window.performance && performance.now)?performance.now():Date.now();
-                    const isDouble=(keyController._lastTeamNum===teamNum) && ((now-keyController._lastTeamAt)<=350);
-                    Game.callTeam(teamNum,isDouble);
-                    keyController._lastTeamNum=teamNum;
-                    keyController._lastTeamAt=now;
-                }
-                return;
-            }
-            const action=keyController.keymap[event.keyCode];
-            if (!action) return;
-            switch(action){
-                case 'mapLeft':
+            const e = event || window.event;
+            if (!e) return;
+            if (keyController.disable && e.keyCode!=13) return;
+            switch (e.keyCode){
+                case 16:
+                    keyController.shift=true;
+                    break;
+                case 17:
+                    keyController.ctrl=true;
+                    break;
+                case 48:case 49:case 50:case 51:case 52:
+                case 53:case 54:case 55:case 56:case 57:
+                    var teamNum=String.fromCharCode(e.keyCode);
+                    if (keyController.ctrl) {
+                        Game.addSelectedIntoTeam(teamNum);
+                    }
+                    else {
+                        Game.callTeam(teamNum);
+                    }
+                    break;
+                case 37:
                     GameMap.needRefresh="LEFT";
                     break;
-                case 'mapUp':
+                case 38:
                     GameMap.needRefresh="TOP";
                     break;
-                case 'mapRight':
+                case 39:
                     GameMap.needRefresh="RIGHT";
                     break;
-                case 'mapDown':
+                case 40:
                     GameMap.needRefresh="BOTTOM";
                     break;
-                case 'move':
+                case 77:
                     if ($.makeArray($('div.panel_Control button')).some((btn) => btn.className=='move')) Button.moveHandler();
                     break;
-                case 'stop':
+                case 83:
                     if ($.makeArray($('div.panel_Control button')).some((btn) => btn.className=='stop')) Button.stopHandler();
                     break;
-                case 'attack':
+                case 65:
                     if ($.makeArray($('div.panel_Control button')).some((btn) => btn.className=='attack')) Button.attackHandler();
                     break;
-                case 'patrol':
+                case 80:
                     if ($.makeArray($('div.panel_Control button')).some((btn) => btn.className=='patrol')) Button.patrolHandler();
                     break;
-                case 'hold':
+                case 72:
                     if ($.makeArray($('div.panel_Control button')).some((btn) => btn.className=='hold')) Button.holdHandler();
                     break;
-                case 'cheat':
-                    Cheat.handler();
+                // Replay speed control
+                case 107:
+                case 33:
+                    // Speed up + or pageUp
+                    if (typeof Button.speedUpHandler === 'function') Button.speedUpHandler();
                     break;
-                case 'pause':
-                    if (window.Game && Game.togglePause) Game.togglePause();
+                case 109:
+                case 34:
+                    // Slow down - or pageDown
+                    if (typeof Button.slowDownHandler === 'function') Button.slowDownHandler();
+                    break;
+                case 13:
+                    Cheat.handler();
                     break;
             }
         };
-        window.onkeyup=function(){
-            switch (event.keyCode){
+        window.onkeyup=function(event){
+            const e = event || window.event;
+            if (!e) return;
+            switch (e.keyCode){
                 //Press SHIFT up
                 case 16:
                     keyController.shift=false;
@@ -136,3 +91,5 @@ var keyController={
         };
     }
 };
+
+export default keyController;

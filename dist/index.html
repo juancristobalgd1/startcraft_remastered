@@ -1,0 +1,218 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>StarCraft</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="StarCraft">
+    <link rel="manifest" href="/assets/manifest-CngIoz3E.json">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon-BYkcMIhX.png">
+    <link rel="shortcut icon" href="/assets/favicon-DW57KoyM.ico" />
+  <script type="module" crossorigin src="/assets/index-Fq3wbIGg.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BFAYRjrw.css">
+</head>
+
+<body>
+    <div id="GameLoading" class="GameLayer">
+        <div class="LoadingDiv">
+            <div class="LoadingMsg">Now Loading...</div>
+            <div class="LoadingBlock">
+                <div class="LoadedBlock"></div>
+            </div>
+        </div>
+    </div>
+    <div id="GameStart" class="GameLayer">
+        <div class="levelSelectionBg"></div>
+    </div>
+    <div id="GamePlay" class="GameLayer" race="Terran">
+        <button id="PauseButton" type="button">Pause</button>
+        <div id="GameHUD"></div>
+        <div id="PauseMenu" aria-hidden="true">
+            <div class="pauseMenuPanel">
+                <div class="pauseMenuTitle">Paused</div>
+                <button id="PauseResume" type="button">Resume</button>
+                <button id="PauseRestart" type="button">Restart</button>
+                <button id="PauseToggleMetrics" type="button">Toggle FPS/Input</button>
+                <button id="PauseToggleHaptics" type="button">Toggle Haptics</button>
+                <button id="PauseUiScale" type="button">UI Size: Normal</button>
+                <button id="PauseReducedMotion" type="button">Reduced Motion: Off</button>
+                <button id="PauseFontScale" type="button">Font Size: Normal</button>
+            </div>
+        </div>
+        <canvas id="backCanvas"></canvas>
+        <canvas id="middleCanvas"></canvas>
+        <canvas id="frontCanvas"></canvas>
+        <div class="panel_Map">
+            <canvas name="mini_map" width="130" height="130"></canvas>
+        </div>
+        <div class="panel_Info">
+            <div class="infoLeft">
+                <div name="portrait"></div>
+                <div id="HP_SP">
+                    <span class="_Shield"><span class="shield"></span>/<span class="SP"></span></span> <span
+                        class="_Health"><span class="life"></span>/<span class="HP"></span></span>
+                </div>
+                <div id="MP">
+                    <span class="_Magic"><span class="magic"></span>/<span class="MP"></span></span>
+                </div>
+            </div>
+            <div class="infoCenter">
+                <h3 class="name"></h3>
+                <p class="detector">Detector</p>
+                <p class="kill">Kill:<span></span></p>
+                <p class="damage">Damage:<span></span></p>
+                <p class="armor">Armor:<span></span></p>
+                <p class="plasma">Plasma:<span></span></p>
+            </div>
+            <div class="infoRight">
+                <div class="upgraded">
+                    Upgraded:&nbsp;&nbsp;
+                    <div name="icon"></div>
+                    <div name="icon"></div>
+                    <div name="icon"></div>
+                </div>
+                <div class="upgrading">
+                    <div name="icon"></div>
+                    <div name="processing">
+                        <span></span>%<br>
+                        <div class="processBar">
+                            <div class="processedBar"></div>
+                        </div>
+                        <div class="queue"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="override">
+                <div class="multiSelection">
+                    <div name="portrait" class="Lurker"></div>
+                </div>
+            </div>
+        </div>
+        <div class="panel_Control"></div>
+        <div class="warning_Box"></div>
+        <div id="cheat_Box">
+            Message: <input type="text" id="cheatInput" />
+        </div>
+        <div class="message_Box"></div>
+        <div class="resource_Box">
+            <div class="mine"></div>
+            <span class="mineNum"></span>
+            <div class="gas"></div>
+            <span class="gasNum"></span>
+            <div class="man"></div>
+            <span class="manNum"><span></span>/<span></span></span>
+        </div>
+        <div class="tooltip_Box">
+            <div class="itemName"></div>
+            <div class="cost">
+                <div class="mine"></div>
+                <span class="mineNum"></span>
+                <div class="gas"></div>
+                <span class="gasNum"></span>
+                <div class="man"></div>
+                <span class="manNum"></span>
+                <div class="magic"></div>
+                <span class="magicNum"></span>
+            </div>
+        </div>
+    </div>
+    <div id="GameWin" class="GameLayer"></div>
+    <div id="GameLose" class="GameLayer"></div>
+
+    <script>
+        (function () {
+            const g = window;
+            let ok = true;
+            try {
+                if (typeof g.Map !== "function") ok = false;
+                else {
+                    const m = new g.Map();
+                    m.set("a", 1);
+                    if (m.get("a") !== 1) ok = false;
+                }
+            } catch (e) {
+                ok = false;
+            }
+            if (ok) return;
+            function P(it) {
+                this._k = [];
+                this._v = [];
+                if (!it) return;
+                if (typeof it.forEach === "function") {
+                    const self = this;
+                    it.forEach(function (p) {
+                        if (p && p.length >= 2) self.set(p[0], p[1]);
+                    });
+                } else if (it.length) {
+                    for (let i = 0; i < it.length; i++) {
+                        const p = it[i];
+                        if (p && p.length >= 2) this.set(p[0], p[1]);
+                    }
+                }
+            }
+            P.prototype._i = function (k) {
+                for (let i = 0; i < this._k.length; i++) {
+                    if (this._k[i] === k) return i;
+                }
+                return -1;
+            };
+            P.prototype.set = function (k, v) {
+                const i = this._i(k);
+                if (i === -1) {
+                    this._k.push(k);
+                    this._v.push(v);
+                } else {
+                    this._v[i] = v;
+                }
+                return this;
+            };
+            P.prototype.get = function (k) {
+                const i = this._i(k);
+                return i === -1 ? undefined : this._v[i];
+            };
+            P.prototype.has = function (k) {
+                return this._i(k) !== -1;
+            };
+            P.prototype["delete"] = function (k) {
+                const i = this._i(k);
+                if (i === -1) return false;
+                this._k.splice(i, 1);
+                this._v.splice(i, 1);
+                return true;
+            };
+            P.prototype.clear = function () {
+                this._k.length = 0;
+                this._v.length = 0;
+            };
+            P.prototype.forEach = function (cb, thisArg) {
+                for (let i = 0; i < this._k.length; i++) {
+                    cb.call(thisArg, this._v[i], this._k[i], this);
+                }
+            };
+            Object.defineProperty(P.prototype, "size", {
+                get: function () { return this._k.length; }
+            });
+            g.Map = P;
+        })();
+    </script>
+
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function () {
+                navigator.serviceWorker.register("sw.js");
+            });
+        }
+    </script>
+    <script>
+        if (screen && screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock("landscape").catch(function () { });
+        }
+    </script>
+</body>
+
+</html>

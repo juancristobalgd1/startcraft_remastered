@@ -1,19 +1,19 @@
-var _$ = function (selector) {
+
+const _$ = function (selector) {
   if (!(this instanceof _$)) return _$.select(selector);
   this.selector = selector;
   return _$.select(selector);
 };
 
 _$.select = function (selector) {
-  var selectors = selector.trim().split(' ');
-  var result = document;
-  var N, M, curSelector, filter, filterIndex, id, TagName, className,
-    tagResult, classResult, _result, attr, val, parts;
+  const selectors = selector.trim().split(' ');
+  let result = document;
+  let tagResult, classResult, _result, attr, val, parts;
 
-  for (N = 0; N < selectors.length; N++) {
-    curSelector = selectors[N];
-    filter = undefined;
-    filterIndex = curSelector.indexOf('[');
+  for (let N = 0; N < selectors.length; N++) {
+    let curSelector = selectors[N];
+    let filter;
+    const filterIndex = curSelector.indexOf('[');
 
     if (filterIndex !== -1) {
       filter = curSelector.substring(filterIndex + 1, curSelector.indexOf(']')).trim();
@@ -21,10 +21,10 @@ _$.select = function (selector) {
     }
 
     if (curSelector.indexOf('#') !== -1) {
-      id = curSelector.split('#')[1];
+      const id = curSelector.split('#')[1];
       if (result.length) {
         _result = [];
-        for (M = 0; M < result.length; M++) {
+        for (let M = 0; M < result.length; M++) {
           _result.push(result[M].getElementById(id));
         }
         result = _result;
@@ -32,14 +32,14 @@ _$.select = function (selector) {
         result = result.getElementById(id);
       }
     } else {
-      TagName = curSelector.indexOf('.') !== -1 ? curSelector.split('.')[0] : curSelector;
-      className = curSelector.split('.')[1];
+      const TagName = curSelector.indexOf('.') !== -1 ? curSelector.split('.')[0] : curSelector;
+      const className = curSelector.split('.')[1];
       tagResult = classResult = undefined;
 
       if (TagName) {
         if (result.length) {
           _result = [];
-          for (M = 0; M < result.length; M++) {
+          for (let M = 0; M < result.length; M++) {
             _result = _result.concat($.makeArray(result[M].getElementsByTagName(TagName)));
           }
           tagResult = _result;
@@ -51,7 +51,7 @@ _$.select = function (selector) {
       if (className) {
         if (result.length) {
           _result = [];
-          for (M = 0; M < result.length; M++) {
+          for (let M = 0; M < result.length; M++) {
             _result = _result.concat($.makeArray(result[M].getElementsByClassName(className)));
           }
           classResult = _result;
@@ -64,7 +64,7 @@ _$.select = function (selector) {
       if (!TagName && className) result = classResult;
       if (TagName && className) {
         _result = [];
-        for (M = 0; M < tagResult.length; M++) {
+        for (let M = 0; M < tagResult.length; M++) {
           if (classResult.indexOf(tagResult[M]) !== -1) _result.push(tagResult[M]);
         }
         result = _result;
@@ -80,13 +80,9 @@ _$.select = function (selector) {
           (val[0] === "'" && val[val.length - 1] === "'")) {
           val = val.substring(1, val.length - 1);
         }
-        result = result.filter(function (item) {
-          return item.getAttribute(attr) == val;
-        });
+        result = result.filter(item => item.getAttribute(attr) == val);
       } else {
-        result = result.filter(function (item) {
-          return item.getAttribute(filter) != null;
-        });
+        result = result.filter(item => item.getAttribute(filter) != null);
       }
     }
   }
@@ -99,10 +95,5 @@ if (!String.prototype.contains) {
   };
 }
 
-window.requestAnimationFrame = window.requestAnimationFrame ||
-  window.webkitRequestAnimationFrame ||
-  window.mozRequestAnimationFrame ||
-  window.msRequestAnimationFrame ||
-  window.oRequestAnimationFrame;
-
-_$.requestAnimationFrame = window.requestAnimationFrame;
+window._$ = Object.assign(_$, window._$);
+export default _$;

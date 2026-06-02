@@ -1,1 +1,4 @@
-var Terran = {};
+
+const Terran = {};
+window.Terran = Terran;
+export default Terran;

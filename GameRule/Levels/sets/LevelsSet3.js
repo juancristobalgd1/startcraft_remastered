@@ -4,50 +4,53 @@ Levels.push(
         load: function () {
             //Load map
             GameMap.setCurrentMap('BigGameHunters');
+            GameMap.offsetX = 0;
+            GameMap.offsetY = 0;
+            GameMap.fogFlag = false;
             //Apply race style
-            Game.race.choose('Protoss');
+            // Game.race.choose('Protoss');
             //Add buildings
             //Zerg buildings
-            new Building.ZergBuilding.Hatchery({ x: 0, y: 520 });
-            new Building.ZergBuilding.Lair({ x: 0, y: 670 });
-            new Building.ZergBuilding.Hive({ x: 0, y: 820 });
-            new Building.ZergBuilding.CreepColony({ x: 150, y: 520 });
-            new Building.ZergBuilding.SunkenColony({ x: 150, y: 670 });
-            new Building.ZergBuilding.SporeColony({ x: 150, y: 820, isEnemy: true });
-            new Building.ZergBuilding.Extractor({ x: 300, y: 520 });
-            new Building.ZergBuilding.SpawningPool({ x: 300, y: 670 });
-            new Building.ZergBuilding.EvolutionChamber({ x: 300, y: 820 });
-            new Building.ZergBuilding.HydraliskDen({ x: 450, y: 520 });
-            new Building.ZergBuilding.Spire({ x: 450, y: 670 });
-            new Building.ZergBuilding.GreaterSpire({ x: 450, y: 820 });
-            new Building.ZergBuilding.QueenNest({ x: 600, y: 520 });
-            new Building.ZergBuilding.NydusCanal({ x: 600, y: 670 });
-            new Building.ZergBuilding.UltraliskCavern({ x: 600, y: 820 });
-            new Building.ZergBuilding.DefilerMound({ x: 750, y: 520 });
-            new Building.ZergBuilding.InfestedBase({ x: 750, y: 670 });
-            new Building.ZergBuilding.OvermindI({ x: 750, y: 820 });
-            new Building.ZergBuilding.OvermindII({ x: 900, y: 520 });
+            //new Building.ZergBuilding.Hatchery({ x: 0, y: 520 });
+            //new Building.ZergBuilding.Lair({ x: 0, y: 670 });
+            //new Building.ZergBuilding.Hive({ x: 0, y: 820 });
+            //new Building.ZergBuilding.CreepColony({ x: 150, y: 520 });
+            //new Building.ZergBuilding.SunkenColony({ x: 150, y: 670 });
+            // new Building.ZergBuilding.SporeColony({ x: 150, y: 820, isEnemy: true });
+            //new Building.ZergBuilding.Extractor({ x: 300, y: 520 });
+            //new Building.ZergBuilding.SpawningPool({ x: 300, y: 670 });
+            //new Building.ZergBuilding.EvolutionChamber({ x: 300, y: 820 });
+            //new Building.ZergBuilding.HydraliskDen({ x: 450, y: 520 });
+            //new Building.ZergBuilding.Spire({ x: 450, y: 670 });
+            //new Building.ZergBuilding.GreaterSpire({ x: 450, y: 820 });
+            //new Building.ZergBuilding.QueenNest({ x: 600, y: 520 });
+            //new Building.ZergBuilding.NydusCanal({ x: 600, y: 670 });
+            //new Building.ZergBuilding.UltraliskCavern({ x: 600, y: 820 });
+            //new Building.ZergBuilding.DefilerMound({ x: 750, y: 520 });
+            //new Building.ZergBuilding.InfestedBase({ x: 750, y: 670 });
+            //new Building.ZergBuilding.OvermindI({ x: 750, y: 820 });
+            //new Building.ZergBuilding.OvermindII({ x: 900, y: 520 });
             //Terran buildings
-            new Building.TerranBuilding.CommandCenter({ x: 0, y: 1020 });
-            new Building.TerranBuilding.SupplyDepot({ x: 0, y: 1170, isEnemy: true });
-            new Building.TerranBuilding.Refinery({ x: 0, y: 1320 });
-            new Building.TerranBuilding.Barracks({ x: 150, y: 1020 });
-            new Building.TerranBuilding.EngineeringBay({ x: 150, y: 1170 });
-            new Building.TerranBuilding.MissileTurret({ x: 150, y: 1320 });
-            new Building.TerranBuilding.Academy({ x: 300, y: 1020 });
-            new Building.TerranBuilding.Bunker({ x: 300, y: 1170 });
-            new Building.TerranBuilding.Factory({ x: 300, y: 1320 });
-            new Building.TerranBuilding.Starport({ x: 450, y: 1020 });
-            new Building.TerranBuilding.ScienceFacility({ x: 450, y: 1170 });
-            new Building.TerranBuilding.Armory({ x: 450, y: 1320 });
-            new Building.TerranBuilding.ComstatStation({ x: 600, y: 1020 });
-            new Building.TerranBuilding.NuclearSilo({ x: 600, y: 1170 });
-            new Building.TerranBuilding.MachineShop({ x: 600, y: 1320 });
-            new Building.TerranBuilding.ControlTower({ x: 750, y: 1020 });
-            new Building.TerranBuilding.PhysicsLab({ x: 750, y: 1170 });
-            new Building.TerranBuilding.ConvertOps({ x: 750, y: 1320 });
-            new Building.TerranBuilding.CrashCruiser({ x: 900, y: 1020 });
-            new Building.TerranBuilding.BigCannon({ x: 900, y: 1170 });
+            //new Building.TerranBuilding.CommandCenter({ x: 0, y: 1020 });
+            // new Building.TerranBuilding.SupplyDepot({ x: 0, y: 1170, isEnemy: true });
+            //new Building.TerranBuilding.Refinery({ x: 0, y: 1320 });
+            //new Building.TerranBuilding.Barracks({ x: 150, y: 1020 });
+            //new Building.TerranBuilding.EngineeringBay({ x: 150, y: 1170 });
+            //new Building.TerranBuilding.MissileTurret({ x: 150, y: 1320 });
+            //new Building.TerranBuilding.Academy({ x: 300, y: 1020 });
+            //new Building.TerranBuilding.Bunker({ x: 300, y: 1170 });
+            //new Building.TerranBuilding.Factory({ x: 300, y: 1320 });
+            //new Building.TerranBuilding.Starport({ x: 450, y: 1020 });
+            //new Building.TerranBuilding.ScienceFacility({ x: 450, y: 1170 });
+            //new Building.TerranBuilding.Armory({ x: 450, y: 1320 });
+            //new Building.TerranBuilding.ComstatStation({ x: 600, y: 1020 });
+            //new Building.TerranBuilding.NuclearSilo({ x: 600, y: 1170 });
+            //new Building.TerranBuilding.MachineShop({ x: 600, y: 1320 });
+            //new Building.TerranBuilding.ControlTower({ x: 750, y: 1020 });
+            //new Building.TerranBuilding.PhysicsLab({ x: 750, y: 1170 });
+            //new Building.TerranBuilding.ConvertOps({ x: 750, y: 1320 });
+            //new Building.TerranBuilding.CrashCruiser({ x: 900, y: 1020 });
+            //new Building.TerranBuilding.BigCannon({ x: 900, y: 1170 });
             //Protoss buildings
             new Building.ProtossBuilding.Nexus({ x: 0, y: 20 });
             new Building.ProtossBuilding.Pylon({ x: 0, y: 170, isEnemy: true });
@@ -68,6 +71,10 @@ Levels.push(
             new Building.ProtossBuilding.TeleportGate({ x: 750, y: 170 });
             new Building.ProtossBuilding.Pyramid({ x: 750, y: 320 });
             new Building.ProtossBuilding.TeleportPoint({ x: 900, y: 20 });
+
+            new Protoss.Probe({ x: 120, y: 80 });
+            // new Protoss.Zealot({ x: 200, y: 80 });
+            // new Protoss.Dragoon({ x: 280, y: 80 });
         }
     },
     {
@@ -83,21 +90,21 @@ Levels.push(
             //Apply cheat
             Cheat.execute('black sheep wall');
             //Our buildings and units
-            new Building.ZergBuilding.OvermindI({ x: 662, y: 3828 });
-            new Building.ZergBuilding.OvermindII({ x: 300, y: 3694 });
+            //new Building.ZergBuilding.OvermindI({ x: 662, y: 3828 });
+            //new Building.ZergBuilding.OvermindII({ x: 300, y: 3694 });
             new Building.TerranBuilding.CrashCruiser({ x: 820, y: 3600 });
             new Building.TerranBuilding.BigCannon({ x: 260, y: 3560 });
-            new Building.ProtossBuilding.Pyramid({ x: 560, y: 3690 });
-            new Building.ProtossBuilding.TeleportGate({ x: 560, y: 3558 });
-            new Building.ProtossBuilding.TeleportPoint({ x: 534, y: 3884 });
+            //new Building.ProtossBuilding.Pyramid({ x: 560, y: 3690 });
+            //new Building.ProtossBuilding.TeleportGate({ x: 560, y: 3558 });
+            //new Building.ProtossBuilding.TeleportPoint({ x: 534, y: 3884 });
             new Hero.HeroCruiser({ x: 300, y: 3455 });
             new Hero.HeroCruiser({ x: 690, y: 3500 });
             new Hero.HeroCruiser({ x: 866, y: 3744 });
             new Hero.Sarah({ x: 434, y: 3600 });
             new Hero.Sarah({ x: 700, y: 3730 });
-            new Hero.Kerrigan({ x: 464, y: 3568 });
-            new Hero.Kerrigan({ x: 694, y: 3690 });
-            new Protoss.Observer({ x: 484, y: 3824 });
+            //new Hero.Kerrigan({ x: 464, y: 3568 });
+            //new Hero.Kerrigan({ x: 694, y: 3690 });
+            //new Protoss.Observer({ x: 484, y: 3824 });
             new Protoss.Observer({ x: 524, y: 3824 });
             //Zerg
             new Building.ZergBuilding.Hatchery({ x: 3470, y: 3720, isEnemy: true });

@@ -1,4 +1,6 @@
 //Evolve related
+import Animation from '../core/AnimationBase.js';
+
 Animation.EvolveGroundUnit = class EvolveGroundUnit extends Animation {};
 Object.assign(Animation.EvolveGroundUnit.prototype, {
     //Add basic unit info

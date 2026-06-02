@@ -1,3 +1,13 @@
+import Terran from '../core/TerranBase.js';
+import AttackableUnit from '../../Units/core/AttackableUnitBase.js';
+import Unit from '../../Units/core/UnitBase.js';
+import Building from '../../Buildings/core/BuildingBase.js';
+import { recover } from '../core/TerranHelper.js';
+import Magic from '../../Magics/core/MagicBase.js';
+import { HumanDeath, FireSpark, MedicDeath } from '../../Bursts/terran/TerranEffects.js';
+import { ShootSpark } from '../../Bursts/protoss/ProtossEffects1.js';
+import { SmallExplode } from '../../Bursts/buildings/BuildingBursts.js';
+
 Terran.Marine = AttackableUnit.extends({
     constructorPlus: function (props) {
     },
@@ -67,13 +77,14 @@ Terran.Marine = AttackableUnit.extends({
         sight: 245,
         attackRange: 140,
         attackInterval: 1500,
+        damageDelay: 100,
         portraitOffset: { x: 60, y: 56 },
-        dieEffect: Burst.HumanDeath,
-        attackEffect: Burst.ShootSpark,
+        dieEffect: HumanDeath,
+        attackEffect: ShootSpark,
         isFlying: false,
         unitType: Unit.SMALL,
         attackType: AttackableUnit.NORMAL_ATTACK,
-        recover: Building.TerranBuilding.prototype.recover,
+        recover: recover,
         cost: {
             mine: 50,
             man: 1,
@@ -161,13 +172,14 @@ Terran.Firebat = AttackableUnit.extends({
         sight: 245,
         attackRange: 70,
         attackInterval: 2200,
+        damageDelay: 100,
         portraitOffset: { x: 120, y: 56 },
-        dieEffect: Burst.SmallExplode,
+        dieEffect: SmallExplode,
         isFlying: false,
         attackLimit: "ground",
         unitType: Unit.SMALL,
         attackType: AttackableUnit.WAVE_ATTACK,
-        recover: Building.TerranBuilding.prototype.recover,
+        recover: recover,
         AOE: {
             type: "LINE",
             hasEffect: false,
@@ -262,13 +274,14 @@ Terran.Ghost = AttackableUnit.extends({
         sight: 315,
         attackRange: 210,
         attackInterval: 2200,
+        damageDelay: 100,
         portraitOffset: { x: 180, y: 56 },
-        dieEffect: Burst.HumanDeath,
-        attackEffect: Burst.FireSpark,
+        dieEffect: HumanDeath,
+        attackEffect: FireSpark,
         isFlying: false,
         unitType: Unit.SMALL,
         attackType: AttackableUnit.WAVE_ATTACK,
-        recover: Building.TerranBuilding.prototype.recover,
+        recover: recover,
         cost: {
             mine: 25,
             gas: 75,
@@ -339,7 +352,7 @@ Terran.Medic = Unit.extends({
                     [528, 528, 528, 528, 528, 528],
                     [720, 720, 720, 720, 720, 720],
                     [848, 848, 848, 848, 848, 848],
-                    [976, 976, 976, 976, 976, 976]
+                    [976, 976, 976, 976, 976, 976, 976]
                 ],
                 top: [
                     [16, 80, 144, 208, 272, 336],
@@ -366,10 +379,10 @@ Terran.Medic = Unit.extends({
         MP: 200,
         sight: 315,
         portraitOffset: { x: 240, y: 56 },
-        dieEffect: Burst.MedicDeath,
+        dieEffect: MedicDeath,
         isFlying: false,
         unitType: Unit.SMALL,
-        recover: Building.TerranBuilding.prototype.recover,
+        recover: recover,
         cost: {
             mine: 50,
             gas: 25,
@@ -436,10 +449,10 @@ Terran.Civilian = Unit.extends({
         armor: 0,
         sight: 245,
         portraitOffset: { x: 900, y: 56 },
-        dieEffect: Burst.HumanDeath,
+        dieEffect: HumanDeath,
         isFlying: false,
         unitType: Unit.SMALL,
-        recover: Building.TerranBuilding.prototype.recover,
+        recover: recover,
         upgrade: ['UpgradeInfantryArmors'],
         dock: function () {
             Unit.turnAround.call(this);

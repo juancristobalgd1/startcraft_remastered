@@ -1,8 +1,8 @@
-_$.mixin = function () {
-  var dist = arguments[0] || {};
-  for (var N = 1; N < arguments.length; N++) {
-    var addIn = arguments[N];
-    for (var attr in addIn) {
+import _$ from './core.js';
+
+_$.mixin = function (dist = {}, ...addIns) {
+  for (const addIn of addIns) {
+    for (const attr in addIn) {
       if (addIn.hasOwnProperty(attr)) {
         dist[attr] = addIn[attr];
       }
@@ -16,8 +16,8 @@ _$.copy = function (obj) {
 };
 
 _$.clone = function (obj, ref) {
-  var dist = new obj.constructor();
-  for (var attr in obj) {
+  const dist = new obj.constructor();
+  for (const attr in obj) {
     if (!obj.hasOwnProperty(attr)) continue;
     dist[attr] = (!ref && typeof obj[attr] === 'object' && obj[attr] !== null)
       ? _$.clone(obj[attr])
@@ -35,11 +35,11 @@ _$.templates = {
     };
   },
   applyOn: function (id, values) {
-    var valueArray = [].concat(values);
-    var src = _$.templates.src[id];
-    var result = src.tempStr;
-    var count = Math.min(valueArray.length, src.params.length);
-    for (var N = 0; N < count; N++) {
+    const valueArray = [].concat(values);
+    const src = _$.templates.src[id];
+    let result = src.tempStr;
+    const count = Math.min(valueArray.length, src.params.length);
+    for (let N = 0; N < count; N++) {
       result = result.replace(src.params[N], valueArray[N]);
     }
     return result;
@@ -47,7 +47,7 @@ _$.templates = {
 };
 
 _$.traverse = function (obj, func) {
-  for (var attr in obj) {
+  for (const attr in obj) {
     if (!obj.hasOwnProperty(attr)) continue;
     if (typeof obj[attr] === 'object' && obj[attr] !== null) {
       _$.traverse(obj[attr], func);
@@ -58,7 +58,7 @@ _$.traverse = function (obj, func) {
 };
 
 _$.matrixOperation = function (matrix, operation) {
-  for (var attr in matrix) {
+  for (const attr in matrix) {
     if (!matrix.hasOwnProperty(attr)) continue;
     if (typeof matrix[attr] === 'object' && matrix[attr] !== null) {
       _$.matrixOperation(matrix[attr], operation);
@@ -69,7 +69,7 @@ _$.matrixOperation = function (matrix, operation) {
 };
 
 _$.mapTraverse = function (array, operation) {
-  var operationTraverse = function (n) {
+  const operationTraverse = function (n) {
     return (n instanceof Array) ? n.map(operationTraverse) : operation(n);
   };
   return array.map(operationTraverse);
@@ -77,7 +77,7 @@ _$.mapTraverse = function (array, operation) {
 
 _$.arrayEqual = function (arr1, arr2) {
   if (arr1.length !== arr2.length) return false;
-  for (var n = 0; n < arr1.length; n++) {
+  for (let n = 0; n < arr1.length; n++) {
     if (arr1[n] !== arr2[n]) return false;
   }
   return true;

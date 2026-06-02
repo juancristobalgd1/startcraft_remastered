@@ -1,3 +1,16 @@
+import '../Utils/jquery.min.js';
+import Game from '../GameRule/Games/core/GameBase.js';
+import GameMap from '../Characters/Map.js';
+import Button from '../Characters/Buttons/core/ButtonBase.js';
+import Resource from '../GameRule/Resource.js';
+import Gobj from '../Characters/Gobj.js';
+import Unit from '../Characters/Units/core/UnitBase.js';
+import Building from '../Characters/Buildings/core/BuildingBase.js';
+import Burst from '../Characters/Bursts/core/BurstBase.js';
+import keyController from './keyController.js';
+
+const $ = globalThis.$;
+
 var mouseController = {
     down: false,
     drag: false,
@@ -77,7 +90,7 @@ var mouseController = {
             //Find selected one, convert position
             var selectedOne = Game.getSelectedOne(clickX + GameMap.offsetX, clickY + GameMap.offsetY);
             //Cannot select enemy invisible unit
-            if (selectedOne.isInvisible && selectedOne.isEnemy) return;
+            if (selectedOne && selectedOne.isInvisible && selectedOne.isEnemy) return;
             //Single select will unselect all units and only choose selected one
             //Multi select will keep selected status and do nothing
             if (!mouseController.isMultiSelect())
@@ -88,7 +101,7 @@ var mouseController = {
                 selectedOne.sound.selected.play();
                 if (Game.hapticsEnabled && navigator.vibrate) navigator.vibrate(10);
                 //Cannot multiSelect with enemy
-                if (selectedOne.isEnemy || Game.selectedUnit.isEnemy)
+                if (selectedOne.isEnemy || (Game.selectedUnit && Game.selectedUnit.isEnemy))
                     Game.unselectAll();
                 //Only selected one to show portrait
                 Game.changeSelectedTo(selectedOne);
@@ -109,6 +122,7 @@ var mouseController = {
     },
     rightClick: function (event, unlock) {
         if (window.Game && Game.isPaused) return;
+        if (window.Game && Game.replayFlag) return;
         if (window.Game && Game.metrics) Game.metrics._lastInputAt = (window.performance && performance.now) ? performance.now() : Date.now();
         //Mouse at (clickX,clickY)
         var offset = mouseController._frontOffsetAt();
@@ -116,6 +130,27 @@ var mouseController = {
         var clickY = event.pageY - offset.top;
         //Intercept event inside infoBox
         if (clickY > Game.infoBox.y) return;
+
+        var uids = [];
+        Unit.allOurUnits().concat(Building.ourBuildings).forEach(function (chara) {
+            if (chara.status != "dead" && chara.selected) {
+                uids.push(chara.id);
+            }
+        });
+        if (globalThis.Multiplayer && !Game.replayFlag && uids.length > 0) {
+            var mx = clickX + GameMap.offsetX;
+            var my = clickY + GameMap.offsetY;
+            var cmd = {
+                type: 'rightClick',
+                uids: uids,
+                pos: { x: mx, y: my },
+                unlock: unlock,
+                btn: Button.callback
+            };
+            if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
+            Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
+        }
+
         //Show right click cursor
         new Burst.RightClickCursor({ x: clickX + GameMap.offsetX, y: clickY + GameMap.offsetY });
         if (Game.hapticsEnabled && navigator.vibrate) navigator.vibrate(15);
@@ -225,9 +260,9 @@ var mouseController = {
                             detachGather();
                             if (chara._gather) delete chara._gather;
                         }
-                        if (chara.cannotMove() && !(chara.isInAttackRange(selectedTarget))) return;
+
                         //Intercept invisible enemy
-                        if (selectedTarget.isInvisible) {
+                        if (selectedTarget.isInvisible && !selectedTarget.isEnemy) {
                             Referee.voice.pError.play();
                             return;
                         }
@@ -323,7 +358,11 @@ var mouseController = {
             //Cancel callback
             Button.callback = null;
             //Cancel credit bill
-            if (Resource.creditBill) delete Resource.creditBill;
+            if (Game.allSelected) {
+                Game.allSelected.forEach(function (chara) {
+                    if (chara.creditBill) delete chara.creditBill;
+                });
+            }
         };
         //Double click
         $('#frontCanvas').on('dblclick', function (event) {
@@ -491,3 +530,10 @@ var mouseController = {
         });
     }
 };
+
+// Global assignment for legacy compatibility
+if (typeof window !== 'undefined') {
+    window.mouseController = mouseController;
+}
+
+export default mouseController;

@@ -1,3 +1,6 @@
+import Button from '../core/ButtonBase.js';
+import Building from '../../Buildings/core/BuildingBase.js';
+
 Button.basicZergMutations = {
     items: {
         '1': { name: 'Hatchery' },

@@ -1,3 +1,5 @@
+import Animation from '../core/AnimationBase.js';
+
 Animation.RedShield = class RedShield extends Animation {};
 Object.assign(Animation.RedShield.prototype, {
     //Add basic unit info

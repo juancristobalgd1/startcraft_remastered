@@ -1,3 +1,12 @@
+import Terran from '../core/TerranBase.js';
+import AttackableUnit from '../../Units/core/AttackableUnitBase.js';
+import Unit from '../../Units/core/UnitBase.js';
+import { recover } from '../core/TerranHelper.js';
+import Magic from '../../Magics/core/MagicBase.js';
+import { MiddleExplode, BigExplode } from '../../Bursts/buildings/BuildingBursts.js';
+import { FireSpark } from '../../Bursts/terran/TerranEffects.js';
+import { ShootSpark } from '../../Bursts/protoss/ProtossEffects1.js';
+
 Terran.Vulture = AttackableUnit.extends({
     constructorPlus: function (props) {
         this.imgPos.attack = this.imgPos.dock = this.imgPos.moving;
@@ -25,12 +34,12 @@ Terran.Vulture = AttackableUnit.extends({
         attackRange: 175,
         attackInterval: 3000,
         portraitOffset: { x: 300, y: 56 },
-        dieEffect: Burst.MiddleExplode,
+        dieEffect: MiddleExplode,
         isFlying: false,
         attackLimit: "ground",
         unitType: Unit.MIDDLE,
         attackType: AttackableUnit.WAVE_ATTACK,
-        recover: Building.TerranBuilding.prototype.recover,
+        recover: recover,
         cost: {
             mine: 75,
             man: 2,
@@ -95,13 +104,13 @@ Terran.Tank = AttackableUnit.extends({
         attackRange: 210,
         attackInterval: 3700,
         portraitOffset: { x: 360, y: 56 },
-        dieEffect: Burst.BigExplode,
-        attackEffect: Burst.FireSpark,
+        dieEffect: BigExplode,
+        attackEffect: FireSpark,
         isFlying: false,
         attackLimit: "ground",
         unitType: Unit.BIG,
         attackType: AttackableUnit.BURST_ATTACK,
-        recover: Building.TerranBuilding.prototype.recover,
+        recover: recover,
         cost: {
             mine: 150,
             gas: 100,
@@ -113,6 +122,8 @@ Terran.Tank = AttackableUnit.extends({
             '7': {
                 name: 'SeigeMode', condition: function () {
                     return Magic.SeigeMode.enabled
+                }, run: function () {
+                    Magic.SeigeMode.spell.call(this);
                 }
             }
         }
@@ -120,8 +131,9 @@ Terran.Tank = AttackableUnit.extends({
 });
 Terran.Goliath = AttackableUnit.extends({
     constructorPlus: function (props) {
-        this.sound.attackG = new Audio('bgm/' + this.name + '.attack.wav');
-        this.sound.attackF = new Audio('bgm/' + this.name + '.attackF.wav');
+        if (!this.sound) this.sound = {};
+        this.sound.attackG = new Audio('bgm/Goliath.attack.wav');
+        this.sound.attackF = new Audio('bgm/Goliath.attackF.wav');
     },
     prototypePlus: {
         name: "Goliath",
@@ -193,7 +205,7 @@ Terran.Goliath = AttackableUnit.extends({
             },
             ground: {
                 attackRange: 175,
-                attackEffect: Burst.ShootSpark,
+                attackEffect: ShootSpark,
                 attackInterval: 2200,
                 damage: 12,
                 attackType: AttackableUnit.NORMAL_ATTACK
@@ -205,10 +217,10 @@ Terran.Goliath = AttackableUnit.extends({
         sight: 280,
         attackRange: 175,
         portraitOffset: { x: 420, y: 56 },
-        dieEffect: Burst.MiddleExplode,
+        dieEffect: MiddleExplode,
         isFlying: false,
         unitType: Unit.BIG,
-        recover: Building.TerranBuilding.prototype.recover,
+        recover: recover,
         cost: {
             mine: 100,
             gas: 50,

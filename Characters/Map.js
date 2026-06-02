@@ -1,95 +1,159 @@
-var GameMap = {
-    currentMap: 'Switchback',//By default
-    offsetX: 0,
-    offsetY: 0,
-    speed: 40,
-    triggerMargin: 20,
-    //To synchronize drawing map and units, will not refresh immediately
-    needRefresh: false,
-    fogFlag: true,
-    fogType: true,//If true using gradient shadow, if false use 3 circles
-    miniCxt: $('canvas[name="mini_map"]')[0].getContext('2d'),
-    fogCanvas: document.createElement('canvas'),
-    miniFogCanvas: document.createElement('canvas'),
-    shadowCanvas: document.createElement('canvas'),//Pre-render for fog shadow
-    insideStroke: {
-        width: 0,
-        height: 0
-    },
+import _$ from '../Utils/gFrame/core.js';
+import '../Utils/gFrame/utils.js';
+import sourceLoader from '../Utils/sourceLoader.js';
+import Unit from './Units/core/UnitBase.js';
+import Building from './Buildings/core/BuildingBase.js';
+import Burst from './Bursts/core/BurstBase.js';
+import Animation from './Animations/core/AnimationBase.js';
+import Neutral from './Breeds/Neutral.js';
+import Game from '../GameRule/Games/core/GameBase.js';
+
+class GameMapClass {
+    constructor() {
+        this.currentMap = 'Switchback'; //By default
+        this.offsetX = 0;
+        this.offsetY = 0;
+        this.speed = 40;
+        this.triggerMargin = 20;
+        //To synchronize drawing map and units, will not refresh immediately
+        this.needRefresh = false;
+        this.fogFlag = true;
+        this.fogType = true; //If true using gradient shadow, if false use 3 circles
+
+        // Ensure DOM element exists or handle potential null
+        const miniMapCanvas = $('canvas[name="mini_map"]')[0];
+        this.miniCxt = miniMapCanvas ? miniMapCanvas.getContext('2d') : null;
+
+        this.fogCanvas = document.createElement('canvas');
+        this.miniFogCanvas = document.createElement('canvas');
+        this.shadowCanvas = document.createElement('canvas'); //Pre-render for fog shadow
+        this.insideStroke = {
+            width: 0,
+            height: 0
+        };
+
+        // Cache properties
+        this._resourceCache = {};
+        this._mapScanCache = {};
+        this._spawnedResourceIndex = {};
+
+        // Init explored map properties
+        this.exploredW = 0;
+        this.exploredH = 0;
+        this.explored = null;
+
+        // Dynamic speed property used in mouseController
+        this._dynamicSpeed = undefined;
+
+        // Last ping time for minimap
+        this.lastPingTime = 0;
+        this.pingLocation = { x: 0, y: 0 };
+
+        // Rect property seems to be expected, initialize it
+        this.rect = { width: 0, height: 0 };
+        // Contexts for drawing
+        this.bgCxt = null;
+        this.showGrid = false;
+    }
+
     //Init map
-    setCurrentMap: function (name) {
-        GameMap.currentMap = name;
+    setCurrentMap(name) {
+        this.currentMap = name;
         $('canvas[name="mini_map"]').attr('class', name);
-        //Init inside stroke size
-        GameMap.insideStroke.width = (130 * Game.HBOUND / GameMap.getCurrentMap().width) >> 0;
-        GameMap.insideStroke.height = (130 * Game.VBOUND / GameMap.getCurrentMap().height) >> 0;
-        //Init fog relative
-        GameMap.fogCanvas.width = Game.HBOUND;
-        GameMap.fogCanvas.height = Game.VBOUND;
-        GameMap.fogCxt = GameMap.fogCanvas.getContext('2d');
-        GameMap.miniFogCanvas.width = GameMap.miniFogCanvas.height = 130;
-        GameMap.miniFogCxt = GameMap.miniFogCanvas.getContext('2d');
-        GameMap.shadowCanvas.width = GameMap.shadowCanvas.height = 100;
-        GameMap.shadowCxt = GameMap.shadowCanvas.getContext('2d');
+        //Init fog relative (will update size if map loaded)
+        this.fogCanvas.width = 130;
+        this.fogCanvas.height = 130;
+        this.fogCanvas.ratio = 130 / 2048;
+        this.fogCxt = this.fogCanvas.getContext('2d');
+        this.miniFogCanvas.width = this.miniFogCanvas.height = 130;
+        this.miniFogCxt = this.miniFogCanvas.getContext('2d');
+        this.shadowCanvas.width = this.shadowCanvas.height = 100;
+        this.shadowCxt = this.shadowCanvas.getContext('2d');
         //Prepared fog shadow for quick render
-        var radial = GameMap.shadowCxt.createRadialGradient(50, 50, 25, 50, 50, 50);
+        const radial = this.shadowCxt.createRadialGradient(50, 50, 25, 50, 50, 50);
         radial.addColorStop(0, 'rgba(0,0,0,1)');
         radial.addColorStop(1, 'rgba(0,0,0,0)');
-        GameMap.shadowCxt.fillStyle = radial;
-        GameMap.shadowCxt.beginPath();
-        GameMap.shadowCxt.arc(50, 50, 50, 0, Math.PI * 2);
-        GameMap.shadowCxt.fill();
-        GameMap._clearMapResources();
-        GameMap._spawnMapResources();
-        //Init explored map (32x32 tiles)
-        GameMap.exploredW = (GameMap.getCurrentMap().width / 32) >> 0;
-        GameMap.exploredH = (GameMap.getCurrentMap().height / 32) >> 0;
-        GameMap.explored = new Uint8Array(GameMap.exploredW * GameMap.exploredH);
-    },
-    markExplored: function (x, y, sight) {
-        if (!GameMap.explored) return;
-        var r = (sight / 32) >> 0;
-        var cx = (x / 32) >> 0;
-        var cy = (y / 32) >> 0;
-        for (var i = cx - r; i <= cx + r; i++) {
-            for (var j = cy - r; j <= cy + r; j++) {
-                if (i >= 0 && i < GameMap.exploredW && j >= 0 && j < GameMap.exploredH) {
+        this.shadowCxt.fillStyle = radial;
+        this.shadowCxt.beginPath();
+        this.shadowCxt.arc(50, 50, 50, 0, Math.PI * 2);
+        this.shadowCxt.fill();
+        this._clearMapResources();
+        this._spawnMapResources();
+        //Init map-dependent values only if map is loaded
+        const map = sourceLoader.sources['Map_' + this.currentMap];
+        if (map && map.width && map.height) {
+            this.fogCanvas.width = 130;
+            this.fogCanvas.height = Math.round(130 * map.height / map.width);
+            this.fogCanvas.ratio = 130 / map.width;
+
+            //Init inside stroke size
+            this.insideStroke.width = (130 * Game.HBOUND / map.width) >> 0;
+            this.insideStroke.height = (130 * Game.VBOUND / map.height) >> 0;
+            //Init explored map (32x32 tiles)
+            this.exploredW = (map.width / 32) >> 0;
+            this.exploredH = (map.height / 32) >> 0;
+            this.explored = new Uint8Array(this.exploredW * this.exploredH);
+        } else {
+            // Map not loaded yet, will be initialized when loaded
+            this.insideStroke.width = 0;
+            this.insideStroke.height = 0;
+            this.exploredW = 0;
+            this.exploredH = 0;
+            this.explored = null;
+        }
+    }
+
+    markExplored(x, y, sight) {
+        if (!this.explored) return;
+        const r = (sight / 32) >> 0;
+        const cx = (x / 32) >> 0;
+        const cy = (y / 32) >> 0;
+        for (let i = cx - r; i <= cx + r; i++) {
+            for (let j = cy - r; j <= cy + r; j++) {
+                if (i >= 0 && i < this.exploredW && j >= 0 && j < this.exploredH) {
                     if ((i - cx) * (i - cx) + (j - cy) * (j - cy) <= r * r) {
-                        GameMap.explored[j * GameMap.exploredW + i] = 1;
+                        this.explored[j * this.exploredW + i] = 1;
                     }
                 }
             }
         }
-    },
-    getCurrentMap: function () {
-        return sourceLoader.sources['Map_' + GameMap.currentMap];
-    },
-    refreshFog: function () {
-        if (GameMap.fogFlag && GameMap.fogCxt && GameMap.miniFogCxt) {
-            var ctx = GameMap.fogCxt;
-            var mCtx = GameMap.miniFogCxt;
+    }
+
+    getCurrentMap() {
+        const map = sourceLoader.sources['Map_' + this.currentMap];
+        // Return default values if map not loaded yet
+        if (!map) {
+            return { width: 2048, height: 2048 };
+        }
+        return map;
+    }
+
+    refreshFog() {
+        if (this.fogFlag && this.fogCxt && this.miniFogCxt) {
+            const ctx = this.fogCxt;
+            const mCtx = this.miniFogCxt;
+            const ratio = this.fogCanvas.ratio || (130 / 2048);
+
+            // Reset composite operation
+            ctx.globalCompositeOperation = mCtx.globalCompositeOperation = 'source-over';
 
             // 1. Fill with black (Unexplored)
             ctx.fillStyle = mCtx.fillStyle = 'rgba(0,0,0,1)';
-            ctx.fillRect(0, 0, GameMap.fogCanvas.width, GameMap.fogCanvas.height);
+            ctx.fillRect(0, 0, this.fogCanvas.width, this.fogCanvas.height);
             mCtx.fillRect(0, 0, 130, 130);
 
             // 2. Draw Explored areas as Grey (using destination-out with 0.5 alpha)
-            ctx.globalCompositeOperation = mCtx.globalCompositeOperation = 'destination-out';
-            ctx.fillStyle = mCtx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
 
-            if (GameMap.explored) {
-                var worldX, worldY, mx, my;
-                for (var j = 0; j < GameMap.exploredH; j++) {
-                    for (var i = 0; i < GameMap.exploredW; i++) {
-                        if (GameMap.explored[j * GameMap.exploredW + i]) {
+            if (this.explored) {
+                let worldX, worldY;
+                for (let j = 0; j < this.exploredH; j++) {
+                    for (let i = 0; i < this.exploredW; i++) {
+                        if (this.explored[j * this.exploredW + i]) {
                             worldX = i << 5; // * 32
                             worldY = j << 5; // * 32
-                            ctx.fillRect(worldX - GameMap.offsetX, worldY - GameMap.offsetY, 32, 32);
-
-                            mx = (worldX * 130 / GameMap.getCurrentMap().width) >> 0;
-                            my = (worldY * 130 / GameMap.getCurrentMap().height) >> 0;
-                            mCtx.fillRect(mx, my, 2, 2);
+                            ctx.fillRect(Math.round(worldX * ratio), Math.round(worldY * ratio), Math.round(32 * ratio) || 1, Math.round(32 * ratio) || 1);
                         }
                     }
                 }
@@ -99,39 +163,53 @@ var GameMap = {
             ctx.globalCompositeOperation = mCtx.globalCompositeOperation = 'destination-out';
             ctx.fillStyle = mCtx.fillStyle = 'rgba(0,0,0,1)'; // Full transparency
 
-            var ourUnits = Unit.allOurUnits().concat(Building.ourBuildings);
-            var parasitedEnemies = Unit.allEnemyUnits().filter(function (chara) {
-                return chara.buffer.Parasite;
+            const ourUnits = Unit.allOurUnits().concat(Building.ourBuildings);
+            const parasitedEnemies = Unit.allEnemyUnits().filter(chara => chara.buffer.Parasite);
+            const scannerSweeps = Burst.allEffects.filter(anime => Animation.getName(anime) == "ScannerSweep");
+            const revealedEnemies = Unit.allEnemyUnits().concat(Building.enemyBuildings).filter(chara => {
+                if (chara.status == 'dead') return false;
+                const now = (window.performance && performance.now) ? performance.now() : Date.now();
+                if (chara._revealedUntil && now < chara._revealedUntil) return true;
+                if (chara._lastAttackAt && now - chara._lastAttackAt < 3000) return true;
+                return false;
             });
-            var scannerSweeps = Burst.allEffects.filter(function (anime) {
-                return Animation.getName(anime) == "ScannerSweep";
-            });
-            var addInObjs = parasitedEnemies.concat(scannerSweeps);
+            const addInObjs = parasitedEnemies.concat(scannerSweeps).concat(revealedEnemies);
 
-            ourUnits.concat(addInObjs).forEach(function (chara) {
+            // Precalculate enemy visibility based on fog update state to prevent disappearing/flickering
+            const allEnemies = Unit.allEnemyUnits().concat(Building.enemyBuildings);
+            allEnemies.forEach(enemy => {
+                enemy._visibleBySight = false;
+            });
+
+            ourUnits.concat(addInObjs).forEach(chara => {
                 if (chara.status != 'dead') {
-                    var sight = chara.get('sight');
+                    const sight = (typeof chara.get === 'function') ? chara.get('sight') : (chara.sight || 150);
                     // Mark explored for all units (even off-screen)
-                    GameMap.markExplored(chara.posX(), chara.posY(), sight);
+                    this.markExplored(chara.posX(), chara.posY(), sight);
 
-                    if (chara.insideScreen && chara.insideScreen()) {
-                        var cx = chara.posX() - GameMap.offsetX;
-                        var cy = chara.posY() - GameMap.offsetY;
-                        if (GameMap.fogType) {
-                            ctx.drawImage(GameMap.shadowCanvas, 0, 0, 100, 100, cx - (sight << 1), cy - (sight << 1), sight << 2, sight << 2);
-                        } else {
-                            ctx.beginPath();
-                            ctx.arc(cx, cy, sight, 0, 2 * Math.PI);
-                            ctx.fill();
+                    // Update visibility of all enemies within this vision source's range
+                    allEnemies.forEach(enemy => {
+                        if (!enemy._visibleBySight && enemy.status != 'dead') {
+                            const dx = enemy.posX() - chara.posX();
+                            const dy = enemy.posY() - chara.posY();
+                            if (dx * dx + dy * dy < sight * sight) {
+                                enemy._visibleBySight = true;
+                            }
                         }
-                    }
+                    });
 
-                    var mx = (chara.posX() * 130 / GameMap.getCurrentMap().width) >> 0;
-                    var my = (chara.posY() * 130 / GameMap.getCurrentMap().height) >> 0;
-                    var miniSight = (sight * 130 / GameMap.getCurrentMap().height) >> 0;
+                    const cx = Math.round(chara.posX() * ratio);
+                    const cy = Math.round(chara.posY() * ratio);
+                    const radius = Math.round(sight * ratio * 2);
+
+                    ctx.drawImage(this.shadowCanvas, 0, 0, 100, 100, cx - radius, cy - radius, radius << 1, radius << 1);
+
+                    const mx = (chara.posX() * 130 / this.getCurrentMap().width) >> 0;
+                    const my = (chara.posY() * 130 / this.getCurrentMap().height) >> 0;
+                    const miniSight = (sight * 130 / this.getCurrentMap().height) >> 0;
                     mCtx.beginPath();
-                    if (GameMap.fogType) {
-                        mCtx.drawImage(GameMap.shadowCanvas, 0, 0, 100, 100, mx - (miniSight << 1), my - (miniSight << 1), miniSight << 2, miniSight << 2);
+                    if (this.fogType) {
+                        mCtx.drawImage(this.shadowCanvas, 0, 0, 100, 100, mx - (miniSight << 1), my - (miniSight << 1), miniSight << 2, miniSight << 2);
                     } else {
                         mCtx.arc(mx, my, miniSight, 0, 2 * Math.PI);
                         mCtx.fill();
@@ -139,519 +217,637 @@ var GameMap = {
                 }
             });
 
+            // Explicitly set visibility for parasited/revealed enemies
+            parasitedEnemies.forEach(enemy => { enemy._visibleBySight = true; });
+            revealedEnemies.forEach(enemy => { enemy._visibleBySight = true; });
+
             ctx.globalCompositeOperation = mCtx.globalCompositeOperation = 'source-over';
         }
-    },
-    drawFog: function () {
-        if (GameMap.fogFlag && GameMap.fogCxt && GameMap.miniFogCxt) {
-            //Reduce calculation frequency for performance, every 1 sec
-            if (Game._clock % 10 == 0) GameMap.refreshFog();
-            //Draw fog on main map, high frequency
-            Game.frontCxt.drawImage(GameMap.fogCanvas, 0, 0);
-        }
-    },
-    drawMiniFog: function () {
-        if (GameMap.fogFlag && GameMap.miniFogCxt) {
-            //Draw fog on mini-map
-            GameMap.miniCxt.drawImage(GameMap.miniFogCanvas, 0, 0);
-        }
-    },
-    drawExploredFog: function () {
-        if (!GameMap.explored || !GameMap.fogFlag) return;
-        var ctx = Game.backCxt;
-        ctx.save();
-        ctx.fillStyle = 'rgba(0,0,0,0.5)'; // Semi-transparent grey for explored
-        for (var j = 0; j < GameMap.exploredH; j++) {
-            var worldY = j * 32;
-            if (worldY + 32 < GameMap.offsetY || worldY > GameMap.offsetY + Game.VBOUND) continue;
-            for (var i = 0; i < GameMap.exploredW; i++) {
-                var worldX = i * 32;
-                if (worldX + 32 < GameMap.offsetX || worldX > GameMap.offsetX + Game.HBOUND) continue;
-                if (GameMap.explored[j * GameMap.exploredW + i]) {
-                    // Explored area: we don't draw anything here (it remains visible)
-                    // BUT we want to darken it if it's currently in fog.
-                    // The main fog logic will cover currently unseen areas with black.
-                    // We want: 
-                    // 1. Unexplored -> Black (Main Fog)
-                    // 2. Explored but unseen -> Grey (We draw this here)
-                    // 3. Visible -> Clear
+    }
 
-                    // Actually, a simpler way:
-                    // Fill everything with Grey on a middle layer, 
-                    // then Main Fog covers everything with Black except visible.
-                    // But "Explored" shouldn't be covered by Black.
-                } else {
-                    // Unexplored: will be handled by main black fog
-                }
-            }
+    drawFog() {
+        if (this.fogFlag && this.fogCxt) {
+            // Update fog data every 10 clocks
+            if (Game._clock % 10 == 0) this.refreshFog();
+            
+            // Draw the visible part of the fog canvas stretched onto frontCxt
+            const ratio = this.fogCanvas.ratio || (130 / 2048);
+            const sx = Math.round(this.offsetX * ratio);
+            const sy = Math.round(this.offsetY * ratio);
+            const sw = Math.round(Game.HBOUND * ratio);
+            const sh = Math.round(Game.VBOUND * ratio);
+            
+            Game.frontCxt.drawImage(this.fogCanvas, sx, sy, sw, sh, 0, 0, Game.HBOUND, Game.VBOUND);
         }
-        ctx.restore();
-    },
-    drawMud: function () {
-        var _increments = [[0, 1], [-1, 0], [0, -1], [1, 0]];
-        //var _offsets=[[1,1],[-1,1],[1,-1],[-1,-1]];//4 circles radius
-        /*var shadowOffsets=_$.mapTraverse(_offsets,function(x){
-         return x*3;
-         });*/
-        var mudRadius = 120;
-        var mudIncrements = _$.mapTraverse(_increments, function (x) {
-            return x * mudRadius / 2;
+    }
+
+    drawMiniFog() {
+        if (this.fogFlag && this.miniFogCanvas) {
+            // Draw fog on mini-map directly from miniFogCanvas
+            this.miniCxt.drawImage(this.miniFogCanvas, 0, 0, this.miniFogCanvas.width, this.miniFogCanvas.height, 0, 0, 130, 130);
+        }
+    }
+
+    drawMud() {
+        // ORIGINAL LOGIC: Creep should be drawn if there are Zerg buildings, regardless of map
+        if (!this.bgCxt && Game && Game.backCxt) this.bgCxt = Game.backCxt;
+        if (!this.bgCxt) return;
+
+        const mudRadius = 250;
+        const mudIncrements = [
+            [-mudRadius * 0.4, -mudRadius * 0.4],
+            [mudRadius * 0.4, -mudRadius * 0.4],
+            [mudRadius * 0.4, mudRadius * 0.4],
+            [-mudRadius * 0.4, mudRadius * 0.4]
+        ];
+
+        const mudPatternImg = sourceLoader.sources['Mud'];
+        if (!mudPatternImg) return;
+        const mudPattern = this.bgCxt.createPattern(mudPatternImg, 'repeat');
+        this.bgCxt.fillStyle = mudPattern;
+
+        // Zerg buildings that produce creep
+        const creepProducers = ['Hatchery', 'Lair', 'Hive', 'CreepColony', 'SunkenColony', 'SporeColony'];
+
+        Building.allBuildings.forEach(b => {
+            if (creepProducers.includes(b.name) && b.status != 'dead') {
+                const centerX = (b.posX() - this.offsetX) >> 0;
+                const centerY = (b.posY() - this.offsetY) >> 0;
+
+                // Frustum culling for performance
+                if (centerX < -mudRadius || centerX > Game.HBOUND + mudRadius ||
+                    centerY < -mudRadius || centerY > Game.VBOUND + mudRadius) return;
+
+                this.bgCxt.beginPath();
+                const pos = [centerX, centerY]; // Start from center
+                this.bgCxt.arc(centerX, centerY, mudRadius, 0, Math.PI * 2);
+                this.bgCxt.fill();
+            }
         });
-        /*var mudOffsets=_$.mapTraverse(_offsets,function(x){
-            return x*mudRadius/2;
-        });*/
-        Game.backCxt.save();
-        Game.backCxt.beginPath();
-        //Create fill style for mud
-        var mudPattern = Game.backCxt.createPattern(sourceLoader.sources['Mud'], "repeat");
-        Game.backCxt.fillStyle = mudPattern;
-        /*Game.backCxt.shadowColor="#212";//"rgba(0,0,0,0.7)"
-        Game.backCxt.shadowBlur=8;*/
-        Building.allBuildings.filter(function (chara) {
-            return (chara instanceof Building.ZergBuilding) && !chara.noMud && chara.insideScreen();
-        }).forEach(function (chara) {
-            var centerX = chara.posX() - GameMap.offsetX;
-            var centerY = chara.posY() - GameMap.offsetY;
-            var pos = [centerX + mudRadius, centerY - mudRadius];
-            Game.backCxt.moveTo(pos[0], pos[1]);
-            for (var M = 0, angle = -Math.PI / 4; M < 4; M++, angle += Math.PI / 2) {
-                for (var N = 0; N < 5; N++) {
-                    Game.backCxt.arc(pos[0], pos[1], mudRadius / 4, angle, angle + Math.PI / 2);
-                    if (N < 4) {
-                        pos[0] += mudIncrements[M][0];
-                        pos[1] += mudIncrements[M][1];
+    }
+
+    hasCreep(x, y) {
+        // ORIGINAL LOGIC: Creep works on any map where Zerg buildings are present
+        const mudRadius = 250; // Match drawMud radius
+        let dx, dy;
+        return Building.allBuildings.some(b => {
+            // Redundant check but safe
+            if (b.name != 'Hatchery' && b.name != 'Lair' && b.name != 'Hive' && b.name != 'CreepColony' && b.name != 'SunkenColony' && b.name != 'SporeColony') return false;
+            if (b.status == 'dead') return false;
+            dx = x - b.posX();
+            dy = y - b.posY();
+            return dx * dx + dy * dy < mudRadius * mudRadius;
+        });
+    }
+
+    isUnitVisibleToPlayer(chara) {
+        try {
+            if (!chara) return true;
+            if (!chara.isEnemy) return true;
+            if (!this.fogFlag) return true;
+
+            // Use the precalculated sight visibility flag updated in refreshFog()
+            if (chara._visibleBySight !== undefined) {
+                if (chara._visibleBySight) return true;
+            } else {
+                // Fallback to real-time canSee on the very first frames before refreshFog has run
+                const ourUnits = (typeof Unit !== 'undefined' && Unit && Unit.allOurUnits) ? Unit.allOurUnits() : [];
+                const ourBuildings = (typeof Building !== 'undefined' && Building && Building.ourBuildings) ? Building.ourBuildings : [];
+                for (const unit of ourUnits.concat(ourBuildings)) {
+                    if (unit && unit.status != 'dead' && typeof unit.canSee === 'function' && unit.canSee(chara)) {
+                        return true;
                     }
                 }
             }
-            /*//Mud shape mixed by 4 circles
-            mudOffsets.forEach(function(offset){
-                Game.backCxt.moveTo(centerX+offset[0]+mudRadius,centerY+offset[1]);
-                Game.backCxt.arc(centerX+offset[0],centerY+offset[1],mudRadius,0,Math.PI*2);
-            });*/
-        });
-        //Stroke edge clearly
-        Game.backCxt.strokeStyle = "#212";
-        Game.backCxt.lineWidth = 3;
-        Game.backCxt.stroke();
-        //Fill mud
-        Game.backCxt.fill();
-        /*//Radius shadow
-        shadowOffsets.forEach(function(offset){
-            Game.backCxt.offsetX=offset[0];
-            Game.backCxt.offsetY=offset[1];
-            Game.backCxt.fill();
-         });*/
-        Game.backCxt.restore();
-    },
-    isOnCreep: function (x, y) {
-        var mudRadius = 180; // Slightly larger for construction
-        return Building.allBuildings.some(function (chara) {
-            if (!(chara instanceof Building.ZergBuilding) || chara.noMud || chara.status === 'dead') return false;
-            var dx = chara.posX() - x;
-            var dy = chara.posY() - y;
-            return (dx * dx + dy * dy) < mudRadius * mudRadius;
-        });
-    },
-    draw: function () {
-        //Clear background
-        Game.backCxt.clearRect(0, 0, Game.HBOUND, Game.VBOUND);
-        //Draw map as background
-        Game.backCxt.drawImage(GameMap.getCurrentMap(), GameMap.offsetX, GameMap.offsetY, Game.HBOUND, Game.VBOUND - Game.infoBox.height + 5,
-            0, 0, Game.HBOUND, Game.VBOUND - Game.infoBox.height + 5);
-        //Draw mud for ZergBuildings
-        GameMap.drawMud();
-    },
-    refresh: function (direction) {
-        var edgeX = GameMap.getCurrentMap().width - Game.HBOUND;
-        var edgeY = GameMap.getCurrentMap().height - Game.VBOUND + Game.infoBox.height - 5;
-        var onlyMap;
-        var step = GameMap._dynamicSpeed || GameMap.speed;
-        switch (direction) {
-            case "LEFT":
-                GameMap.offsetX -= step;
-                if (GameMap.offsetX < 0) GameMap.offsetX = 0;
-                break;
-            case "RIGHT":
-                GameMap.offsetX += step;
-                if (GameMap.offsetX > edgeX) GameMap.offsetX = edgeX;
-                break;
-            case "TOP":
-                GameMap.offsetY -= step;
-                if (GameMap.offsetY < 0) GameMap.offsetY = 0;
-                break;
-            case "BOTTOM":
-                GameMap.offsetY += step;
-                if (GameMap.offsetY > edgeY) GameMap.offsetY = edgeY;
-                break;
-            case "MAP":
-                onlyMap = true;
-                break;
+
+            // Fallback for real-time attack detection (so they reveal immediately when attacking)
+            if (typeof chara.isAttacking === 'function' && chara.isAttacking()) return true;
+            if (chara.status === 'attack') return true;
+            if (chara.bullet) return true;
+
+            if (chara._revealedUntil) {
+                const now = (typeof window !== 'undefined' && window.performance && performance.now) ? performance.now() : Date.now();
+                if (now < chara._revealedUntil) {
+                    return true;
+                }
+            }
+
+            if (chara._lastAttackAt) {
+                const now = (typeof window !== 'undefined' && window.performance && performance.now) ? performance.now() : Date.now();
+                if (now - chara._lastAttackAt < 3000) {
+                    return true;
+                }
+            }
+
+            return false;
+        } catch (e) {
+            return true;
         }
-        GameMap.draw();
-        //Need re-calculate fog when screen moves
-        if (!onlyMap) GameMap.refreshFog();
-    },
-    refreshMiniMap: function () {
-        //Selected map size
-        var mapWidth = GameMap.getCurrentMap().width;
-        var mapHeight = GameMap.getCurrentMap().height;
-        //Clear mini-map
-        GameMap.miniCxt.clearRect(0, 0, 130, 130);
-        //Re-draw mini-map points
-        var miniX, miniY, rectSize;
-        Building.allBuildings.concat(Unit.allUnits).forEach(function (chara) {
-            miniX = (130 * chara.x / mapWidth) >> 0;
-            miniY = (130 * chara.y / mapHeight) >> 0;
-            GameMap.miniCxt.fillStyle = (chara.selected && !chara.isEnemy) ? 'yellow' : ((chara.isEnemy) ? 'red' : 'lime');
-            rectSize = (chara instanceof Building) ? 4 : 3;
-            GameMap.miniCxt.fillRect(miniX, miniY, rectSize, rectSize);
-        });
-        //Re-draw fog on mini-map
-        GameMap.drawMiniFog();
-        var now = (window.performance && performance.now) ? performance.now() : Date.now();
-        if (Game && Game.ui && Game.ui.lastAlerts && Game.ui.lastAlerts.underAttackPing && Game.ui.lastAlerts.underAttackPing.until > now) {
-            var ping = Game.ui.lastAlerts.underAttackPing;
-            var px = (130 * ping.x / mapWidth) >> 0;
-            var py = (130 * ping.y / mapHeight) >> 0;
-            var pulse = ((ping.until - now) / 200) % 1;
-            var radius = 4 + ((1 - pulse) * 6);
-            GameMap.miniCxt.save();
-            GameMap.miniCxt.strokeStyle = 'rgba(255,80,80,0.9)';
-            GameMap.miniCxt.lineWidth = 2;
-            GameMap.miniCxt.beginPath();
-            GameMap.miniCxt.arc(px, py, radius, 0, Math.PI * 2);
-            GameMap.miniCxt.stroke();
-            GameMap.miniCxt.restore();
+    }
+
+    revealUnitTemporarily(chara, duration) {
+        if (!chara || !chara.isEnemy) return;
+        const now = (window.performance && performance.now) ? performance.now() : Date.now();
+        chara._revealedUntil = now + (duration || 3000);
+    }
+
+    refresh(step) {
+        if (!this.bgCxt && Game) {
+            if (Game.backCxt) this.bgCxt = Game.backCxt;
+            else if (Game.cxt) this.bgCxt = Game.cxt;
         }
-        //Re-draw inside stroke
-        GameMap.miniCxt.strokeStyle = 'white';
-        GameMap.miniCxt.lineWidth = 2;
-        GameMap.miniCxt.strokeRect((130 * GameMap.offsetX / mapWidth) >> 0, (130 * GameMap.offsetY / mapHeight) >> 0, GameMap.insideStroke.width, GameMap.insideStroke.height);
-    },
-    clickHandler: function (event) {
-        //Mouse at (clickX,clickY)
-        var clickX = event.pageX - $('canvas[name="mini_map"]').offset().left;
-        var clickY = event.pageY - $('canvas[name="mini_map"]').offset().top;
+        if (!this.bgCxt) return;
+        const mapImg = sourceLoader.sources['Map_' + this.currentMap];
+        if (!mapImg) return;
+
+        // Fix: InvalidStateError check
+        if (mapImg instanceof HTMLImageElement) {
+            if (!mapImg.complete) return;
+            if (mapImg.naturalWidth === 0) return;
+        }
+
+        try {
+            this.bgCxt.drawImage(mapImg, this.offsetX, this.offsetY, this.rect.width, this.rect.height, 0, 0, this.rect.width, this.rect.height);
+        } catch (e) {
+            // Ignore draw error if image state is invalid
+        }
+
+        const edgeX = this.offsetX % 32;
+        const edgeY = this.offsetY % 32;
+
+        if (this.showGrid) {
+            this.bgCxt.save();
+            this.bgCxt.strokeStyle = "rgba(255,255,255,0.2)";
+            this.bgCxt.lineWidth = 1;
+            this.bgCxt.beginPath();
+            for (let i = 0; i < this.rect.width / 32; i++) {
+                this.bgCxt.moveTo(i * 32 - edgeX, 0);
+                this.bgCxt.lineTo(i * 32 - edgeX, this.rect.height);
+            }
+            for (let j = 0; j < this.rect.height / 32; j++) {
+                this.bgCxt.moveTo(0, j * 32 - edgeY);
+                this.bgCxt.lineTo(this.rect.width, j * 32 - edgeY);
+            }
+            this.bgCxt.stroke();
+            this.bgCxt.restore();
+        }
+        this.drawMud();
+        this.refreshFog();
+        this.refreshMiniMap();
+    }
+
+    refreshMiniMap() {
+        if (!this.miniCxt) return;
+        try {
+            const mapImg = sourceLoader.sources['Map_' + this.currentMap];
+            // Check if map image is loaded and valid
+            if (!mapImg || !(mapImg instanceof HTMLImageElement) || !mapImg.complete || mapImg.naturalWidth === 0) {
+                // Map not loaded yet, just clear the minimap
+                this.miniCxt.clearRect(0, 0, 130, 130);
+                return;
+            }
+            const mapWidth = mapImg.width;
+            const mapHeight = mapImg.height;
+            let miniX = (this.offsetX * 130 / mapWidth) >> 0;
+            let miniY = (this.offsetY * 130 / mapHeight) >> 0;
+            let rectSize = (this.rect.width * 130 / mapWidth) >> 0; //Square viewport
+            
+            // 1. Clear minimap
+            this.miniCxt.clearRect(0, 0, 130, 130);
+            
+            // 2. Draw map background
+            this.miniCxt.drawImage(mapImg, 0, 0, mapWidth, mapHeight, 0, 0, 130, 130);
+
+            // 3. Draw units and buildings as dots
+            const mapW = this.getCurrentMap().width;
+            const mapH = this.getCurrentMap().height;
+            Unit.allUnits.concat(Building.allBuildings).forEach(chara => {
+                if (chara.status != 'dead' && (chara.isEnemy == false || !this.fogFlag || this.isUnitVisibleToPlayer(chara))) {
+                    const mx = (chara.posX() * 130 / mapW) >> 0;
+                    const my = (chara.posY() * 130 / mapH) >> 0;
+                    this.miniCxt.fillStyle = chara.isEnemy ? "red" : (chara.isNeutral ? "yellow" : "rgb(0, 150, 255)");
+                    this.miniCxt.fillRect(mx - 1, my - 1, 2, 2);
+                }
+            });
+
+            // 4. Draw fog on mini-map
+            this.drawMiniFog();
+
+            // 5. Draw viewport rect
+            this.miniCxt.strokeStyle = "white";
+            this.miniCxt.lineWidth = 1;
+            this.miniCxt.strokeRect(miniX, miniY, rectSize, (rectSize * this.rect.height / this.rect.width) >> 0);
+
+            // 6. Draw Minimap notification ping
+            const now = Date.now();
+            if (now - this.lastPingTime < 3000) {
+                const ping = (now - this.lastPingTime) / 1000; //0-3
+                const px = (this.pingLocation.x * 130 / mapWidth) >> 0;
+                const py = (this.pingLocation.y * 130 / mapHeight) >> 0;
+                const pulse = Math.abs(Math.sin(ping * Math.PI * 2)); //0-1-0
+                const radius = 10 + pulse * 10;
+                this.miniCxt.strokeStyle = "rgba(255,0,0," + (1 - ping / 3) + ")";
+                this.miniCxt.beginPath();
+                this.miniCxt.arc(px, py, radius, 0, Math.PI * 2);
+                this.miniCxt.stroke();
+            }
+        } catch (e) {
+            this.miniCxt.clearRect(0, 0, 130, 130);
+        }
+    }
+
+    clickHandler(event) {
+        const $canvas = $('canvas[name="mini_map"]');
+        const offset = $canvas.offset();
+        const clickX = event.pageX - offset.left;
+        const clickY = event.pageY - offset.top;
         //Relocate map center
-        GameMap.relocateAt(GameMap.getCurrentMap().width * clickX / 130, GameMap.getCurrentMap().height * clickY / 130);
-    },
-    dblClickHandler: function (event) {
-        //Mouse at (clickX,clickY)
-        var clickX = event.pageX - $('canvas[name="mini_map"]').offset().left;
-        var clickY = event.pageY - $('canvas[name="mini_map"]').offset().top;
+        this.relocateAt(this.getCurrentMap().width * clickX / 130, this.getCurrentMap().height * clickY / 130);
+    }
+
+    dblClickHandler(event) {
+        const $canvas = $('canvas[name="mini_map"]');
+        const offset = $canvas.offset();
+        const clickX = event.pageX - offset.left;
+        const clickY = event.pageY - offset.top;
         //Map (clickX,clickY) to position (mapX,mapY) on map
-        var mapX = GameMap.getCurrentMap().width * clickX / 130;
-        var mapY = GameMap.getCurrentMap().height * clickY / 130;
+        const mapX = this.getCurrentMap().width * clickX / 130;
+        const mapY = this.getCurrentMap().height * clickY / 130;
         //Move selected units to (mapX,mapY)
-        Unit.allOurUnits().filter(function (chara) {
-            return chara.selected;
-        }).forEach(function (chara) {
+        Unit.allOurUnits().filter(chara => chara.selected).forEach(chara => {
             if (chara.attack) chara.stopAttack();
             chara.targetLock = true;
             chara.moveTo(mapX, mapY);
         });
-    },
-    relocateAt: function (centerX, centerY) {
-        //Get map edge
-        var edgeX = GameMap.getCurrentMap().width - Game.HBOUND;
-        var edgeY = GameMap.getCurrentMap().height - Game.VBOUND + Game.infoBox.height - 5;
-        //Map (centerX,centerY) to position (offsetX,offsetY) on top-left in map
-        var offsetX = (centerX - Game.HBOUND / 2) >> 0;
-        if (offsetX < 0) offsetX = 0;
-        if (offsetX > edgeX) offsetX = edgeX;
-        var offsetY = (centerY - (Game.VBOUND - Game.infoBox.height + 5) / 2) >> 0;
-        if (offsetY < 0) offsetY = 0;
-        if (offsetY > edgeY) offsetY = edgeY;
-        //Relocate map
-        GameMap.offsetX = offsetX;
-        GameMap.offsetY = offsetY;
-        GameMap.needRefresh = true;//For synchronize
     }
-};
 
-GameMap._resourceCache = {};
-GameMap._mapScanCache = {};
-GameMap._spawnedResourceIndex = {};
-GameMap._clearMapResources = function () {
-    var isRes = function (chara) {
-        return Boolean(chara && chara._isMapResource);
-    };
-    var removeFrom = function (arr) {
-        if (!arr || !arr.length) return;
-        for (var i = arr.length - 1; i >= 0; i--) {
-            if (isRes(arr[i])) arr.splice(i, 1);
-        }
-    };
-    if (typeof Unit !== 'undefined' && Unit) {
-        removeFrom(Unit.allUnits);
-        removeFrom(Unit.ourGroundUnits);
-        removeFrom(Unit.enemyGroundUnits);
-        removeFrom(Unit.ourFlyingUnits);
-        removeFrom(Unit.enemyFlyingUnits);
+    relocateAt(x, y) {
+        //Boundary check
+        if (x < 0) x = 0;
+        if (y < 0) y = 0;
+        if (x > this.getCurrentMap().width - this.rect.width) x = this.getCurrentMap().width - this.rect.width;
+        if (y > this.getCurrentMap().height - this.rect.height) y = this.getCurrentMap().height - this.rect.height;
+        this.offsetX = x;
+        this.offsetY = y;
+        const edgeX = this.offsetX % 32;
+        const edgeY = this.offsetY % 32;
+        //Update offset for all canvas layers
+        $('#game').css('background-position', (-edgeX) + 'px ' + (-edgeY) + 'px');
     }
-    if (typeof Game !== 'undefined' && Game) {
-        if (Game.selectedUnit && isRes(Game.selectedUnit)) Game.changeSelectedTo({});
-        if (Game.allSelected && Game.allSelected.length) {
-            for (var i = Game.allSelected.length - 1; i >= 0; i--) {
-                if (isRes(Game.allSelected[i])) Game.allSelected.splice(i, 1);
+
+    _clearMapResources() {
+        const isRes = chara => Boolean(chara && chara._isMapResource);
+        const removeFrom = arr => {
+            if (!arr || !arr.length) return;
+            for (let i = arr.length - 1; i >= 0; i--) {
+                if (isRes(arr[i])) arr.splice(i, 1);
             }
-        }
-    }
-};
-
-GameMap._getMapScan = function (maxDimOverride) {
-    var map = GameMap.getCurrentMap();
-    if (!map || !map.width || !map.height) return null;
-    var mapName = GameMap.currentMap;
-    var cacheKey = mapName + ':' + (maxDimOverride || 'auto');
-    var cached = GameMap._mapScanCache[cacheKey];
-    if (cached && cached.mapW === map.width && cached.mapH === map.height && cached.factor) return cached;
-
-    var maxDim = maxDimOverride || Math.max(map.width, map.height);
-    var factor = Math.max(1, Math.ceil(maxDim / 512));
-    var w = (map.width / factor) >> 0;
-    var h = (map.height / factor) >> 0;
-    if (w < 2 || h < 2) return null;
-
-    var c = document.createElement('canvas');
-    c.width = w;
-    c.height = h;
-    var ctx = c.getContext('2d');
-    try {
-        ctx.drawImage(map, 0, 0, w, h);
-    } catch (e) {
-        return null;
-    }
-    var data;
-    try {
-        data = ctx.getImageData(0, 0, w, h).data;
-    } catch (e) {
-        return null;
-    }
-    cached = { factor: factor, w: w, h: h, data: data, mapW: map.width, mapH: map.height };
-    GameMap._mapScanCache[cacheKey] = cached;
-    return cached;
-};
-
-GameMap._isMineralPixel = function (r, g, b) {
-    if (b < 110) return false;
-    if (b < g + 5) return false;
-    if (b < r + 35) return false;
-    if (g < 50) return false;
-    return true;
-};
-
-GameMap._isGasPixel = function (r, g, b) {
-    if (g < 120) return false;
-    if (g < r + 15) return false;
-    if (g < b + 15) return false;
-    return true;
-};
-
-GameMap._spawnMineralAt = function (cx, cy, bw, bh) {
-    if (typeof Neutral === 'undefined' || !Neutral || !Neutral.Mineral) return null;
-    var w = Math.max(30, Math.min(80, bw || 60));
-    var h = Math.max(30, Math.min(80, bh || 60));
-    var mineral = new Neutral.Mineral({ x: (cx - w / 2) >> 0, y: (cy - h / 2) >> 0 });
-    mineral.width = w;
-    mineral.height = h;
-    mineral.noRender = true;
-    mineral._isMapResource = true;
-    mineral.selected = false;
-    mineral.includePoint = function () { return false; };
-    mineral.include = function () { return false; };
-    mineral.stop();
-    mineral.dock();
-    return mineral;
-};
-
-GameMap._spawnGasAt = function (cx, cy, bw, bh) {
-    if (typeof Neutral === 'undefined' || !Neutral || !Neutral.GasGeyser) return null;
-    var w = Math.max(60, Math.min(120, bw || 96));
-    var h = Math.max(60, Math.min(120, bh || 96));
-    var geyser = new Neutral.GasGeyser({ x: (cx - w / 2) >> 0, y: (cy - h / 2) >> 0 });
-    geyser.width = w;
-    geyser.height = h;
-    geyser.noRender = true;
-    geyser._isMapResource = true;
-    geyser.selected = false;
-    geyser.includePoint = function () { return false; };
-    geyser.include = function () { return false; };
-    geyser.stop();
-    geyser.dock();
-    return geyser;
-};
-
-GameMap._findMineralClusterNear = function (worldX, worldY) {
-    var scan = GameMap._getMapScan();
-    if (!scan) return null;
-    var factor = scan.factor;
-    var w = scan.w, h = scan.h, data = scan.data;
-    var sx = (worldX / factor) >> 0;
-    var sy = (worldY / factor) >> 0;
-    if (sx < 0 || sy < 0 || sx >= w || sy >= h) return null;
-
-    var radius = 12;
-    var minX = Math.max(0, sx - radius);
-    var maxX = Math.min(w - 1, sx + radius);
-    var minY = Math.max(0, sy - radius);
-    var maxY = Math.min(h - 1, sy + radius);
-    var count = 0, sumX = 0, sumY = 0, bx0 = maxX, bx1 = minX, by0 = maxY, by1 = minY;
-    for (var y = minY; y <= maxY; y++) {
-        for (var x = minX; x <= maxX; x++) {
-            var i = (y * w + x) << 2;
-            var r = data[i], g = data[i + 1], b = data[i + 2];
-            if (!GameMap._isMineralPixel(r, g, b)) continue;
-            count++;
-            sumX += x;
-            sumY += y;
-            if (x < bx0) bx0 = x;
-            if (x > bx1) bx1 = x;
-            if (y < by0) by0 = y;
-            if (y > by1) by1 = y;
-        }
-    }
-    if (count < 10) return null;
-    var bwPx = bx1 - bx0 + 1;
-    var bhPx = by1 - by0 + 1;
-    if (bwPx > 28 || bhPx > 28) return null;
-    var density = count / (bwPx * bhPx);
-    if (density < 0.08) return null;
-    var cx = ((sumX / count) + 0.5) * factor;
-    var cy = ((sumY / count) + 0.5) * factor;
-    var bw = (bx1 - bx0 + 1) * factor;
-    var bh = (by1 - by0 + 1) * factor;
-    return { x: cx, y: cy, w: bw, h: bh };
-};
-
-GameMap._spawnMineralNear = function (worldX, worldY) {
-    if (typeof Unit !== 'undefined' && Unit && Unit.allUnits && Unit.allUnits.length) {
-        var existing = Unit.allUnits.filter(function (u) {
-            return u && u._isMapResource && (typeof Neutral !== 'undefined' && u instanceof Neutral.Mineral);
-        }).sort(function (a, b) {
-            var dax = worldX - a.posX(), day = worldY - a.posY();
-            var dbx = worldX - b.posX(), dby = worldY - b.posY();
-            return dax * dax + day * day - (dbx * dbx + dby * dby);
-        })[0];
-        if (existing) {
-            var dx = worldX - existing.posX(), dy = worldY - existing.posY();
-            if (dx * dx + dy * dy < 70 * 70) return existing;
-        }
-    }
-    var cluster = GameMap._findMineralClusterNear(worldX, worldY);
-    if (!cluster) return null;
-    var mapName = GameMap.currentMap;
-    var idx = GameMap._spawnedResourceIndex[mapName];
-    if (!idx) idx = GameMap._spawnedResourceIndex[mapName] = {};
-    var key = ((cluster.x / 8) >> 0) + ',' + ((cluster.y / 8) >> 0);
-    if (idx[key]) return null;
-    idx[key] = true;
-    return GameMap._spawnMineralAt(cluster.x, cluster.y, cluster.w, cluster.h);
-};
-
-GameMap._spawnMapResources = function () {
-    var map = GameMap.getCurrentMap();
-    if (!map || !map.width || !map.height) return;
-    var mapName = GameMap.currentMap;
-    var cached = GameMap._resourceCache[mapName];
-    if (!cached) {
-        var scan = GameMap._getMapScan();
-        if (!scan) return;
-        var buildNodes = function (isPixel, scanData) {
-            if (!scanData) return [];
-            var factor = scanData.factor, w = scanData.w, h = scanData.h, data = scanData.data;
-            var size = w * h;
-            var queue = new Int32Array(size);
-            var mask = new Uint8Array(size);
-            for (var p = 0, i = 0; p < size; p++, i += 4) {
-                if (isPixel(data[i], data[i + 1], data[i + 2])) mask[p] = 1;
-            }
-            var visited = new Uint8Array(size);
-            var nodes = [];
-            for (var start = 0; start < size; start++) {
-                if (!mask[start] || visited[start]) continue;
-                var qh = 0, qt = 0;
-                queue[qt++] = start;
-                visited[start] = 1;
-                var count = 0, sumX = 0, sumY = 0;
-                var minX = w, maxX = 0, minY = h, maxY = 0;
-                while (qh < qt) {
-                    var cur = queue[qh++];
-                    var cx = cur % w;
-                    var cy = (cur / w) >> 0;
-                    count++;
-                    sumX += cx;
-                    sumY += cy;
-                    if (cx < minX) minX = cx;
-                    if (cx > maxX) maxX = cx;
-                    if (cy < minY) minY = cy;
-                    if (cy > maxY) maxY = cy;
-                    var left = cur - 1;
-                    if (cx > 0 && mask[left] && !visited[left]) { visited[left] = 1; queue[qt++] = left; }
-                    var right = cur + 1;
-                    if (cx < w - 1 && mask[right] && !visited[right]) { visited[right] = 1; queue[qt++] = right; }
-                    var up = cur - w;
-                    if (cy > 0 && mask[up] && !visited[up]) { visited[up] = 1; queue[qt++] = up; }
-                    var down = cur + w;
-                    if (cy < h - 1 && mask[down] && !visited[down]) { visited[down] = 1; queue[qt++] = down; }
-                }
-                var bw = maxX - minX + 1;
-                var bh = maxY - minY + 1;
-                if (count < 14) continue;
-                if (bw > 120 || bh > 120) continue;
-                var density = count / (bw * bh);
-                if (density < 0.06) continue;
-                var centerX = ((sumX / count) + 0.5) * factor;
-                var centerY = ((sumY / count) + 0.5) * factor;
-                var ow = Math.max(30, Math.min(80, bw * factor));
-                var oh = Math.max(30, Math.min(80, bh * factor));
-                nodes.push({ x: centerX, y: centerY, w: ow, h: oh });
-            }
-            nodes.sort(function (a, b) {
-                return a.x - b.x;
-            });
-            var pruned = [];
-            var minDist = 50;
-            var minDist2 = minDist * minDist;
-            for (var k = 0; k < nodes.length; k++) {
-                var n = nodes[k];
-                var ok = true;
-                for (var j = pruned.length - 1; j >= 0 && j > pruned.length - 16; j--) {
-                    var p = pruned[j];
-                    var dx = n.x - p.x, dy = n.y - p.y;
-                    if (dx * dx + dy * dy < minDist2) { ok = false; break; }
-                }
-                if (ok) pruned.push(n);
-            }
-            return pruned;
         };
-        var minerals = buildNodes(GameMap._isMineralPixel, scan);
-        var gas = buildNodes(GameMap._isGasPixel, scan);
-        var maxDim = Math.max(map.width, map.height);
-        var gasTarget = Math.min(maxDim, 1024);
-        if (gasTarget < maxDim) {
-            var gasScan = GameMap._getMapScan(gasTarget);
-            if (gasScan && gasScan !== scan) {
-                var gasHi = buildNodes(GameMap._isGasPixel, gasScan);
-                if (gasHi.length > gas.length) gas = gasHi;
+        if (typeof Unit !== 'undefined' && Unit) {
+            removeFrom(Unit.allUnits);
+            removeFrom(Unit.ourGroundUnits);
+            removeFrom(Unit.enemyGroundUnits);
+            removeFrom(Unit.ourFlyingUnits);
+            removeFrom(Unit.enemyFlyingUnits);
+        }
+        if (Game) {
+            if (Game.selectedUnit && isRes(Game.selectedUnit)) Game.changeSelectedTo({});
+            if (Game.allSelected && Game.allSelected.length) {
+                for (let i = Game.allSelected.length - 1; i >= 0; i--) {
+                    if (isRes(Game.allSelected[i])) Game.allSelected.splice(i, 1);
+                }
             }
         }
-        cached = { minerals: minerals, gas: gas };
-        GameMap._resourceCache[mapName] = cached;
     }
-    if (cached.length) {
-        cached = { minerals: cached, gas: [] };
-        GameMap._resourceCache[mapName] = cached;
+
+    _getMapScan(maxDimOverride) {
+        const map = this.getCurrentMap();
+        if (!map || !map.width || !map.height) return null;
+        const mapName = this.currentMap;
+        const cacheKey = mapName + ':' + (maxDimOverride || 'auto');
+        let cached = this._mapScanCache[cacheKey];
+        if (cached && cached.mapW === map.width && cached.mapH === map.height && cached.factor) return cached;
+
+        const maxDim = maxDimOverride || Math.max(map.width, map.height);
+        const factor = Math.max(1, Math.ceil(maxDim / 512));
+        const w = (map.width / factor) >> 0;
+        const h = (map.height / factor) >> 0;
+        if (w < 2 || h < 2) return null;
+
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        const ctx = c.getContext('2d');
+        try {
+            ctx.drawImage(map, 0, 0, w, h);
+        } catch (e) {
+            return null;
+        }
+        let data;
+        try {
+            data = ctx.getImageData(0, 0, w, h).data;
+        } catch (e) {
+            return null;
+        }
+        cached = {
+            factor: factor,
+            w: w,
+            h: h,
+            data: data,
+            mapW: map.width,
+            mapH: map.height
+        };
+        this._mapScanCache[cacheKey] = cached;
+        return cached;
     }
-    GameMap._spawnedResourceIndex[mapName] = {};
-    for (var i = 0; i < cached.minerals.length; i++) {
-        var n = cached.minerals[i];
-        var key = ((n.x / 8) >> 0) + ',' + ((n.y / 8) >> 0);
-        GameMap._spawnedResourceIndex[mapName][key] = true;
-        GameMap._spawnMineralAt(n.x, n.y, n.w, n.h);
+
+    _isMineralPixel(r, g, b) {
+        if (b < 110) return false;
+        if (b < g + 5) return false;
+        if (b < r + 35) return false;
+        if (g < 50) return false;
+        return true;
     }
-    for (var g = 0; g < cached.gas.length; g++) {
-        var gn = cached.gas[g];
-        GameMap._spawnGasAt(gn.x, gn.y, gn.w * 1.4, gn.h * 1.4);
+
+    _isGasPixel(r, g, b) {
+        if (g < 120) return false;
+        if (g < r + 15) return false;
+        if (g < b + 15) return false;
+        return true;
     }
-};
+
+    _spawnMineralAt(cx, cy, bw, bh) {
+        if (typeof Neutral === 'undefined' || !Neutral || !Neutral.Mineral) return null;
+        const w = Math.max(30, Math.min(80, bw || 60));
+        const h = Math.max(30, Math.min(80, bh || 60));
+        const mineral = new Neutral.Mineral({
+            x: (cx - w / 2) >> 0,
+            y: (cy - h / 2) >> 0
+        });
+        mineral.width = w;
+        mineral.height = h;
+        mineral.noRender = true;
+        mineral._isMapResource = true;
+        mineral.selected = false;
+        mineral.includePoint = () => false;
+        mineral.include = () => false;
+        mineral.stop();
+        mineral.dock();
+        return mineral;
+    }
+
+    _spawnGasAt(cx, cy, bw, bh) {
+        if (typeof Neutral === 'undefined' || !Neutral || !Neutral.GasGeyser) return null;
+        const w = Math.max(60, Math.min(120, bw || 96));
+        const h = Math.max(60, Math.min(120, bh || 96));
+        const geyser = new Neutral.GasGeyser({
+            x: (cx - w / 2) >> 0,
+            y: (cy - h / 2) >> 0
+        });
+        geyser.width = w;
+        geyser.height = h;
+        geyser.noRender = true;
+        geyser._isMapResource = true;
+        geyser.selected = false;
+        geyser.includePoint = () => false;
+        geyser.include = () => false;
+        geyser.stop();
+        geyser.dock();
+        return geyser;
+    }
+
+    _findMineralClusterNear(worldX, worldY) {
+        const scan = this._getMapScan();
+        if (!scan) return null;
+        const factor = scan.factor;
+        const w = scan.w;
+        const h = scan.h;
+        const data = scan.data;
+        const sx = (worldX / factor) >> 0;
+        const sy = (worldY / factor) >> 0;
+        if (sx < 0 || sy < 0 || sx >= w || sy >= h) return null;
+
+        const radius = 12;
+        const minX = Math.max(0, sx - radius);
+        const maxX = Math.min(w - 1, sx + radius);
+        const minY = Math.max(0, sy - radius);
+        const maxY = Math.min(h - 1, sy + radius);
+        let count = 0,
+            sumX = 0,
+            sumY = 0,
+            bx0 = maxX,
+            bx1 = minX,
+            by0 = maxY,
+            by1 = minY;
+        for (let y = minY; y <= maxY; y++) {
+            for (let x = minX; x <= maxX; x++) {
+                const i = (y * w + x) << 2;
+                const r = data[i],
+                    g = data[i + 1],
+                    b = data[i + 2];
+                if (!this._isMineralPixel(r, g, b)) continue;
+                count++;
+                sumX += x;
+                sumY += y;
+                if (x < bx0) bx0 = x;
+                if (x > bx1) bx1 = x;
+                if (y < by0) by0 = y;
+                if (y > by1) by1 = y;
+            }
+        }
+        if (count < 10) return null;
+        const bwPx = bx1 - bx0 + 1;
+        const bhPx = by1 - by0 + 1;
+        if (bwPx > 28 || bhPx > 28) return null;
+        const density = count / (bwPx * bhPx);
+        if (density < 0.08) return null;
+        const cx = ((sumX / count) + 0.5) * factor;
+        const cy = ((sumY / count) + 0.5) * factor;
+        const bw = (bx1 - bx0 + 1) * factor;
+        const bh = (by1 - by0 + 1) * factor;
+        return {
+            x: cx,
+            y: cy,
+            w: bw,
+            h: bh
+        };
+    }
+
+    _spawnMineralNear(worldX, worldY) {
+        if (typeof Unit !== 'undefined' && Unit && Unit.allUnits && Unit.allUnits.length) {
+            const existing = Unit.allUnits.filter(u => {
+                return u && u._isMapResource && (typeof Neutral !== 'undefined' && u instanceof Neutral.Mineral);
+            }).sort((a, b) => {
+                const dax = worldX - a.posX(),
+                    day = worldY - a.posY();
+                const dbx = worldX - b.posX(),
+                    dby = worldY - b.posY();
+                return dax * dax + day * day - (dbx * dbx + dby * dby);
+            })[0];
+            if (existing) {
+                const dx = worldX - existing.posX(),
+                    dy = worldY - existing.posY();
+                if (dx * dx + dy * dy < 70 * 70) return existing;
+            }
+        }
+        const cluster = this._findMineralClusterNear(worldX, worldY);
+        if (!cluster) return null;
+        const mapName = this.currentMap;
+        let idx = this._spawnedResourceIndex[mapName];
+        if (!idx) idx = this._spawnedResourceIndex[mapName] = {};
+        const key = ((cluster.x / 8) >> 0) + ',' + ((cluster.y / 8) >> 0);
+        if (idx[key]) return null;
+        idx[key] = true;
+        return this._spawnMineralAt(cluster.x, cluster.y, cluster.w, cluster.h);
+    }
+
+    _spawnMapResources() {
+        const map = this.getCurrentMap();
+        if (!map || !map.width || !map.height) return;
+        const mapName = this.currentMap;
+        let cached = this._resourceCache[mapName];
+        if (!cached) {
+            const scan = this._getMapScan();
+            if (!scan) return;
+            const buildNodes = (isPixel, scanData) => {
+                if (!scanData) return [];
+                const factor = scanData.factor,
+                    w = scanData.w,
+                    h = scanData.h,
+                    data = scanData.data;
+                const size = w * h;
+                const queue = new Int32Array(size);
+                const mask = new Uint8Array(size);
+                for (let p = 0, i = 0; p < size; p++, i += 4) {
+                    if (isPixel(data[i], data[i + 1], data[i + 2])) mask[p] = 1;
+                }
+                const visited = new Uint8Array(size);
+                const nodes = [];
+                for (let start = 0; start < size; start++) {
+                    if (!mask[start] || visited[start]) continue;
+                    let qh = 0,
+                        qt = 0;
+                    queue[qt++] = start;
+                    visited[start] = 1;
+                    let count = 0,
+                        sumX = 0,
+                        sumY = 0;
+                    let minX = w,
+                        maxX = 0,
+                        minY = h,
+                        maxY = 0;
+                    while (qh < qt) {
+                        const cur = queue[qh++];
+                        const cx = cur % w;
+                        const cy = (cur / w) >> 0;
+                        count++;
+                        sumX += cx;
+                        sumY += cy;
+                        if (cx < minX) minX = cx;
+                        if (cx > maxX) maxX = cx;
+                        if (cy < minY) minY = cy;
+                        if (cy > maxY) maxY = cy;
+                        const left = cur - 1;
+                        if (cx > 0 && mask[left] && !visited[left]) {
+                            visited[left] = 1;
+                            queue[qt++] = left;
+                        }
+                        const right = cur + 1;
+                        if (cx < w - 1 && mask[right] && !visited[right]) {
+                            visited[right] = 1;
+                            queue[qt++] = right;
+                        }
+                        const up = cur - w;
+                        if (cy > 0 && mask[up] && !visited[up]) {
+                            visited[up] = 1;
+                            queue[qt++] = up;
+                        }
+                        const down = cur + w;
+                        if (cy < h - 1 && mask[down] && !visited[down]) {
+                            visited[down] = 1;
+                            queue[qt++] = down;
+                        }
+                    }
+                    const bw = maxX - minX + 1;
+                    const bh = maxY - minY + 1;
+                    if (count < 14) continue;
+                    if (bw > 120 || bh > 120) continue;
+                    const density = count / (bw * bh);
+                    if (density < 0.06) continue;
+                    const centerX = ((sumX / count) + 0.5) * factor;
+                    const centerY = ((sumY / count) + 0.5) * factor;
+                    const ow = Math.max(30, Math.min(80, bw * factor));
+                    const oh = Math.max(30, Math.min(80, bh * factor));
+                    nodes.push({
+                        x: centerX,
+                        y: centerY,
+                        w: ow,
+                        h: oh
+                    });
+                }
+                nodes.sort((a, b) => a.x - b.x);
+                const pruned = [];
+                const minDist = 50;
+                const minDist2 = minDist * minDist;
+                for (let k = 0; k < nodes.length; k++) {
+                    const n = nodes[k];
+                    let ok = true;
+                    for (let j = pruned.length - 1; j >= 0 && j > pruned.length - 16; j--) {
+                        const p = pruned[j];
+                        const dx = n.x - p.x,
+                            dy = n.y - p.y;
+                        if (dx * dx + dy * dy < minDist2) {
+                            ok = false;
+                            break;
+                        }
+                    }
+                    if (ok) pruned.push(n);
+                }
+                return pruned;
+            };
+            const minerals = buildNodes(this._isMineralPixel, scan);
+            let gas = buildNodes(this._isGasPixel, scan);
+            const maxDim = Math.max(map.width, map.height);
+            const gasTarget = Math.min(maxDim, 1024);
+            if (gasTarget < maxDim) {
+                const gasScan = this._getMapScan(gasTarget);
+                if (gasScan && gasScan !== scan) {
+                    const gasHi = buildNodes(this._isGasPixel, gasScan);
+                    if (gasHi.length > gas.length) gas = gasHi;
+                }
+            }
+            cached = {
+                minerals: minerals,
+                gas: gas
+            };
+            this._resourceCache[mapName] = cached;
+        }
+        if (cached.length) {
+            cached = {
+                minerals: cached,
+                gas: []
+            };
+            this._resourceCache[mapName] = cached;
+        }
+        this._spawnedResourceIndex[mapName] = {};
+        for (let i = 0; i < cached.minerals.length; i++) {
+            const n = cached.minerals[i];
+            const key = ((n.x / 8) >> 0) + ',' + ((n.y / 8) >> 0);
+            this._spawnedResourceIndex[mapName][key] = true;
+            this._spawnMineralAt(n.x, n.y, n.w, n.h);
+        }
+        for (let g = 0; g < cached.gas.length; g++) {
+            const gn = cached.gas[g];
+            this._spawnGasAt(gn.x, gn.y, gn.w * 1.4, gn.h * 1.4);
+        }
+    }
+}
+
+const GameMap = new GameMapClass();
+
+// Global assignment for legacy compatibility
+if (typeof window !== 'undefined') {
+    window.GameMap = GameMap;
+}
+
+export default GameMap;

@@ -1,3 +1,10 @@
+import Terran from '../core/TerranBase.js';
+import AttackableUnit from '../../Units/core/AttackableUnitBase.js';
+import Unit from '../../Units/core/UnitBase.js';
+import { recover } from '../core/TerranHelper.js';
+import { SmallExplode } from '../../Bursts/buildings/BuildingBursts.js';
+import { SCVSpark } from '../../Bursts/terran/TerranEffects.js';
+
 Terran.SCV = AttackableUnit.extends({
     constructorPlus: function (props) {
         this.imgPos.dock = this.imgPos.moving;
@@ -31,13 +38,13 @@ Terran.SCV = AttackableUnit.extends({
         meleeAttack: true,
         attackInterval: 1500,
         portraitOffset: { x: 0, y: 56 },
-        dieEffect: Burst.SmallExplode,
-        attackEffect: Burst.SCVSpark,
+        dieEffect: SmallExplode,
+        attackEffect: SCVSpark,
         isFlying: false,
         attackLimit: "ground",
         unitType: Unit.SMALL,
         attackType: AttackableUnit.NORMAL_ATTACK,
-        recover: Building.TerranBuilding.prototype.recover,
+        recover: recover,
         cost: {
             mine: 50,
             man: 1,

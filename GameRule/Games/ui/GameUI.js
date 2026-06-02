@@ -1,3 +1,14 @@
+import '../../../Utils/jquery.min.js';
+import Game from '../core/GameBase.js';
+import Button from '../../../Characters/Buttons/core/ButtonBase.js';
+import Upgrade from '../../../Characters/Upgrades/core/UpgradeBase.js';
+import Gobj from '../../../Characters/Gobj.js';
+import Unit from '../../../Characters/Units/core/UnitBase.js';
+import Building from '../../../Characters/Buildings/core/BuildingBase.js';
+import Resource from '../../Resource.js';
+
+const $ = globalThis.$;
+
 Game.changeSelectedTo = function (chara) {
     Game.selectedUnit = chara;
     Button.equipButtonsFor(chara);
@@ -10,9 +21,20 @@ Game.changeSelectedTo = function (chara) {
         else {
             if (Game.selectedUnit instanceof Unit)
                 $('div.infoLeft div[name="portrait"]')[0].className = Game.selectedUnit.name;
-            if (Game.selectedUnit instanceof Building)
-                $('div.infoLeft div[name="portrait"]')[0].className =
-                    Game.selectedUnit.attack ? Game.selectedUnit.inherited.inherited.name : Game.selectedUnit.inherited.name;
+            if (Game.selectedUnit instanceof Building) {
+                // Correctly identify building race for portraits
+                if (Game.selectedUnit.inherited && Game.selectedUnit.inherited.name) {
+                    $('div.infoLeft div[name="portrait"]')[0].className = Game.selectedUnit.inherited.name;
+                } else if (window.ZergBuilding && Game.selectedUnit instanceof window.ZergBuilding) {
+                    $('div.infoLeft div[name="portrait"]')[0].className = "ZergBuilding";
+                } else if (window.TerranBuilding && Game.selectedUnit instanceof window.TerranBuilding) {
+                    $('div.infoLeft div[name="portrait"]')[0].className = "TerranBuilding";
+                } else if (window.ProtossBuilding && Game.selectedUnit instanceof window.ProtossBuilding) {
+                    $('div.infoLeft div[name="portrait"]')[0].className = "ProtossBuilding";
+                } else {
+                    $('div.infoLeft div[name="portrait"]')[0].className = Game.selectedUnit.name;
+                }
+            }
         }
         $('div.infoLeft span._Health')[0].style.color = Game.selectedUnit.lifeStatus();
         $('div.infoLeft span.life')[0].innerHTML = Game.selectedUnit.life >> 0;
@@ -130,28 +152,33 @@ Game.drawInfoBox = function () {
     }
 };
 Game.drawSourceBox = function () {
-    if (Game.ui.lastResource.mine !== Resource[0].mine) {
-        $('div.resource_Box span.mineNum')[0].innerHTML = Resource[0].mine;
-        Game.ui.lastResource.mine = Resource[0].mine;
+    var res = (typeof Resource !== 'undefined') ? Resource : (typeof window !== 'undefined' ? window.Resource : null);
+    if (!res) return;
+    if (!res[0] && res.init) res.init();
+    if (!res[0]) return;
+    if (!Game.ui.lastResource) Game.ui.lastResource = {};
+    if (Game.ui.lastResource.mine !== res[0].mine) {
+        $('div.resource_Box span.mineNum')[0].innerHTML = res[0].mine;
+        Game.ui.lastResource.mine = res[0].mine;
     }
-    if (Game.ui.lastResource.gas !== Resource[0].gas) {
-        $('div.resource_Box span.gasNum')[0].innerHTML = Resource[0].gas;
-        Game.ui.lastResource.gas = Resource[0].gas;
+    if (Game.ui.lastResource.gas !== res[0].gas) {
+        $('div.resource_Box span.gasNum')[0].innerHTML = res[0].gas;
+        Game.ui.lastResource.gas = res[0].gas;
     }
-    if (Game.ui.lastResource.curMan !== Resource[0].curMan) {
-        $('div.resource_Box span.manNum>span')[0].innerHTML = Resource[0].curMan;
-        Game.ui.lastResource.curMan = Resource[0].curMan;
+    if (Game.ui.lastResource.curMan !== res[0].curMan) {
+        $('div.resource_Box span.manNum>span')[0].innerHTML = res[0].curMan;
+        Game.ui.lastResource.curMan = res[0].curMan;
     }
-    if (Game.ui.lastResource.totalMan !== Resource[0].totalMan) {
-        $('div.resource_Box span.manNum>span')[1].innerHTML = Resource[0].totalMan;
-        Game.ui.lastResource.totalMan = Resource[0].totalMan;
+    if (Game.ui.lastResource.totalMan !== res[0].totalMan) {
+        $('div.resource_Box span.manNum>span')[1].innerHTML = res[0].totalMan;
+        Game.ui.lastResource.totalMan = res[0].totalMan;
     }
-    var manColor = (Resource[0].curMan > Resource[0].totalMan) ? "red" : (Resource[0].curMan === Resource[0].totalMan) ? "yellow" : "#00ff00";
+    var manColor = (res[0].curMan > res[0].totalMan) ? "red" : (res[0].curMan === res[0].totalMan) ? "yellow" : "#00ff00";
     if (Game.ui.lastResource.manColor !== manColor) {
         $('div.resource_Box span.manNum')[0].style.color = manColor;
         Game.ui.lastResource.manColor = manColor;
     }
-    var supplyBlocked = Resource[0].totalMan > 0 && Resource[0].curMan >= Resource[0].totalMan;
+    var supplyBlocked = res[0].totalMan > 0 && res[0].curMan >= res[0].totalMan;
     if (Game.ui.lastResource.supplyBlocked !== supplyBlocked) {
         Game.ui.lastResource.supplyBlocked = supplyBlocked;
         if (supplyBlocked) {
@@ -167,9 +194,27 @@ Game.drawSourceBox = function () {
     }
 };
 Game.drawProcessingBox = function () {
+    if (!Game.ui.lastProcessing) Game.ui.lastProcessing = {};
+    if (!Game.selectedUnit) {
+        if (Game.ui.lastProcessing.visible !== false) {
+            $('div.upgrading').removeAttr('title').hide();
+            Game.ui.lastProcessing.visible = false;
+        }
+        if (Game.ui.lastProcessing.queueText !== '') {
+            $('div.upgrading div[name="processing"] div.queue')[0].textContent = '';
+            Game.ui.lastProcessing.queueText = '';
+        }
+        return;
+    }
     var processing = Game.selectedUnit.processing;
     if (processing) {
-        var percent = ((new Date().getTime() - processing.startTime) / (processing.time) + 0.5) >> 0;
+        let elapsed;
+        if (processing.startTime > 1000000000000) {
+            elapsed = new Date().getTime() - processing.startTime;
+        } else {
+            elapsed = (Game._clock - processing.startTime) * 100;
+        }
+        var percent = (elapsed / processing.time + 0.5) >> 0;
         if (Game.ui.lastProcessing.name !== processing.name) {
             $('div.upgrading div[name="icon"]')[0].className = processing.name;
             $('div.upgrading').attr('title', processing.name);
@@ -200,13 +245,35 @@ Game.drawProcessingBox = function () {
         }
     }
     else {
-        if (Game.ui.lastProcessing.visible !== false) {
-            $('div.upgrading').removeAttr('title').hide();
-            Game.ui.lastProcessing.visible = false;
-        }
-        if (Game.ui.lastProcessing.queueText !== '') {
-            $('div.upgrading div[name="processing"] div.queue')[0].textContent = '';
-            Game.ui.lastProcessing.queueText = '';
+        if (Game.replayFlag && Game.endTick > 0) {
+            var percent = (Game._clock * 100 / Game.endTick + 0.5) >> 0;
+            if (Game.ui.lastProcessing.name !== 'Replay') {
+                $('div.upgrading div[name="icon"]')[0].className = 'Replay';
+                $('div.upgrading').attr('title', 'Replay Progress');
+                Game.ui.lastProcessing.name = 'Replay';
+            }
+            if (Game.ui.lastProcessing.percent !== percent) {
+                $('div.upgrading div[name="processing"] span')[0].innerHTML = percent;
+                $('div.upgrading div[name="processing"] div.processedBar')[0].style.width = percent + '%';
+                Game.ui.lastProcessing.percent = percent;
+            }
+            if (Game.ui.lastProcessing.visible !== true) {
+                $('div.upgrading').show();
+                Game.ui.lastProcessing.visible = true;
+            }
+            if (!(Game.selectedUnit instanceof Gobj)) {
+                $('div.infoRight').show();
+                $('div.upgraded').hide();
+            }
+        } else {
+            if (Game.ui.lastProcessing.visible !== false) {
+                $('div.upgrading').removeAttr('title').hide();
+                Game.ui.lastProcessing.visible = false;
+            }
+            if (Game.ui.lastProcessing.queueText !== '') {
+                $('div.upgrading div[name="processing"] div.queue')[0].textContent = '';
+                Game.ui.lastProcessing.queueText = '';
+            }
         }
     }
 };
@@ -255,7 +322,19 @@ Game.drawMultiSelectBox = function () {
         var node = document.createElement('div');
         node.setAttribute('name', 'portrait');
         if (chara.portrait) node.className = chara.portrait;
-        else node.className = (chara instanceof Building) ? (chara.attack ? chara.inherited.inherited.name : chara.inherited.name) : chara.name;
+        else {
+            if (chara instanceof Building) {
+                if (chara.attack && chara.inherited && chara.inherited.inherited && chara.inherited.inherited.name) {
+                    node.className = chara.inherited.inherited.name;
+                } else if (chara.inherited && chara.inherited.name) {
+                    node.className = chara.inherited.name;
+                } else {
+                    node.className = chara.name;
+                }
+            } else {
+                node.className = chara.name;
+            }
+        }
         node.title = chara.name;
         node.style.borderColor = chara.lifeStatus();
         var hp = document.createElement('span');

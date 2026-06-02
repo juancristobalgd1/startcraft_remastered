@@ -1,6 +1,62 @@
+import Button from './ButtonBase.js';
+import GameMap from '../../Map.js';
+import { ZergBuilding, TerranBuilding, ProtossBuilding } from '../../Buildings/core/BuildingRaces.js';
+import { Egg, Cocoon, LurkerCocoon } from '../../Buildings/zerg/ZergEvolve.js';
+import Unit from '../../Units/core/UnitBase.js';
+import Building from '../../Buildings/core/BuildingBase.js';
+import Game from '../../../GameRule/Games/core/GameBase.js';
+import Referee from '../../../GameRule/Referees/core/RefereeBase.js';
+import Resource from '../../../GameRule/Resource.js';
+import Cheat from '../../../GameRule/Cheat.js';
+import Upgrade from '../../Upgrades/core/UpgradeBase.js';
+import Magic from '../../Magics/core/MagicBase.js';
+import Zerg from '../../Zergs/core/ZergBase.js';
+import Terran from '../../Terrans/core/TerranBase.js';
+import Protoss from '../../Protosses/core/ProtossBase.js';
+import Gobj from '../../Gobj.js';
+
 Button.equipButtonsFor = function (chara) {
     $('div.panel_Control button').removeAttr('class').removeAttr('disabled').removeAttr('style').off('click').off('mouseover').off('mouseout').html('').hide();
     if (chara.isEnemy || chara == {}) return;
+
+    // Helper function to show tooltip
+    var showTooltip = function (btn, itemName) {
+        var costObj = Resource.getCost(itemName);
+        if (costObj && (costObj.mine || costObj.gas || costObj.man || costObj.magic)) {
+            var tooltipBox = $('div.tooltip_Box');
+            tooltipBox.css({
+                left: $(btn).offset().left + 50,
+                top: $(btn).offset().top
+            });
+            tooltipBox.find('.itemName').text(itemName);
+            if (costObj.mine) {
+                tooltipBox.find('.mineNum').text(costObj.mine).parent().show();
+            } else {
+                tooltipBox.find('.mineNum').parent().hide();
+            }
+            if (costObj.gas) {
+                tooltipBox.find('.gasNum').text(costObj.gas).parent().show();
+            } else {
+                tooltipBox.find('.gasNum').parent().hide();
+            }
+            if (costObj.man) {
+                tooltipBox.find('.manNum').text(costObj.man).parent().show();
+            } else {
+                tooltipBox.find('.manNum').parent().hide();
+            }
+            if (costObj.magic) {
+                tooltipBox.find('.magicNum').text(costObj.magic).parent().show();
+            } else {
+                tooltipBox.find('.magicNum').parent().hide();
+            }
+            tooltipBox.show();
+        }
+    };
+
+    // Helper function to hide tooltip
+    var hideTooltip = function () {
+        $('div.tooltip_Box').hide();
+    };
     $('div.panel_Control button').on('click', () => {
         Referee.voice.button.play();
     });
@@ -22,21 +78,28 @@ Button.equipButtonsFor = function (chara) {
     if (chara.items) {
         for (var N in chara.items) {
             if (chara.items[N] != null) {
-                $('button[num="' + N + '"]').off('click').attr('class', chara.items[N].name).show();
+                var btn = $('button[num="' + N + '"]');
+                btn.off('click').attr('class', chara.items[N].name).show();
                 if (chara.items[N].condition && chara.items[N].condition() == false)
-                    $('button[num="' + N + '"]').attr('disabled', true);
-                else $('button[num="' + N + '"]').removeAttr('disabled');
+                    btn.attr('disabled', true);
+                else btn.removeAttr('disabled');
                 switch (chara.items[N].name) {
                     case 'SpiderMines':
-                        $('button[num="' + N + '"]')[0].innerHTML = chara.spiderMines;
+                        btn[0].innerHTML = chara.spiderMines;
                         break;
                     case 'Scarab':
-                        $('button[num="' + N + '"]')[0].innerHTML = chara.scarabNum;
+                        btn[0].innerHTML = chara.scarabNum;
                         break;
                     case 'Interceptor':
-                        $('button[num="' + N + '"]')[0].innerHTML = chara.continuousAttack.count;
+                        btn[0].innerHTML = chara.continuousAttack.count;
                         break;
                 }
+                // Add tooltip events
+                (function (itemName) {
+                    btn.on('mouseover', function () {
+                        showTooltip(this, itemName);
+                    }).on('mouseout', hideTooltip);
+                })(chara.items[N].name);
             }
             else {
                 $('button[num="' + N + '"]').removeAttr('class').hide();
@@ -109,7 +172,7 @@ Button.equipButtonsFor = function (chara) {
         }
         upgrades.forEach(function (grade) {
             $('button.' + grade).on('click', function () {
-                if (Resource.paypal(Resource.getCost(grade))) {
+                if (Resource.paypal.call(Game.selectedUnit, Resource.getCost(grade))) {
                     if (Resource.getCost(grade) && Resource.getCost(grade).time) {
                         var owner = Game.selectedUnit;
                         var duration = Resource.getCost(grade).time;
@@ -124,8 +187,31 @@ Button.equipButtonsFor = function (chara) {
                                 Game.showMessage('Upgrade complete');
                             }
                         });
+                        if (globalThis.Multiplayer && !Game.replayFlag) {
+                            var cmd = {
+                                type: 'upgrade',
+                                uids: [owner.id],
+                                name: grade,
+                                duration: duration,
+                                team: Game.team
+                            };
+                            if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
+                            Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
+                        }
                     }
-                    else Upgrade[grade].effect();
+                    else {
+                        Upgrade[grade].effect();
+                        if (globalThis.Multiplayer && !Game.replayFlag) {
+                            var cmd = {
+                                type: 'upgrade',
+                                uids: [Game.selectedUnit.id],
+                                name: grade,
+                                team: Game.team
+                            };
+                            if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
+                            Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
+                        }
+                    }
                 }
             });
         });
@@ -156,21 +242,58 @@ Button.equipButtonsFor = function (chara) {
                         if (chara.processing) return;
                         if (Resource.paypal.call(chara, Resource.getCost(magic))) {
                             if (Cheat.cwal) duration = 0;
-                            setTimeout(function () {
+                            Game.commandTimeout(function () {
                                 Magic[magic].spell.call(chara);
                                 delete chara.processing;
                             }, duration * 100);
                             chara.processing = {
                                 name: magic,
-                                startTime: new Date().getTime(),
+                                startTime: Game._clock,
                                 time: duration
                             };
+                            if (globalThis.Multiplayer && !Game.replayFlag) {
+                                var cmd = {
+                                    type: 'magic',
+                                    uids: [chara.id],
+                                    name: magic,
+                                    duration: duration
+                                };
+                                if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
+                                Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
+                            }
                         }
                     }
                     else {
-                        if (Magic[magic].credit) Resource.creditBill = Resource.getCost(magic);
+                        if (Magic[magic].credit) chara.creditBill = Resource.getCost(magic);
                         if (Resource.paypal.call(chara, Resource.getCost(magic))) {
                             Magic[magic].spell.call(chara);
+                            if (Button.callback) {
+                                var originalCallback = Button.callback;
+                                Button.callback = function (location) {
+                                    originalCallback(location);
+                                    if (globalThis.Multiplayer && !Game.replayFlag) {
+                                        var cmd = {
+                                            type: 'magic',
+                                            uids: [chara.id],
+                                            name: magic,
+                                            pos: location,
+                                            creditBill: chara.creditBill
+                                        };
+                                        if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
+                                        Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
+                                    }
+                                };
+                            } else {
+                                if (globalThis.Multiplayer && !Game.replayFlag) {
+                                    var cmd = {
+                                        type: 'magic',
+                                        uids: [chara.id],
+                                        name: magic
+                                    };
+                                    if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
+                                    Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
+                                }
+                            }
                         }
                     }
                 });
@@ -180,26 +303,32 @@ Button.equipButtonsFor = function (chara) {
         for (var unitType in Zerg) {
             unitTypes.push(unitType);
         }
-        var exceptions = ['Guardian', 'Devourer'];
+        var exceptions = ['Lurker', 'Guardian', 'Devourer'];
         unitTypes.forEach(function (unitType) {
             $('button.' + unitType).on('click', function () {
                 Unit.allOurUnits().filter(function (chara) {
                     return (chara.selected && chara.name == Game.selectedUnit.name);
                 }).forEach(function (chara) {
-                    if (Resource.paypal(Resource.getCost(unitType))) {
+                    if (chara.processing) return;
+                    if (Resource.paypal.call(chara, Resource.getCost(unitType))) {
                         var egg;
-                        if (exceptions.indexOf(unitType) != -1) {
-                            egg = chara.evolveTo(Building.ZergBuilding.Cocoon);
+                        if (unitType == 'Lurker') {
+                            egg = chara.evolveTo(LurkerCocoon);
+                        }
+                        else if (unitType == 'Guardian' || unitType == 'Devourer') {
+                            egg = chara.evolveTo(Cocoon);
                         }
                         else {
-                            egg = chara.evolveTo(Building.ZergBuilding.Egg);
-                            if (unitType == 'Lurker') egg.action = 18;
+                            egg = chara.evolveTo(Egg);
                         }
                         var duration = Resource.getCost(unitType).time;
                         if (Cheat.cwal) duration = 0;
-                        setTimeout(function () {
+                        Game.commandTimeout(function () {
                             if (egg.status != 'dead') {
-                                if (exceptions.indexOf(unitType) != -1) {
+                                if (unitType == 'Lurker') {
+                                    egg.evolveTo(Zerg[unitType], ['LurkerBirth']);
+                                }
+                                else if (unitType == 'Guardian' || unitType == 'Devourer') {
                                     egg.evolveTo(Zerg[unitType], [unitType + 'Birth']);
                                 }
                                 else {
@@ -209,9 +338,20 @@ Button.equipButtonsFor = function (chara) {
                         }, duration * 100);
                         egg.processing = {
                             name: unitType,
-                            startTime: new Date().getTime(),
+                            startTime: Game._clock,
                             time: duration
                         };
+                        if (globalThis.Multiplayer && !Game.replayFlag) {
+                            var cmd = {
+                                type: 'unit',
+                                uids: [chara.id],
+                                name: unitType,
+                                duration: duration,
+                                evolve: 'zerg'
+                            };
+                            if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
+                            Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
+                        }
                     }
                 });
             });
@@ -225,7 +365,7 @@ Button.equipButtonsFor = function (chara) {
             unitTypes.forEach(function (unitType) {
                 if (exceptions.indexOf(unitType) == -1) {
                     $('button.' + unitType).on('click', function () {
-                        if (Resource.paypal(Resource.getCost(unitType))) {
+                        if (Resource.paypal.call(Game.selectedUnit, Resource.getCost(unitType))) {
                             if (Resource.getCost(unitType) && Resource.getCost(unitType).time) {
                                 var owner = Game.selectedUnit;
                                 var duration = Resource.getCost(unitType).time;
@@ -236,47 +376,153 @@ Button.equipButtonsFor = function (chara) {
                                     run: function () {
                                         var unit;
                                         if (Race[unitType].prototype.isFlying)
-                                            unit = new Race[unitType]({ x: owner.x, y: owner.y });
+                                            unit = new Race[unitType]({ x: owner.x, y: owner.y, isEnemy: owner.isEnemy });
                                         else
-                                            unit = new Race[unitType]({ x: owner.x, y: owner.y + owner.height });
+                                            unit = new Race[unitType]({ x: owner.x, y: owner.y + owner.height, isEnemy: owner.isEnemy });
                                         return unit;
                                     }
                                 });
+                                if (globalThis.Multiplayer && !Game.replayFlag) {
+                                    var cmd = {
+                                        type: 'unit',
+                                        uids: [owner.id],
+                                        name: unitType,
+                                        duration: duration
+                                    };
+                                    if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
+                                    Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
+                                }
                             }
                         }
                     });
                 }
                 else {
-                    $('button.' + unitType).on('click', function () {
-                        Unit.allOurUnits().filter(function (chara) {
-                            return (chara.selected && chara.name == Game.selectedUnit.name);
-                        }).forEach(function (chara) {
-                            if (chara.processing) return;
-                            if (Resource.paypal(Resource.getCost(unitType))) {
-                                if (Resource.getCost(unitType) && Resource.getCost(unitType).time) {
-                                    var duration = Resource.getCost(unitType).time;
+                    if (unitType == 'Archon' || unitType == 'DarkArchon') {
+                        $('button.' + unitType).on('click', function () {
+                            var selectedTemplars = Unit.allOurUnits().filter(function (chara) {
+                                return (chara.selected && chara.name == Game.selectedUnit.name && !chara.processing);
+                            });
+                            if (selectedTemplars.length < 2) {
+                                if (Referee && Referee.voice && Referee.voice.pError) Referee.voice.pError.play();
+                                if (Game && Game.showMessage) Game.showMessage("Need at least 2 templars to merge!");
+                                return;
+                            }
+                            // Merge in pairs
+                            for (var i = 0; i < selectedTemplars.length - 1; i += 2) {
+                                var chara1 = selectedTemplars[i];
+                                var chara2 = selectedTemplars[i + 1];
+                                var baseCost = Resource.getCost(unitType);
+                                var cost = Object.assign({}, baseCost);
+                                cost.man = 0; // Net supply change is 0.
+                                if (Resource.paypal.call(chara1, cost)) {
+                                    var midX = (chara1.x + chara2.x) / 2;
+                                    var midY = (chara1.y + chara2.y) / 2;
+                                    var isEnemy = chara1.isEnemy;
+
+                                    var wasSelected = chara1.selected || chara2.selected;
+                                    var wasSelectedUnit = (Game.selectedUnit === chara1 || Game.selectedUnit === chara2);
+
+                                    // Clean up the two templars
+                                    chara1.dieEffect = chara1.sound.death = null;
+                                    chara1.die();
+                                    chara2.dieEffect = chara2.sound.death = null;
+                                    chara2.die();
+
+                                    // Clean up from selection array immediately
+                                    if (chara1.selected) {
+                                        var idx1 = Game.allSelected.indexOf(chara1);
+                                        if (idx1 !== -1) Game.allSelected.splice(idx1, 1);
+                                    }
+                                    if (chara2.selected) {
+                                        var idx2 = Game.allSelected.indexOf(chara2);
+                                        if (idx2 !== -1) Game.allSelected.splice(idx2, 1);
+                                    }
+
+                                    // Create cocoon/rift at the midpoint
+                                    var cocoon = new ProtossBuilding[unitType]({ x: midX, y: midY, isEnemy: isEnemy });
+
+                                    // Select cocoon
+                                    if (wasSelected) Game.allSelected.push(cocoon);
+                                    if (wasSelectedUnit) Game.selectedUnit = cocoon;
+
+                                    var duration = baseCost.time;
                                     if (Cheat.cwal) duration = 0;
-                                    setTimeout(function () {
-                                        var evolved = new Race[unitType]({ x: chara.x, y: chara.y });
-                                        if (chara.selected) Game.addIntoAllSelected(evolved);
-                                        if (chara == Game.selectedUnit) Game.changeSelectedTo(evolved);
-                                        chara.dieEffect = chara.sound.death = null;
-                                        chara.die();
-                                        delete chara.processing;
-                                    }, duration * 100);
-                                    chara.processing = {
+
+                                    (function (c, ut, r) {
+                                        Game.commandTimeout(function () {
+                                            if (c.status != 'dead') {
+                                                c.evolveTo(r[ut], [ut + 'Birth']);
+                                            }
+                                        }, duration * 100);
+                                    })(cocoon, unitType, Race);
+
+                                    cocoon.processing = {
                                         name: unitType,
-                                        startTime: new Date().getTime(),
+                                        startTime: Game._clock,
                                         time: duration
                                     };
+                                    if (globalThis.Multiplayer && !Game.replayFlag) {
+                                        var cmd = {
+                                            type: 'unit',
+                                            uids: [chara1.id],
+                                            name: unitType,
+                                            duration: duration,
+                                            evolve: 'archon'
+                                        };
+                                        if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
+                                        Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
+                                    }
+                                } else {
+                                    // Payment failed, stop merging further pairs
+                                    break;
                                 }
                             }
+                            // Refresh UI
+                            setTimeout(Button.reset, 0);
                         });
-                    });
+                    }
+                    else {
+                        $('button.' + unitType).on('click', function () {
+                            Unit.allOurUnits().filter(function (chara) {
+                                return (chara.selected && chara.name == Game.selectedUnit.name);
+                            }).forEach(function (chara) {
+                                if (chara.processing) return;
+                                if (Resource.paypal.call(chara, Resource.getCost(unitType))) {
+                                    if (Resource.getCost(unitType) && Resource.getCost(unitType).time) {
+                                        var duration = Resource.getCost(unitType).time;
+                                        if (Cheat.cwal) duration = 0;
+                                        Game.commandTimeout(function () {
+                                            var evolved = new Race[unitType]({ x: chara.x, y: chara.y, isEnemy: chara.isEnemy });
+                                            if (chara.selected) Game.addIntoAllSelected(evolved);
+                                            if (chara == Game.selectedUnit) Game.changeSelectedTo(evolved);
+                                            chara.dieEffect = chara.sound.death = null;
+                                            chara.die();
+                                            delete chara.processing;
+                                        }, duration * 100);
+                                        chara.processing = {
+                                            name: unitType,
+                                            startTime: Game._clock,
+                                            time: duration
+                                        };
+                                        if (globalThis.Multiplayer && !Game.replayFlag) {
+                                            var cmd = {
+                                                type: 'unit',
+                                                uids: [chara.id],
+                                                name: unitType,
+                                                duration: duration
+                                            };
+                                            if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
+                                            Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
+                                        }
+                                    }
+                                }
+                            });
+                        });
+                    }
                 }
             });
         });
-        [Building.ZergBuilding, Building.TerranBuilding, Building.ProtossBuilding].forEach(function (Build) {
+        [ZergBuilding, TerranBuilding, ProtossBuilding].forEach(function (Build) {
             var buildNames = [];
             for (var buildName in Build) {
                 if (buildName != 'inherited' && buildName != 'super' && buildName != 'extends') {
@@ -291,175 +537,94 @@ Button.equipButtonsFor = function (chara) {
                     var hasTime = cost && cost.time != null;
                     var duration = hasTime ? cost.time : 0;
                     if (Cheat.cwal) duration = 0;
-                    var isZergMorph = (Build === Building.ZergBuilding)
-                        && (owner instanceof Building.ZergBuilding)
+                    var isZergMorph = (Build === ZergBuilding)
+                        && (owner instanceof ZergBuilding)
                         && owner.items
                         && Object.keys(owner.items).some(function (k) {
                             return owner.items[k] && owner.items[k].name === buildName;
                         });
                     var buildType = Build[buildName];
-                    if (!buildType) {
-                        Button._notifyError('Operación inválida');
-                        Button.reset();
-                        return;
-                    }
                     if (isZergMorph) {
-                        if (!hasTime) {
-                            Button._notifyError('Operación inválida');
-                            Button.reset();
-                            return;
-                        }
-                        if (Resource.paypal(cost)) {
-                            var from = owner;
-                            var wasSelected = from.selected;
-                            var wasMain = from === Game.selectedUnit;
-                            from.dieEffect = from.sound.death = null;
-                            from.die();
-                            var placeholder = new Build[Button._pickZergMutation(buildType)]({ x: from.x, y: from.y });
-                            setTimeout(function () {
-                                if (wasSelected) Game.addIntoAllSelected(placeholder);
-                                if (wasMain) Game.changeSelectedTo(placeholder);
-                            }, 0);
-                            if (placeholder instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud, 0);
-                            if (duration <= 0) {
-                                var done = placeholder.evolveTo(buildType);
-                                Button._spawnBuildingCompleteFx(done, buildType);
-                                if (done instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud, 0);
-                            }
-                            else {
-                                Button.queueJob(placeholder, {
+                        if (Resource.paypal.call(owner, cost)) {
+                            //Zerg morph - uses queueJob for progress tracking
+                            var egg = owner.evolveTo(Egg);
+                            Button.queueJob(egg, {
+                                name: buildName,
+                                time: duration,
+                                run: function () {
+                                    return egg.evolveTo(buildType);
+                                }
+                            });
+                            if (globalThis.Multiplayer && !Game.replayFlag) {
+                                var cmd = {
+                                    type: 'build',
+                                    uids: [owner.id],
                                     name: buildName,
-                                    time: duration,
-                                    run: function () {
-                                        var done = placeholder.evolveTo(buildType);
-                                        Button._spawnBuildingCompleteFx(done, buildType);
-                                        if (done instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud, 0);
-                                        return done;
-                                    }
-                                });
+                                    buildType: 'Morph'
+                                };
+                                if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
+                                Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
                             }
                         }
-                        Button.reset();
-                        return;
                     }
-                    var isTerranAddon = (Build === Building.TerranBuilding)
-                        && (owner instanceof Building.TerranBuilding)
-                        && owner.items
-                        && Object.keys(owner.items).some(function (k) {
-                            return owner.items[k] && owner.items[k].name === buildName;
-                        })
-                        && Button._isTerranAddon(buildName);
-                    if (isTerranAddon) {
-                        if (!hasTime) {
-                            Button._notifyError('Operación inválida');
-                            Button.reset();
-                            return;
+                    else {
+                        //Terran & Protoss build
+                        if (owner instanceof Unit) {
+                            $('div.GameLayer').attr('status', 'button');
+                            Button.buildType = buildType;
+                            Button.callback = function (location) {
+                                var rect = Button._buildRectFor(buildType, location);
+                                Button._issueWorkerBuildOrder(owner, Build, buildType, buildName, rect, duration, cost);
+                                Button.buildType = null;
+                                if (globalThis.Multiplayer && !Game.replayFlag) {
+                                    var cmd = {
+                                        type: 'build',
+                                        uids: [owner.id],
+                                        name: buildName,
+                                        pos: { x: rect.x, y: rect.y },
+                                        buildType: Build === ZergBuilding ? 'Zerg' : 
+                                                   Build === TerranBuilding ? 'Terran' : 
+                                                   Build === ProtossBuilding ? 'Protoss' : ''
+                                    };
+                                    if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
+                                    Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
+                                }
+                            };
                         }
-                        var rect = Button._addonRectFor(owner, buildType);
-                        if (!Button._isBuildRectValid(rect, null, 0, buildType)) {
-                            Button._notifyError('No se puede colocar aquí');
-                            Button.reset();
-                            return;
-                        }
-                        if (Resource.paypal(cost)) {
-                            var placeholder = new Build[Button._pickTerranConstruction(buildType)]({ x: rect.x, y: rect.y });
-                            if (duration <= 0) {
-                                placeholder.evolveTo(buildType);
-                            }
-                            else {
-                                Button.queueJob(placeholder, {
+                        else {
+                            Button.queueJob(owner, {
+                                name: buildName,
+                                time: duration,
+                                run: function () {
+                                    // Instantiate the unit/building at the owner's location
+                                    let posX = owner.x + (owner.width - buildType.prototype.width) / 2;
+                                    let posY = owner.y + (owner.height - buildType.prototype.height) / 2;
+                                    if (Button._isTerranAddon && Button._isTerranAddon(buildName)) {
+                                        const addonRect = Button._addonRectFor(owner, buildType);
+                                        posX = addonRect.x;
+                                        posY = addonRect.y;
+                                    }
+                                    return new buildType({
+                                        x: posX,
+                                        y: posY,
+                                        isEnemy: owner.isEnemy
+                                    });
+                                }
+                            });
+                            if (globalThis.Multiplayer && !Game.replayFlag) {
+                                var cmd = {
+                                    type: 'build',
+                                    uids: [owner.id],
                                     name: buildName,
-                                    time: duration,
-                                    run: function () {
-                                        return placeholder.evolveTo(buildType);
-                                    }
-                                });
+                                    buildType: 'Morph'
+                                };
+                                if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
+                                Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
                             }
                         }
-                        Button.reset();
-                        return;
                     }
-                    var isWorker = (owner instanceof Unit) && (owner.name == 'SCV' || owner.name == 'Drone' || owner.name == 'Probe');
-                    if (isWorker && Button.callback == null && hasTime) {
-                        var worker = owner;
-                        Button.callback = function (location) {
-                            if (!worker || worker.status == 'dead') return;
-                            var rect = Button._buildRectFor(buildType, location);
-                            if (!Button._isBuildRectValid(rect, worker, 2, buildType)) {
-                                Button._notifyError('No se puede colocar aquí');
-                                return;
-                            }
-                            Button._issueWorkerBuildOrder(worker, Build, buildType, buildName, rect, duration, cost);
-                        };
-                        $('div.GameLayer').attr('status', 'button');
-                        Button.reset();
-                        return;
-                    }
-                    if (Resource.paypal(cost) && hasTime) {
-                        Button.queueJob(owner, {
-                            name: buildName,
-                            time: duration,
-                            run: function () {
-                                var building = new Build[buildName]({ x: owner.x, y: owner.y });
-                                if (building instanceof Building.ZergBuilding) setTimeout(GameMap.drawMud, 0);
-                                return building;
-                            }
-                        });
-                    }
-                    Button.reset();
                 });
             });
         });
-        $('button.SetRallyPoint').on('click', function () {
-            if (Button.callback == null) {
-                Button.callback = function (location) {
-                    var buildings = Building.ourBuildings.filter(function (b) {
-                        return b.selected && b.status != 'dead';
-                    });
-                    if (!buildings.length && (Game.selectedUnit instanceof Building) && Game.selectedUnit.status != 'dead') {
-                        buildings = [Game.selectedUnit];
-                    }
-                    buildings.forEach(function (b) {
-                        if (keyController.shift && b.rallyPoint) {
-                            var tail = b.rallyPoint;
-                            while (tail.next) tail = tail.next;
-                            tail.next = { x: location.x, y: location.y };
-                        }
-                        else {
-                            b.rallyPoint = { x: location.x, y: location.y };
-                        }
-                    });
-                };
-                $('div.GameLayer').attr('status', 'button');
-            }
-            else {
-                $('div.GameLayer').removeAttr('status');
-                Button.callback = null;
-            }
-        });
     }
-    $('div.panel_Control button').on('mouseover', function (event) {
-        var _name = this.className;
-        $('div.tooltip_Box').css('right', innerWidth - event.clientX).css('bottom', innerHeight - event.clientY).show();
-        $('div.tooltip_Box div.itemName')[0].innerHTML = _name;
-        var cost = Resource.getCost(_name);
-        if (cost) {
-            $('div.cost').show();
-            ['mine', 'gas', 'man', 'magic'].forEach(function (res) {
-                if (cost[res]) {
-                    $('div.cost *[class*=' + res + ']').show();
-                    $('div.cost span.' + res + 'Num')[0].innerHTML = cost[res];
-                }
-                else $('div.cost *[class*=' + res + ']').hide();
-            });
-        }
-    });
-    $('div.panel_Control button').on('mouseout', function () {
-        $('div.tooltip_Box').hide();
-        $('div.tooltip_Box div.cost').hide();
-        $('div.tooltip_Box div.itemName')[0].innerHTML = '';
-        ['mine', 'gas', 'man', 'magic'].forEach(function (res) {
-            $('div.cost span.' + res + 'Num')[0].innerHTML = '';
-        });
-    });
 };

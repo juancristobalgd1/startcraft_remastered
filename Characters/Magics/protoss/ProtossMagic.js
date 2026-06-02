@@ -1,3 +1,17 @@
+import Magic from '../core/MagicBase.js';
+import _$ from '../../../Utils/gFrame/core.js';
+import Game from '../../../GameRule/Games/core/GameBase.js';
+import Animation from '../../Animations/core/AnimationBase.js';
+import Resource from '../../../GameRule/Resource.js';
+import Burst from '../../Bursts/core/BurstBase.js';
+import Button from '../../Buttons/core/ButtonBase.js';
+import Gobj from '../../Gobj.js';
+import Unit from '../../Units/core/UnitBase.js';
+import Building from '../../Buildings/core/BuildingBase.js';
+import '../../../Utils/jquery.min.js';
+
+const $ = globalThis.$;
+
 Magic.PsionicStorm={
     name:"PsionicStorm",
     cost:{magic:75},
@@ -5,7 +19,7 @@ Magic.PsionicStorm={
     _timer:0,
     speller:{},
     enabled:false,
-    spell:function(location){
+    spell: function spell(location) {
         //Has location callback info or nothing
         if (location){
             //Move toward target to fire PsionicStorm
@@ -38,7 +52,8 @@ Magic.PsionicStorm={
                                 //Don't move, but will die if no life
                                 chara.reactionWhenAttackedBy(Magic.PsionicStorm.speller,true);
                             });
-                            Magic.PsionicStorm._timer=setTimeout(stormWave,1000);
+                            Game.commandTimeout(stormWave,1000);
+                            Magic.PsionicStorm._timer=1;
                         }
                         else Magic.PsionicStorm._timer=0;
                     };
@@ -49,7 +64,7 @@ Magic.PsionicStorm={
         }
         //If missing location info, mark Button.callback, mouseController will call back with location
         else {
-            Button.callback=_$.hitch(arguments.callee,this);
+            Button.callback=_$.hitch(spell,this);
             $('div.GameLayer').attr('status','button');
         }
     }
@@ -59,7 +74,7 @@ Magic.Hallucination={
     cost:{magic:100},
     credit:true,
     enabled:false,
-    spell:function(location){
+    spell: function spell(location){
         //Has location callback info or nothing
         if (location){
             //Target all units
@@ -98,11 +113,11 @@ Magic.Hallucination={
                             }
                         });
                         for (let n=0;n<2;n++){
-                            const hallucination=new halluConstructor({x:target.posX(),y:target.posY()});
+                            const hallucination=new halluConstructor({x:target.posX(),y:target.posY(),isEnemy:this.isEnemy});
                             Hallucinations.push(hallucination);
                         }
                         //Will disappear after 180 seconds
-                        setTimeout(() => {
+                        Game.commandTimeout(() => {
                             Hallucinations.forEach((chara) => {
                                 chara.die();
                             });
@@ -111,11 +126,11 @@ Magic.Hallucination={
                 });
             }
             //Empty object {}, cannot spell
-            else delete Resource.creditBill;
+            else delete this.creditBill;
         }
         //If missing location info, mark Button.callback, mouseController will call back with location
         else {
-            Button.callback=_$.hitch(arguments.callee,this);
+            Button.callback=_$.hitch(spell,this);
             $('div.GameLayer').attr('status','button');
         }
     }
@@ -125,7 +140,7 @@ Magic.Feedback={
     cost:{magic:50},
     credit:true,
     enabled:true,
-    spell:function(location){
+    spell: function spell(location){
         //Has location callback info or nothing
         if (location){
             //Target enemy unit, magician
@@ -149,11 +164,11 @@ Magic.Feedback={
                 });
             }
             //Empty object {}, cannot spell
-            else delete Resource.creditBill;
+            else delete this.creditBill;
         }
         //If missing location info, mark Button.callback, mouseController will call back with location
         else {
-            Button.callback=_$.hitch(arguments.callee,this);
+            Button.callback=_$.hitch(spell,this);
             $('div.GameLayer').attr('status','button');
         }
     }
@@ -163,7 +178,7 @@ Magic.MindControl={
     cost:{magic:150},
     credit:true,
     enabled:false,
-    spell:function(location){
+    spell: function spell(location){
         //Has location callback info or nothing
         if (location){
             //Can control all enemy
@@ -199,11 +214,11 @@ Magic.MindControl={
                 });
             }
             //Empty object {}, cannot spell
-            else delete Resource.creditBill;
+            else delete this.creditBill;
         }
         //If missing location info, mark Button.callback, mouseController will call back with location
         else {
-            Button.callback=_$.hitch(arguments.callee,this);
+            Button.callback=_$.hitch(spell,this);
             $('div.GameLayer').attr('status','button');
         }
     }
@@ -213,7 +228,7 @@ Magic.MaelStorm={
     cost:{magic:100},
     credit:true,
     enabled:false,
-    spell:function(location){
+    spell: function spell(location){
         //Has location callback info or nothing
         if (location){
             //Move toward target to fire MaelStorm
@@ -257,7 +272,7 @@ Magic.MaelStorm={
         }
         //If missing location info, mark Button.callback, mouseController will call back with location
         else {
-            Button.callback=_$.hitch(arguments.callee,this);
+            Button.callback=_$.hitch(spell,this);
             $('div.GameLayer').attr('status','button');
         }
     }
@@ -294,7 +309,7 @@ Magic.Recall={
     cost:{magic:150},
     credit:true,
     enabled:false,
-    spell:function(location){
+    spell: function spell(location){
         //Has location callback info or nothing
         if (location){
             if (Resource.payCreditBill.call(this)){
@@ -319,7 +334,7 @@ Magic.Recall={
         }
         //If missing location info, mark Button.callback, mouseController will call back with location
         else {
-            Button.callback=_$.hitch(arguments.callee,this);
+            Button.callback=_$.hitch(spell,this);
             $('div.GameLayer').attr('status','button');
         }
     }
@@ -329,7 +344,7 @@ Magic.StasisField={
     cost:{magic:100},
     credit:true,
     enabled:false,
-    spell:function(location){
+    spell: function spell(location){
         //Has location callback info or nothing
         if (location){
             //Move toward target to fire StasisField
@@ -380,7 +395,7 @@ Magic.StasisField={
         }
         //If missing location info, mark Button.callback, mouseController will call back with location
         else {
-            Button.callback=_$.hitch(arguments.callee,this);
+            Button.callback=_$.hitch(spell,this);
             $('div.GameLayer').attr('status','button');
         }
     }
@@ -391,7 +406,7 @@ Magic.DisruptionWeb={
     credit:true,
     _timer:0,
     enabled:false,
-    spell:function(location){
+    spell: function spell(location){
         //Has location callback info or nothing
         if (location){
             //Move toward target to fire DisruptionWeb
@@ -432,7 +447,8 @@ Magic.DisruptionWeb={
                                     chara.addBuffer(bufferObj);
                                 }
                             });
-                            Magic.DisruptionWeb._timer=setTimeout(disruptionWeb,1000);
+                            Game.commandTimeout(disruptionWeb,1000);
+                            Magic.DisruptionWeb._timer=1;
                         }
                         else Magic.DisruptionWeb._timer=0;
                     };
@@ -443,7 +459,7 @@ Magic.DisruptionWeb={
         }
         //If missing location info, mark Button.callback, mouseController will call back with location
         else {
-            Button.callback=_$.hitch(arguments.callee,this);
+            Button.callback=_$.hitch(spell,this);
             $('div.GameLayer').attr('status','button');
         }
     }
@@ -451,7 +467,7 @@ Magic.DisruptionWeb={
 Magic.RechargeShields={
     name:"RechargeShields",
     enabled:true,
-    spell:function(location){
+    spell: function spell(location){
         //Has location callback info or nothing
         if (location){
             //Restore our units, have shield and in sight
@@ -484,7 +500,7 @@ Magic.RechargeShields={
         }
         //If missing location info, mark Button.callback, mouseController will call back with location
         else {
-            Button.callback=_$.hitch(arguments.callee,this);
+            Button.callback=_$.hitch(spell,this);
             $('div.GameLayer').attr('status','button');
         }
     }

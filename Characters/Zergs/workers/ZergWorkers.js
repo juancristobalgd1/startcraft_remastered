@@ -1,8 +1,16 @@
-Zerg.Drone=AttackableUnit.extends({
-    constructorPlus:function(props){
-        this.sound.burrow=new Audio('bgm/Zerg.burrow.wav');
-        this.sound.unburrow=new Audio('bgm/Zerg.unburrow.wav');
-        this.direction=3;
+import Zerg from '../core/ZergBase.js';
+import AttackableUnit from '../../Units/core/AttackableUnitBase.js';
+import Unit from '../../Units/core/UnitBase.js';
+import { ZergBuilding } from '../../Buildings/core/BuildingRaces.js';
+import { recover } from '../core/ZergHelper.js';
+import Magic from '../../Magics/core/MagicBase.js';
+import { DroneDeath } from '../../Bursts/zerg/ZergDeaths.js';
+
+export const Drone = AttackableUnit.extends({
+    constructorPlus: function (props) {
+        this.sound.burrow = new Audio('bgm/Zerg.burrow.wav');
+        this.sound.unburrow = new Audio('bgm/Zerg.unburrow.wav');
+        this.direction = 3;
     },
     prototypePlus: {
         //Add basic unit info
@@ -106,41 +114,47 @@ Zerg.Drone=AttackableUnit.extends({
         frame: {
             moving: 3,
             dock: 1,
-            attack:7,
+            attack: 7,
             burrow: 1,
             unburrow: 6
         },
         //Only for moving status, override
-        speed:Unit.getSpeedMatrixBy(12),
+        speed: Unit.getSpeedMatrixBy(12),
         HP: 40,
         damage: 5,
-        armor:0,
-        sight:245,
+        armor: 0,
+        sight: 245,
         meleeAttack: true,
         attackInterval: 2200,
-        portraitOffset: {x:0,y:0},
-        dieEffect:Burst.DroneDeath,
-        isFlying:false,
-        attackLimit:"ground",
-        unitType:Unit.SMALL,
-        attackType:AttackableUnit.NORMAL_ATTACK,
-        recover:Building.ZergBuilding.prototype.recover,
-        cost:{
-            mine:50,
-            man:1,
-            time:200
+        portraitOffset: { x: 0, y: 0 },
+        dieEffect: DroneDeath,
+        isFlying: false,
+        attackLimit: "ground",
+        unitType: Unit.SMALL,
+        attackType: AttackableUnit.NORMAL_ATTACK,
+        recover: recover,
+        cost: {
+            mine: 50,
+            man: 1,
+            time: 200
         },
-        upgrade:['EvolveCarapace'],
-        items:{'4':undefined,
-            '5':{name:'gather'},
-            '7':{name:'BasicMutation'},
-            '8':{name:'AdvancedMutation'},
-            '9':{name:'Burrow',condition:function(){
-                return Magic.Burrow.enabled
-            }}
+        upgrade: ['EvolveCarapace'],
+        items: {
+            '4': undefined,
+            '5': { name: 'gather' },
+            '7': { name: 'BasicMutation' },
+            '8': { name: 'AdvancedMutation' },
+            '9': {
+                name: 'Burrow', condition: function () {
+                    return Magic.Burrow.enabled
+                }, run: function () {
+                    Magic.Burrow.spell.call(this);
+                }
+            }
         },
-        gather:function(target){
-            return Unit.prototype.gather.call(this,target);
+        gather: function (target) {
+            return Unit.prototype.gather.call(this, target);
         }
     }
 });
+Zerg.Drone = Drone;

@@ -1,15 +1,27 @@
+import '../../../Utils/jquery.min.js';
+import Game from '../core/GameBase.js';
+import Referee from '../../Referees/core/RefereeBase.js';
+import _$ from '../../../Utils/gFrame/core.js';
+import Gobj from '../../../Characters/Gobj.js';
+import Unit from '../../../Characters/Units/core/UnitBase.js';
+import Building from '../../../Characters/Buildings/core/BuildingBase.js';
+import GameMap from '../../../Characters/Map.js';
+import mouseController from '../../../Controller/mouseController.js';
+import Button from '../../../Characters/Buttons/core/ButtonBase.js';
+
+const $ = globalThis.$;
+
 Game.addIntoAllSelected = function (chara, override) {
     if (chara instanceof Gobj) {
         if (Game.allSelected.indexOf(chara) == -1) {
             if (override) Game.allSelected = [chara];
-            else if (Game.allSelected.length < Game.selectionCap) Game.allSelected.push(chara);
+            else Game.allSelected.push(chara);
             chara.selected = true;
         }
     }
     if (chara instanceof Array) {
-        if (override) Game.allSelected = chara.slice(0, Game.selectionCap);
+        if (override) Game.allSelected = chara;
         else chara.forEach(function (char) {
-            if (Game.allSelected.length >= Game.selectionCap) return;
             if (Game.allSelected.indexOf(char) == -1) Game.allSelected.push(char);
         });
         Game.allSelected.forEach((char) => {
@@ -17,26 +29,22 @@ Game.addIntoAllSelected = function (chara, override) {
         });
     }
     Game.allSelected.sort((chara1, chara2) => {
-        const name1 = (chara1 instanceof Building) ? (chara1.inherited.name + '.' + chara1.name) : chara1.name;
-        const name2 = (chara2 instanceof Building) ? (chara2.inherited.name + '.' + chara2.name) : chara2.name;
+        const getName = (chara) => {
+            if (chara instanceof Building) {
+                if (chara.inherited && chara.inherited.name) return chara.inherited.name + '.' + chara.name;
+            }
+            return chara.name;
+        };
+        const name1 = getName(chara1);
+        const name2 = getName(chara2);
         return ([name1, name2].sort()[0] != name1) ? 1 : -1;
     });
     Referee.alterSelectionMode();
 };
-Game.addSelectedIntoTeam = function (teamNum, append) {
-    if (!append || !(Game.teams[teamNum] instanceof Array)) {
-        Game.teams[teamNum] = _$.mixin([], Game.allSelected);
-        return;
-    }
-    var combined = _$.mixin([], Game.teams[teamNum]).concat(Game.allSelected);
-    var team = [];
-    combined.forEach(function (chara) {
-        if (!chara || chara.status == 'dead') return;
-        if (team.indexOf(chara) === -1) team.push(chara);
-    });
-    Game.teams[teamNum] = team;
+Game.addSelectedIntoTeam = function (teamNum) {
+    Game.teams[teamNum] = _$.mixin([], Game.allSelected);
 };
-Game.callTeam = function (teamNum, centerOnGroup) {
+Game.callTeam = function (teamNum) {
     var team = _$.mixin([], Game.teams[teamNum]);
     if (team instanceof Array) {
         Game.unselectAll();
@@ -47,9 +55,7 @@ Game.callTeam = function (teamNum, centerOnGroup) {
         if (team[0] instanceof Gobj) {
             Game.changeSelectedTo(team[0]);
             team[0].sound.selected.play();
-            if (centerOnGroup) {
-                GameMap.relocateAt(team[0].posX(), team[0].posY());
-            }
+            GameMap.relocateAt(team[0].posX(), team[0].posY());
         }
     }
 };
@@ -68,17 +74,12 @@ Game.multiSelectInRect = function () {
         x: GameMap.offsetX + Math.max(mouseController.startPoint.x, mouseController.endPoint.x),
         y: GameMap.offsetY + Math.max(mouseController.startPoint.y, mouseController.endPoint.y)
     };
-    var inRectUnits = Unit.allOurUnits().filter((chara) => {
+    var inRectUnits = Unit.allOurUnits().filter(function (chara) {
         return chara.insideRect({ start: (startPoint), end: (endPoint) });
     });
-    var inRectBuildings = Building.ourBuildings.filter((chara) => {
-        return chara.status != 'dead' && chara.insideRect({ start: (startPoint), end: (endPoint) });
-    });
-    var inRectAll = inRectUnits.concat(inRectBuildings);
     if (inRectUnits.length > 0) Game.changeSelectedTo(inRectUnits[0]);
-    else if (inRectBuildings.length > 0) Game.changeSelectedTo(inRectBuildings[0]);
     else Game.changeSelectedTo({});
-    Game.addIntoAllSelected(inRectAll, true);
+    Game.addIntoAllSelected(inRectUnits, true);
 };
 Game.getSelectedOne = function (clickX, clickY, isEnemyFilter, unitBuildingFilter, isFlyingFilter, customFilter) {
     const distance = (chara) => {

@@ -4,6 +4,9 @@ Levels.push(
         load: function () {
             //Load map
             GameMap.setCurrentMap('BloodBath');
+            GameMap.offsetX = 50;
+            GameMap.offsetY = 50;
+            GameMap.fogFlag = false;
             //Apply race style
             Game.race.choose('Zerg');
             //Apply cheat for testing
@@ -31,7 +34,7 @@ Levels.push(
             new Zerg.Lurker({ x: 800, y: 200, isEnemy: true });
             new Zerg.Ultralisk({ x: 800, y: 300, isEnemy: true });
             new Zerg.Broodling({ x: 700, y: 150, isEnemy: true });
-            //new Zerg.InfestedTerran({x:700,y:250,isEnemy:true});
+            new Zerg.InfestedTerran({x:700,y:250,isEnemy:true});
             new Zerg.Queen({ x: 800, y: 150, isEnemy: true });
             new Zerg.Defiler({ x: 800, y: 250, isEnemy: true });
         }
@@ -41,6 +44,9 @@ Levels.push(
         load: function () {
             //Load map
             GameMap.setCurrentMap('OrbitalRelay');
+            GameMap.offsetX = 50;
+            GameMap.offsetY = 50;
+            GameMap.fogFlag = false;
             //Apply race style
             Game.race.choose('Terran');
             //Apply cheat for testing
@@ -103,12 +109,12 @@ Levels.push(
             new Protoss.Templar({ x: 800, y: 100, isEnemy: true });
             new Protoss.DarkTemplar({ x: 800, y: 200, isEnemy: true });
             new Protoss.Observer({ x: 800, y: 300, isEnemy: true });
-            //new Protoss.Reaver({x:800,y:300,isEnemy:true});
+            new Protoss.Reaver({x:800,y:300,isEnemy:true});
             new Protoss.Arbiter({ x: 700, y: 250, isEnemy: true });
             new Protoss.Scout({ x: 750, y: 250, isEnemy: true });
             new Protoss.Carrier({ x: 700, y: 150, isEnemy: true });
             new Protoss.Corsair({ x: 700, y: 200, isEnemy: true });
-            //new Protoss.Carrier({x:700,y:250,isEnemy:true});
+            new Protoss.Carrier({x:700,y:250,isEnemy:true});
         }
     }
 );
