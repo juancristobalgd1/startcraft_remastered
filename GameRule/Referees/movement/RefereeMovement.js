@@ -45,7 +45,7 @@ Referee.judgeCollision = function () {
             distLimit = (chara1.radius() + chara2.radius()) * 0.8;
         }
         if (dist == 0) {
-            var colPos = Referee._pos[Math.random() * 4 >> 0];
+            var colPos = Referee._pos[Game.random() * 4 >> 0];
             if (chara1 instanceof Unit) {
                 chara1.x += colPos[0];
                 chara1.y += colPos[1];
@@ -110,7 +110,7 @@ Referee.judgeCollision = function () {
         var dist = chara1.distanceFrom(chara2);
         var distLimit = Unit.meleeRange;
         if (dist == 0) {
-            var colPos = Referee._pos[Math.random() * 4 >> 0];
+            var colPos = Referee._pos[Game.random() * 4 >> 0];
             chara1.x += colPos[0];
             chara1.y += colPos[1];
             dist = 1;

@@ -10,14 +10,56 @@ Audio.prototype.playFromStart = function () {
 
 class AudioRegistry {
   static #items = [];
+  static #volume = (() => {
+    const saved = localStorage.getItem('sc_volume');
+    return saved !== null ? parseFloat(saved) : 0.5;
+  })();
+  static #muted = localStorage.getItem('sc_muted') === 'true';
 
   static get items() {
     return this.#items;
   }
 
+  static get volume() {
+    return this.#volume;
+  }
+
+  static set volume(val) {
+    this.#volume = Math.max(0, Math.min(1, val));
+    localStorage.setItem('sc_volume', this.#volume.toString());
+    this.updateAll();
+  }
+
+  static get muted() {
+    return this.#muted;
+  }
+
+  static set muted(val) {
+    this.#muted = Boolean(val);
+    localStorage.setItem('sc_muted', this.#muted.toString());
+    this.updateAll();
+  }
+
+  static updateAll() {
+    for (let i = 0, len = this.#items.length; i < len; i++) {
+      const a = this.#items[i];
+      if (!a) continue;
+      try {
+        a.volume = this.#muted ? 0 : this.#volume;
+      } catch {
+        /* noop */
+      }
+    }
+  }
+
   static register(audio) {
     if (!audio || this.#items.indexOf(audio) !== -1) return;
     this.#items.push(audio);
+    try {
+      audio.volume = this.#muted ? 0 : this.#volume;
+    } catch {
+      /* noop */
+    }
   }
 
   static pauseAll() {
@@ -263,3 +305,7 @@ _$.resumeAllAudio = () => AudioRegistry.resumeAll();
 _$.bgmFolderByPrefix = BgmResolver.map;
 _$.resolveBgmSrc = (src) => BgmResolver.resolve(src);
 _$.lazyAudio = (src) => new LazyAudio(src);
+_$.getVolume = () => AudioRegistry.volume;
+_$.setVolume = (val) => { AudioRegistry.volume = val; };
+_$.getMuted = () => AudioRegistry.muted;
+_$.setMuted = (val) => { AudioRegistry.muted = val; };

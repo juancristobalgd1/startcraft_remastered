@@ -528,3 +528,67 @@ div#GamePlay div.infoRight div.upgrading div[name='processing'] div.queue{
     text-overflow:ellipsis;
     display:block;
 }
+
+.pauseMenuVolumeContainer {
+    width: 100%;
+    margin: 8px 0;
+    padding: 12px 14px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+}
+
+.pauseMenuVolumeLabel {
+    font: bold 14px Orbitron, Roboto, Arial;
+    color: #0ff;
+    text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+#PauseVolumeRange {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.2);
+    outline: none;
+    transition: background 0.3s;
+}
+
+#PauseVolumeRange::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #0ff;
+    box-shadow: 0 0 8px #0ff;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+#PauseVolumeRange::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+#PauseVolumeRange::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border: none;
+    border-radius: 50%;
+    background: #0ff;
+    box-shadow: 0 0 8px #0ff;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+#PauseVolumeRange::-moz-range-thumb:hover {
+    transform: scale(1.2);
+}

@@ -15,8 +15,8 @@ export default class Gobj {
             this.x = (props.target.posX() - (this.width || 0) / 2) | 0;
             this.y = (props.target.posY() - (this.height || 0) / 2) | 0;
         }
-        this.isEnemy = Boolean(props.isEnemy || props.target?.isEnemy);
-        this.team = props.team !== undefined ? props.team : (this.isEnemy ? 1 : 0);
+        this.team = props.team !== undefined ? props.team : (props.isEnemy ? 1 : 0);
+        this.isEnemy = (Game.team !== undefined) ? (this.team !== Game.team) : Boolean(props.isEnemy || props.target?.isEnemy);
         this.action = 0;
         this.status = "";
         this.buffer = {};

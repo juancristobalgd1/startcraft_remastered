@@ -431,7 +431,7 @@ export default class AttackableUnit extends Unit {
         if (this.dockTimer) clearInterval(this.dockTimer);
         this.dockTimer = setInterval(() => {
             if (Game && Game.isPaused) return;
-            const direction = (Math.random() * 8) >> 0;//Math.floor
+            const direction = (Game.random() * 8) >> 0;//Math.floor
             //Walk around, for all critters to use
             if (this.isIdle()) {
                 const speed = this.get && this.get('speed');

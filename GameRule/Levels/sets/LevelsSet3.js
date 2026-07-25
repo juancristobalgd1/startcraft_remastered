@@ -277,7 +277,7 @@ Levels.push(
             var num = 0, wave = 1;
             var interval = 20000;
             _$.traverse([Neutral, Zerg, Terran, Protoss], function (enemyType) {
-                setTimeout(function () {
+                Game.commandTimeout(function () {
                     offsets.forEach(function (offset) {
                         offset.isEnemy = true;
                         new enemyType(offset).attackGround({ x: 1536, y: 1536 });
@@ -286,7 +286,7 @@ Levels.push(
                 }, interval * num++);
             });
             //Game win when time reach
-            setTimeout(function () {
+            Game.commandTimeout(function () {
                 Game.win();
             }, interval * num + interval);
         }

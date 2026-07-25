@@ -18,6 +18,21 @@ Button.stopHandler = function (skipRecord) {
             return true;
         }
         return false;
+    });
+    if (!skipRecord && globalThis.Multiplayer && !Game.replayFlag && uids.length > 0) {
+        var cmd = {
+            type: 'stop',
+            uids: uids
+        };
+        if (globalThis.Multiplayer.ON) {
+            globalThis.Multiplayer.sendLocalCommand(cmd);
+            return;
+        }
+        if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
+        Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
+    }
+    Unit.allOurUnits().filter(function (chara) {
+        return chara.selected;
     }).forEach(function (chara) {
         if (chara.attack) chara.stopAttack();
         chara.dock();
@@ -27,14 +42,6 @@ Button.stopHandler = function (skipRecord) {
             delete chara.destination;
         }
     });
-    if (!skipRecord && globalThis.Multiplayer && !Game.replayFlag && uids.length > 0) {
-        var cmd = {
-            type: 'stop',
-            uids: uids
-        };
-        if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
-        Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
-    }
 };
 Button.attackHandler = function () {
     if (Button.callback == null) {
@@ -128,7 +135,6 @@ Button.gatherHandler = function () {
     }
 };
 Button.holdHandler = function () {
-    Button.stopHandler(true);
     var uids = [];
     Unit.allOurUnits().filter(function (chara) {
         if (chara.selected) {
@@ -136,6 +142,22 @@ Button.holdHandler = function () {
             return true;
         }
         return false;
+    });
+    if (globalThis.Multiplayer && !Game.replayFlag && uids.length > 0) {
+        var cmd = {
+            type: 'hold',
+            uids: uids
+        };
+        if (globalThis.Multiplayer.ON) {
+            globalThis.Multiplayer.sendLocalCommand(cmd);
+            return;
+        }
+        if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
+        Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
+    }
+    Button.stopHandler(true);
+    Unit.allOurUnits().filter(function (chara) {
+        return chara.selected;
     }).forEach(function (chara) {
         if (chara.hold) {
             delete chara.AI;
@@ -151,14 +173,6 @@ Button.holdHandler = function () {
             Button.reset();
         }
     });
-    if (globalThis.Multiplayer && !Game.replayFlag && uids.length > 0) {
-        var cmd = {
-            type: 'hold',
-            uids: uids
-        };
-        if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
-        Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
-    }
 };
 Button.execute = function (event) {
     switch (Button.callback) {

@@ -13,8 +13,8 @@
     <link rel="manifest" href="/assets/manifest-CngIoz3E.json">
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon-BYkcMIhX.png">
     <link rel="shortcut icon" href="/assets/favicon-DW57KoyM.ico" />
-  <script type="module" crossorigin src="/assets/index-Fq3wbIGg.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-BFAYRjrw.css">
+  <script type="module" crossorigin src="/assets/index-DwtXgNHP.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-CNEhhwAo.css">
 </head>
 
 <body>
@@ -29,6 +29,7 @@
     <div id="GameStart" class="GameLayer">
         <div class="levelSelectionBg"></div>
     </div>
+    <div id="GameLobby" class="GameLayer"></div>
     <div id="GamePlay" class="GameLayer" race="Terran">
         <button id="PauseButton" type="button">Pause</button>
         <div id="GameHUD"></div>
@@ -37,6 +38,11 @@
                 <div class="pauseMenuTitle">Paused</div>
                 <button id="PauseResume" type="button">Resume</button>
                 <button id="PauseRestart" type="button">Restart</button>
+                <button id="PauseToggleMute" type="button">Mute: Off</button>
+                <div class="pauseMenuVolumeContainer">
+                    <span class="pauseMenuVolumeLabel">Volume: 50%</span>
+                    <input type="range" id="PauseVolumeRange" min="0" max="1" step="0.05" value="0.5">
+                </div>
                 <button id="PauseToggleMetrics" type="button">Toggle FPS/Input</button>
                 <button id="PauseToggleHaptics" type="button">Toggle Haptics</button>
                 <button id="PauseUiScale" type="button">UI Size: Normal</button>

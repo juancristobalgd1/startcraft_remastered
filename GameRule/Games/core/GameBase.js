@@ -13,6 +13,19 @@ const Game = {
     get mainTick() { return this._clock; },
     replayFlag: false,
     replay: {},
+
+    // Seeded random number generator (Mulberry32)
+    seed: 12345,
+    randomSeed: 12345,
+    random() {
+        let t = Game.seed += 0x6D2B79F5;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    },
+    getNextRandom() {
+        return Game.random();
+    },
     race: {
         selected: "Zerg" // Default to Zerg as per the instruction's implied default
     },

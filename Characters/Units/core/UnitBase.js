@@ -108,7 +108,7 @@ export default class Unit extends Gobj {
         if (this.dockTimer) clearInterval(this.dockTimer);
         this.dockTimer = setInterval(() => {
             if (Game && Game.isPaused) return;
-            const direction = (Math.random() * 8) >> 0;//Math.floor
+            const direction = (Game.random() * 8) >> 0;//Math.floor
             //Walk around, for all critters to use
             if (this.status == "dock") {
                 this.moveTo(this.posX() + this.get('speed')[direction].x * 6, this.posY() + this.get('speed')[direction].y * 6);
@@ -172,8 +172,13 @@ export default class Unit extends Gobj {
         }
 
         this.id = Unit.currentID++;
-        this.direction = (Math.random() * 8) >> 0;
-        this.isEnemy = Boolean(props.isEnemy || props.target?.isEnemy);
+        if (props.direction !== undefined) {
+            this.direction = props.direction;
+        } else {
+            this.direction = (Game.random() * 8) >> 0;
+        }
+        this.team = props.team !== undefined ? props.team : (props.isEnemy ? 1 : 0);
+        this.isEnemy = (Game.team !== undefined) ? (this.team !== Game.team) : Boolean(props.isEnemy || props.target?.isEnemy);
         this.life = this.get('HP');
         if (this.SP) this.shield = this.get('SP');
         if (this.MP) this.magic = 50;

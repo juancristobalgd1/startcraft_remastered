@@ -113,12 +113,12 @@ Levels.push(
             //Enemy Waves
             let wave = 1;
             const spawnEnemy = (type, count, delay) => {
-                setTimeout(() => {
+                Game.commandTimeout(() => {
                     Game.showWarning('Wave ' + wave++ + ': ' + count + ' ' + (type.prototype.name || 'Enemy') + 's incoming!');
                     for (let i = 0; i < count; i++) {
                         new type({
-                            x: 1000 + Math.random() * 200,
-                            y: 300 + Math.random() * 200,
+                            x: 1000 + Game.random() * 200,
+                            y: 300 + Game.random() * 200,
                             isEnemy: true
                         }).attackGround({ x: 200, y: 300 });
                     }

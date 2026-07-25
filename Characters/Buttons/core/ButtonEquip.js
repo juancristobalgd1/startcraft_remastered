@@ -172,31 +172,49 @@ Button.equipButtonsFor = function (chara) {
         }
         upgrades.forEach(function (grade) {
             $('button.' + grade).on('click', function () {
+                if (globalThis.Multiplayer && globalThis.Multiplayer.ON) {
+                    var duration = (Resource.getCost(grade) && Resource.getCost(grade).time) ? Resource.getCost(grade).time : 0;
+                    globalThis.Multiplayer.sendLocalCommand({
+                        type: 'upgrade',
+                        uids: [Game.selectedUnit.id],
+                        name: grade,
+                        duration: duration,
+                        team: Game.team
+                    });
+                    Button.reset();
+                    return;
+                }
                 if (Resource.paypal.call(Game.selectedUnit, Resource.getCost(grade))) {
                     if (Resource.getCost(grade) && Resource.getCost(grade).time) {
                         var owner = Game.selectedUnit;
                         var duration = Resource.getCost(grade).time;
                         if (Cheat.cwal) duration = 0;
-                        Button.queueJob(owner, {
-                            name: grade,
-                            time: duration,
-                            run: function () {
-                                Upgrade[grade].effect();
-                                Referee.voice.upgrade[Game.race.selected].play();
-                                Button.reset();
-                                Game.showMessage('Upgrade complete');
-                            }
-                        });
-                        if (globalThis.Multiplayer && !Game.replayFlag) {
-                            var cmd = {
-                                type: 'upgrade',
-                                uids: [owner.id],
+                        if (duration) {
+                            Button.queueJob(owner, {
                                 name: grade,
-                                duration: duration,
-                                team: Game.team
-                            };
-                            if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
-                            Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
+                                time: duration,
+                                run: function () {
+                                    if (Upgrade[grade] && Upgrade[grade].effect) {
+                                        Upgrade[grade].effect();
+                                    }
+                                    if (Referee.voice && Referee.voice.upgrade && Referee.voice.upgrade[Game.race.selected]) {
+                                        Referee.voice.upgrade[Game.race.selected].play();
+                                    }
+                                    Button.reset();
+                                    Game.showMessage('Upgrade complete');
+                                }
+                            });
+                            if (globalThis.Multiplayer && !Game.replayFlag) {
+                                var cmd = {
+                                    type: 'upgrade',
+                                    uids: [owner.id],
+                                    name: grade,
+                                    duration: duration,
+                                    team: Game.team
+                                };
+                                if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
+                                Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
+                            }
                         }
                     }
                     else {
@@ -238,6 +256,43 @@ Button.equipButtonsFor = function (chara) {
                     return (chara.selected && hasMagic(chara, magic));
                 }).forEach(function (chara) {
                     var duration = Resource.getCost(magic) ? (Resource.getCost(magic).time) : 0;
+                    if (globalThis.Multiplayer && globalThis.Multiplayer.ON) {
+                        if (duration) {
+                            globalThis.Multiplayer.sendLocalCommand({
+                                type: 'magic',
+                                uids: [chara.id],
+                                name: magic,
+                                duration: duration
+                            });
+                            Button.reset();
+                            return;
+                        } else {
+                            if (Magic[magic].credit) chara.creditBill = Resource.getCost(magic);
+                            Magic[magic].spell.call(chara);
+                            if (Button.callback) {
+                                var originalCallback = Button.callback;
+                                Button.callback = function (location) {
+                                    globalThis.Multiplayer.sendLocalCommand({
+                                        type: 'magic',
+                                        uids: [chara.id],
+                                        name: magic,
+                                        pos: location,
+                                        creditBill: chara.creditBill
+                                    });
+                                    Button.buildType = null;
+                                    $('div.GameLayer').removeAttr('status');
+                                    Button.callback = null;
+                                };
+                            } else {
+                                globalThis.Multiplayer.sendLocalCommand({
+                                    type: 'magic',
+                                    uids: [chara.id],
+                                    name: magic
+                                });
+                            }
+                            return;
+                        }
+                    }
                     if (duration) {
                         if (chara.processing) return;
                         if (Resource.paypal.call(chara, Resource.getCost(magic))) {
@@ -310,6 +365,17 @@ Button.equipButtonsFor = function (chara) {
                     return (chara.selected && chara.name == Game.selectedUnit.name);
                 }).forEach(function (chara) {
                     if (chara.processing) return;
+                    if (globalThis.Multiplayer && globalThis.Multiplayer.ON) {
+                        var duration = Resource.getCost(unitType).time;
+                        globalThis.Multiplayer.sendLocalCommand({
+                            type: 'unit',
+                            uids: [chara.id],
+                            name: unitType,
+                            duration: duration,
+                            evolve: 'zerg'
+                        });
+                        return;
+                    }
                     if (Resource.paypal.call(chara, Resource.getCost(unitType))) {
                         var egg;
                         if (unitType == 'Lurker') {
@@ -365,6 +431,17 @@ Button.equipButtonsFor = function (chara) {
             unitTypes.forEach(function (unitType) {
                 if (exceptions.indexOf(unitType) == -1) {
                     $('button.' + unitType).on('click', function () {
+                        if (globalThis.Multiplayer && globalThis.Multiplayer.ON) {
+                            var owner = Game.selectedUnit;
+                            var duration = Resource.getCost(unitType).time;
+                            globalThis.Multiplayer.sendLocalCommand({
+                                type: 'unit',
+                                uids: [owner.id],
+                                name: unitType,
+                                duration: duration
+                            });
+                            return;
+                        }
                         if (Resource.paypal.call(Game.selectedUnit, Resource.getCost(unitType))) {
                             if (Resource.getCost(unitType) && Resource.getCost(unitType).time) {
                                 var owner = Game.selectedUnit;
@@ -405,6 +482,21 @@ Button.equipButtonsFor = function (chara) {
                             if (selectedTemplars.length < 2) {
                                 if (Referee && Referee.voice && Referee.voice.pError) Referee.voice.pError.play();
                                 if (Game && Game.showMessage) Game.showMessage("Need at least 2 templars to merge!");
+                                return;
+                            }
+                            if (globalThis.Multiplayer && globalThis.Multiplayer.ON) {
+                                for (var i = 0; i < selectedTemplars.length - 1; i += 2) {
+                                    var chara1 = selectedTemplars[i];
+                                    var duration = Resource.getCost(unitType).time;
+                                    globalThis.Multiplayer.sendLocalCommand({
+                                        type: 'unit',
+                                        uids: [chara1.id],
+                                        name: unitType,
+                                        duration: duration,
+                                        evolve: 'archon'
+                                    });
+                                }
+                                Button.reset();
                                 return;
                             }
                             // Merge in pairs
@@ -545,6 +637,16 @@ Button.equipButtonsFor = function (chara) {
                         });
                     var buildType = Build[buildName];
                     if (isZergMorph) {
+                        if (globalThis.Multiplayer && globalThis.Multiplayer.ON) {
+                            globalThis.Multiplayer.sendLocalCommand({
+                                type: 'build',
+                                uids: [owner.id],
+                                name: buildName,
+                                buildType: 'Morph'
+                            });
+                            Button.reset();
+                            return;
+                        }
                         if (Resource.paypal.call(owner, cost)) {
                             //Zerg morph - uses queueJob for progress tracking
                             var egg = owner.evolveTo(Egg);
@@ -574,6 +676,21 @@ Button.equipButtonsFor = function (chara) {
                             Button.buildType = buildType;
                             Button.callback = function (location) {
                                 var rect = Button._buildRectFor(buildType, location);
+                                if (globalThis.Multiplayer && globalThis.Multiplayer.ON) {
+                                    globalThis.Multiplayer.sendLocalCommand({
+                                        type: 'build',
+                                        uids: [owner.id],
+                                        name: buildName,
+                                        pos: { x: rect.x, y: rect.y },
+                                        buildType: Build === ZergBuilding ? 'Zerg' : 
+                                                   Build === TerranBuilding ? 'Terran' : 
+                                                   Build === ProtossBuilding ? 'Protoss' : ''
+                                    });
+                                    Button.buildType = null;
+                                    $('div.GameLayer').removeAttr('status');
+                                    Button.callback = null;
+                                    return;
+                                }
                                 Button._issueWorkerBuildOrder(owner, Build, buildType, buildName, rect, duration, cost);
                                 Button.buildType = null;
                                 if (globalThis.Multiplayer && !Game.replayFlag) {
@@ -592,6 +709,16 @@ Button.equipButtonsFor = function (chara) {
                             };
                         }
                         else {
+                            if (globalThis.Multiplayer && globalThis.Multiplayer.ON) {
+                                globalThis.Multiplayer.sendLocalCommand({
+                                    type: 'build',
+                                    uids: [owner.id],
+                                    name: buildName,
+                                    buildType: 'Morph'
+                                });
+                                Button.reset();
+                                return;
+                            }
                             Button.queueJob(owner, {
                                 name: buildName,
                                 time: duration,

@@ -156,29 +156,30 @@ Game.drawSourceBox = function () {
     if (!res) return;
     if (!res[0] && res.init) res.init();
     if (!res[0]) return;
+    const teamId = Game.team !== undefined ? Game.team : 0;
     if (!Game.ui.lastResource) Game.ui.lastResource = {};
-    if (Game.ui.lastResource.mine !== res[0].mine) {
-        $('div.resource_Box span.mineNum')[0].innerHTML = res[0].mine;
-        Game.ui.lastResource.mine = res[0].mine;
+    if (Game.ui.lastResource.mine !== res[teamId].mine) {
+        $('div.resource_Box span.mineNum')[0].innerHTML = res[teamId].mine;
+        Game.ui.lastResource.mine = res[teamId].mine;
     }
-    if (Game.ui.lastResource.gas !== res[0].gas) {
-        $('div.resource_Box span.gasNum')[0].innerHTML = res[0].gas;
-        Game.ui.lastResource.gas = res[0].gas;
+    if (Game.ui.lastResource.gas !== res[teamId].gas) {
+        $('div.resource_Box span.gasNum')[0].innerHTML = res[teamId].gas;
+        Game.ui.lastResource.gas = res[teamId].gas;
     }
-    if (Game.ui.lastResource.curMan !== res[0].curMan) {
-        $('div.resource_Box span.manNum>span')[0].innerHTML = res[0].curMan;
-        Game.ui.lastResource.curMan = res[0].curMan;
+    if (Game.ui.lastResource.curMan !== res[teamId].curMan) {
+        $('div.resource_Box span.manNum>span')[0].innerHTML = res[teamId].curMan;
+        Game.ui.lastResource.curMan = res[teamId].curMan;
     }
-    if (Game.ui.lastResource.totalMan !== res[0].totalMan) {
-        $('div.resource_Box span.manNum>span')[1].innerHTML = res[0].totalMan;
-        Game.ui.lastResource.totalMan = res[0].totalMan;
+    if (Game.ui.lastResource.totalMan !== res[teamId].totalMan) {
+        $('div.resource_Box span.manNum>span')[1].innerHTML = res[teamId].totalMan;
+        Game.ui.lastResource.totalMan = res[teamId].totalMan;
     }
-    var manColor = (res[0].curMan > res[0].totalMan) ? "red" : (res[0].curMan === res[0].totalMan) ? "yellow" : "#00ff00";
+    var manColor = (res[teamId].curMan > res[teamId].totalMan) ? "red" : (res[teamId].curMan === res[teamId].totalMan) ? "yellow" : "#00ff00";
     if (Game.ui.lastResource.manColor !== manColor) {
         $('div.resource_Box span.manNum')[0].style.color = manColor;
         Game.ui.lastResource.manColor = manColor;
     }
-    var supplyBlocked = res[0].totalMan > 0 && res[0].curMan >= res[0].totalMan;
+    var supplyBlocked = res[teamId].totalMan > 0 && res[teamId].curMan >= res[teamId].totalMan;
     if (Game.ui.lastResource.supplyBlocked !== supplyBlocked) {
         Game.ui.lastResource.supplyBlocked = supplyBlocked;
         if (supplyBlocked) {

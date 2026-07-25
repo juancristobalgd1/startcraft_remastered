@@ -32,6 +32,20 @@ Game._syncPauseMenuOptions = function () {
     if (reducedMotionBtn) reducedMotionBtn.textContent = 'Reduced Motion: ' + (Game.reducedMotion ? 'On' : 'Off');
     var fontScaleBtn = document.getElementById('PauseFontScale');
     if (fontScaleBtn) fontScaleBtn.textContent = 'Font Size: ' + _formatScaleLabel(Game.fontScale);
+
+    // Sync volume and mute state
+    var muteBtn = document.getElementById('PauseToggleMute');
+    if (muteBtn) {
+        muteBtn.textContent = 'Mute: ' + (globalThis._$.getMuted() ? 'On' : 'Off');
+    }
+    var volumeRange = document.getElementById('PauseVolumeRange');
+    if (volumeRange) {
+        volumeRange.value = globalThis._$.getVolume();
+    }
+    var volumeLabel = document.querySelector('.pauseMenuVolumeLabel');
+    if (volumeLabel) {
+        volumeLabel.textContent = 'Volume: ' + Math.round(globalThis._$.getVolume() * 100) + '%';
+    }
 };
 
 Game.setUiScale = function (scale) {
@@ -228,6 +242,20 @@ Game.init = function () {
             event.preventDefault();
             Game.restartLevel();
         };
+        var toggleMuteBtn = document.getElementById('PauseToggleMute');
+        if (toggleMuteBtn) toggleMuteBtn.onclick = function (event) {
+            event.preventDefault();
+            globalThis._$.setMuted(!globalThis._$.getMuted());
+            Game._syncPauseMenuOptions();
+        };
+        var volumeRangeInput = document.getElementById('PauseVolumeRange');
+        if (volumeRangeInput) volumeRangeInput.oninput = function (event) {
+            globalThis._$.setVolume(parseFloat(event.target.value));
+            var volumeLabel = document.querySelector('.pauseMenuVolumeLabel');
+            if (volumeLabel) {
+                volumeLabel.textContent = 'Volume: ' + Math.round(globalThis._$.getVolume() * 100) + '%';
+            }
+        };
         var toggleMetricsBtn = document.getElementById('PauseToggleMetrics');
         if (toggleMetricsBtn) toggleMetricsBtn.onclick = function (event) {
             event.preventDefault();
@@ -288,10 +316,19 @@ Game.start = function () {
         });
         $('.levelSelectionBg').append(item);
     }
+
+    var mpItem = $('<div class="levelItem multiplayer-menu-item" style="border-top: 1px solid var(--neon-cyan); color: #0ff !important;">[ Lobby Multijugador ]</div>');
+    mpItem.on('click', function () {
+        if (globalThis.Multiplayer && globalThis.Multiplayer.showLobbyUI) {
+            globalThis.Multiplayer.showLobbyUI();
+        }
+    });
+    $('.levelSelectionBg').append(mpItem);
 };
 Game.play = function () {
     Game.resume();
     Game.layerSwitchTo("GameLoading");
+    $('div.LoadingMsg').text('Now Loading...');
     if (Game.level !== 12) {
         Game.replayFlag = false;
     }
@@ -300,12 +337,17 @@ Game.play = function () {
         Levels[Game.level - 1].load();
         setTimeout(function () {
             Game.preloadCurrentLevelAssets(function () {
-                Game.layerSwitchTo("GamePlay");
-                Game.resizeWindow();
-                mouseController.toControlAll();
-                keyController.start();
-                Game.initReplayRecording();
-                Game.animation();
+                if (globalThis.Multiplayer && globalThis.Multiplayer.loadingGame) {
+                    $('div.LoadingMsg').text('Esperando al oponente...');
+                    globalThis.Multiplayer.sendPlayerLoaded();
+                } else {
+                    Game.layerSwitchTo("GamePlay");
+                    Game.resizeWindow();
+                    mouseController.toControlAll();
+                    keyController.start();
+                    Game.initReplayRecording();
+                    Game.animation();
+                }
             });
         }, 0);
     });
@@ -367,6 +409,10 @@ Game.preloadCurrentLevelAssets = function (callback) {
     sourceLoader.allOnLoad(callback);
 };
 Game.restartLevel = function () {
+    if (globalThis.Multiplayer && globalThis.Multiplayer.ON) {
+        alert("No se puede reiniciar una partida multijugador.");
+        return;
+    }
     Game.resume();
     Game.stopAnimation();
     if (Game.pathfinding) Game.pathfinding.reset();
@@ -497,9 +543,12 @@ Game.resizeWindow = function () {
 
 Game.initReplayRecording = function () {
     if (Game.replayFlag) return;
+    const seed = Math.floor(Math.random() * 1000000);
+    Game.seed = seed;
     Game.replay = {
         level: Game.level,
         team: Game.team,
+        seed: seed,
         cmds: {},
         end: 0
     };
@@ -540,3 +589,95 @@ Game.saveReplayIntoDB = function () {
         console.error("IndexedDB error saving replay:", event.target.error);
     };
 };
+
+// Definir nivel multijugador dinámico (Nivel 13) en el array Levels
+if (globalThis.Levels) {
+    globalThis.Levels[12] = {
+        level: 13,
+        label: 'Multiplayer',
+        load: function () {
+            const mapName = (globalThis.Multiplayer && globalThis.Multiplayer.selectedMap) || 'Switchback';
+            GameMap.setCurrentMap(mapName);
+            
+            Resource.init(2);
+            Resource[0].mine = 500;
+            Resource[0].gas = 0;
+            Resource[0].curMan = 0;
+            Resource[0].totalMan = 0;
+            Resource[1].mine = 500;
+            Resource[1].gas = 0;
+            Resource[1].curMan = 0;
+            Resource[1].totalMan = 0;
+
+            const mapSize = GameMap.getCurrentMap();
+            const mapW = mapSize.width || 1500;
+            const mapH = mapSize.height || 1500;
+            const viewW = Game.HBOUND || innerWidth || 1000;
+            const viewH = Game.VBOUND || innerHeight || 800;
+
+            const team0Start = { x: 200, y: 200 };
+            const team1Start = { x: mapW - 400, y: mapH - 400 };
+
+            if (Game.team === 0) {
+                GameMap.offsetX = Math.max(0, Math.min(mapW - viewW, team0Start.x - Math.floor(viewW / 2)));
+                GameMap.offsetY = Math.max(0, Math.min(mapH - viewH, team0Start.y - Math.floor(viewH / 2)));
+            } else {
+                GameMap.offsetX = Math.max(0, Math.min(mapW - viewW, team1Start.x - Math.floor(viewW / 2)));
+                GameMap.offsetY = Math.max(0, Math.min(mapH - viewH, team1Start.y - Math.floor(viewH / 2)));
+            }
+            GameMap.fogFlag = true;
+            GameMap.needRefresh = "MAP";
+
+            if (globalThis.Multiplayer && globalThis.Multiplayer.currentRoom) {
+                const roomPlayers = globalThis.Multiplayer.currentRoom.players;
+                roomPlayers.forEach(p => {
+                    const startLoc = p.team === 0 ? team0Start : team1Start;
+                    const sx = startLoc.x;
+                    const sy = startLoc.y;
+                    const race = p.race;
+                    const team = p.team;
+
+                    if (team === Game.team) {
+                        Game.race.choose(race);
+                    }
+
+                    if (race === 'Terran') {
+                        const CommandCenter = (window.Building && window.Building.TerranBuilding && window.Building.TerranBuilding.CommandCenter) || (window.TerranBuilding && window.TerranBuilding.CommandCenter);
+                        if (CommandCenter) new CommandCenter({ x: sx, y: sy, team: team });
+                        const SCV = (window.Terran && window.Terran.SCV);
+                        if (SCV) {
+                            new SCV({ x: sx - 40, y: sy + 120, team: team });
+                            new SCV({ x: sx + 40, y: sy + 120, team: team });
+                            new SCV({ x: sx + 120, y: sy + 40, team: team });
+                            new SCV({ x: sx + 120, y: sy - 40, team: team });
+                        }
+                    } else if (race === 'Zerg') {
+                        const Hatchery = (window.Building && window.Building.ZergBuilding && window.Building.ZergBuilding.Hatchery) || (window.ZergBuilding && window.ZergBuilding.Hatchery);
+                        if (Hatchery) new Hatchery({ x: sx, y: sy, team: team });
+                        const Drone = (window.Zerg && window.Zerg.Drone);
+                        if (Drone) {
+                            new Drone({ x: sx - 40, y: sy + 120, team: team });
+                            new Drone({ x: sx + 40, y: sy + 120, team: team });
+                            new Drone({ x: sx + 120, y: sy + 40, team: team });
+                            new Drone({ x: sx + 120, y: sy - 40, team: team });
+                        }
+                        const Overlord = (window.Zerg && window.Zerg.Overlord);
+                        if (Overlord) {
+                            new Overlord({ x: sx - 80, y: sy - 80, team: team });
+                        }
+                    } else if (race === 'Protoss') {
+                        const Nexus = (window.Building && window.Building.ProtossBuilding && window.Building.ProtossBuilding.Nexus) || (window.ProtossBuilding && window.ProtossBuilding.Nexus);
+                        if (Nexus) new Nexus({ x: sx, y: sy, team: team });
+                        const Probe = (window.Protoss && window.Protoss.Probe);
+                        if (Probe) {
+                            new Probe({ x: sx - 40, y: sy + 120, team: team });
+                            new Probe({ x: sx + 40, y: sy + 120, team: team });
+                            new Probe({ x: sx + 120, y: sy + 40, team: team });
+                            new Probe({ x: sx + 120, y: sy - 40, team: team });
+                        }
+                    }
+                });
+            }
+        }
+    };
+}

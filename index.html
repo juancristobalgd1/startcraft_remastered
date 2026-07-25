@@ -32,6 +32,7 @@
     <div id="GameStart" class="GameLayer">
         <div class="levelSelectionBg"></div>
     </div>
+    <div id="GameLobby" class="GameLayer"></div>
     <div id="GamePlay" class="GameLayer" race="Terran">
         <button id="PauseButton" type="button">Pause</button>
         <div id="GameHUD"></div>
@@ -40,6 +41,11 @@
                 <div class="pauseMenuTitle">Paused</div>
                 <button id="PauseResume" type="button">Resume</button>
                 <button id="PauseRestart" type="button">Restart</button>
+                <button id="PauseToggleMute" type="button">Mute: Off</button>
+                <div class="pauseMenuVolumeContainer">
+                    <span class="pauseMenuVolumeLabel">Volume: 50%</span>
+                    <input type="range" id="PauseVolumeRange" min="0" max="1" step="0.05" value="0.5">
+                </div>
                 <button id="PauseToggleMetrics" type="button">Toggle FPS/Input</button>
                 <button id="PauseToggleHaptics" type="button">Toggle Haptics</button>
                 <button id="PauseUiScale" type="button">UI Size: Normal</button>

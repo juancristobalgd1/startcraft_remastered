@@ -90,7 +90,7 @@ Levels.push(
                     "Hallucination", "Feedback", "MindControl", "MaelStorm", "Recall", "StasisField", "DisruptionWeb", "RechargeShields"];
                 var items = {};
                 for (var N = 4; N <= 9; N++) {
-                    var index = Math.random() * magics.length >> 0;
+                    var index = Game.random() * magics.length >> 0;
                     items[N] = { name: magics[index] };
                     magics.splice(index, 1);
                 }
@@ -385,6 +385,11 @@ Levels.push(
                 //Parse last replay data
                 lastReplay = JSON.parse(lastReplay);
                 if (lastReplay.hasOwnProperty('team')) Game.team = lastReplay.team;
+                if (lastReplay.hasOwnProperty('seed')) {
+                    Game.seed = lastReplay.seed;
+                } else {
+                    Game.seed = 12345;
+                }
                 Levels[lastReplay.level - 1].load();
                 Game.replayLevel = lastReplay.level;
                 //Parse user moves

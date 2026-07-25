@@ -22,7 +22,8 @@ class Building extends Gobj {
         }
 
         this.id = Unit.currentID++;
-        this.isEnemy = Boolean(props.isEnemy || props.target?.isEnemy);
+        this.team = props.team !== undefined ? props.team : (props.isEnemy ? 1 : 0);
+        this.isEnemy = (Game.team !== undefined) ? (this.team !== Game.team) : Boolean(props.isEnemy || props.target?.isEnemy);
         this.life = this.get('HP');
 
         if (this.SP) this.shield = this.get('SP');

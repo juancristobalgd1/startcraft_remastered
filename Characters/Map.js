@@ -130,6 +130,18 @@ class GameMapClass {
 
     refreshFog() {
         if (this.fogFlag && this.fogCxt && this.miniFogCxt) {
+            const mapImg = sourceLoader.sources['Map_' + this.currentMap];
+            if (!this.explored && mapImg && mapImg.width) {
+                this.setCurrentMap(this.currentMap);
+                const all = (typeof Unit !== 'undefined' && Unit.allUnits ? Unit.allUnits : []).concat(typeof Building !== 'undefined' && Building.allBuildings ? Building.allBuildings : []);
+                all.forEach(u => {
+                    if (u && u.status !== 'dead') {
+                        const sight = (typeof u.get === 'function') ? u.get('sight') : (u.sight || 150);
+                        this.markExplored(u.posX(), u.posY(), sight);
+                    }
+                });
+            }
+
             const ctx = this.fogCxt;
             const mCtx = this.miniFogCxt;
             const ratio = this.fogCanvas.ratio || (130 / 2048);
@@ -352,11 +364,11 @@ class GameMapClass {
     }
 
     refresh(step) {
-        if (!this.bgCxt && Game) {
-            if (Game.backCxt) this.bgCxt = Game.backCxt;
-            else if (Game.cxt) this.bgCxt = Game.cxt;
-        }
+        this.bgCxt = (Game && Game.backCxt) || (Game && Game.cxt);
         if (!this.bgCxt) return;
+        if (!this.rect || !this.rect.width) {
+            this.rect = { width: Game.HBOUND || innerWidth, height: Game.VBOUND || innerHeight };
+        }
         const mapImg = sourceLoader.sources['Map_' + this.currentMap];
         if (!mapImg) return;
 

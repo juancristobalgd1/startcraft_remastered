@@ -147,8 +147,15 @@ var mouseController = {
                 unlock: unlock,
                 btn: Button.callback
             };
-            if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
-            Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
+            if (globalThis.Multiplayer.ON) {
+                globalThis.Multiplayer.sendLocalCommand(cmd);
+                new Burst.RightClickCursor({ x: clickX + GameMap.offsetX, y: clickY + GameMap.offsetY });
+                if (Game.hapticsEnabled && navigator.vibrate) navigator.vibrate(15);
+                return;
+            } else {
+                if (!Game.replay.cmds[Game._clock]) Game.replay.cmds[Game._clock] = [];
+                Game.replay.cmds[Game._clock].push(JSON.stringify(cmd));
+            }
         }
 
         //Show right click cursor

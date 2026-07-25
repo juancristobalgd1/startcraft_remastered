@@ -1,4 +1,5 @@
 import _$ from '../../../Utils/gFrame/core.js';
+import Game from '../../Games/core/GameBase.js';
 
 const Referee = {
     ourDetectedUnits: [],
@@ -133,7 +134,7 @@ const Referee = {
                 }
                 // Separate overlapping ones
                 if (dist == 0) {
-                    const colPos = Referee._pos[Math.random() * 4 >> 0];
+                    const colPos = Referee._pos[Game.random() * 4 >> 0];
                     if (chara1 instanceof Unit) {
                         chara1.x += colPos[0];
                         chara1.y += colPos[1];
@@ -201,7 +202,7 @@ const Referee = {
                 let dist = chara1.distanceFrom(chara2);
                 const distLimit = Unit.meleeRange;
                 if (dist == 0) {
-                    const colPos = Referee._pos[Math.random() * 4 >> 0];
+                    const colPos = Referee._pos[Game.random() * 4 >> 0];
                     chara1.x += colPos[0];
                     chara1.y += colPos[1];
                     dist = 1;
